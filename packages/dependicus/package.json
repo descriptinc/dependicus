@@ -1,0 +1,46 @@
+{
+    "name": "@dependicus/internal",
+    "version": "0.1.0",
+    "bin": {
+        "dependicus": "dist/bin.mjs"
+    },
+    "files": [
+        "dist"
+    ],
+    "type": "module",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "default": "./dist/index.mjs"
+        }
+    },
+    "scripts": {
+        "dependicus": "node dist/bin.mjs",
+        "build": "tsdown",
+        "bundle": "rolldown -c rolldown.config.ts",
+        "clean": "rm -rf dist",
+        "test": "vitest run",
+        "typedoc": "typedoc --tsconfig tsconfig.typedoc.json --entryPoints src/index.ts --out typedoc-out --name 'Dependicus API Reference'",
+        "typecheck": "tsc --build tsconfig.json"
+    },
+    "dependencies": {
+        "@dependicus/core": "workspace:*",
+        "@dependicus/github-issues": "workspace:*",
+        "@dependicus/linear": "workspace:*",
+        "@dependicus/provider-go": "workspace:*",
+        "@dependicus/provider-mise": "workspace:*",
+        "@dependicus/provider-rust": "workspace:*",
+        "@dependicus/providers-node": "workspace:*",
+        "@dependicus/providers-python": "workspace:*",
+        "@dependicus/site-builder": "workspace:*",
+        "commander": "^14.0.3",
+        "rolldown": "^1.0.0-rc.5"
+    },
+    "devDependencies": {
+        "@types/node": "^25.3.0",
+        "tsdown": "^0.20.3",
+        "typedoc": "^0.28.17",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18"
+    }
+}

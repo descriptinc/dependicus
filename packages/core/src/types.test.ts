@@ -1,0 +1,292 @@
+import { describe, it, expect } from 'vitest';
+import { mergeProviderDependencies, buildProviderInfoMap } from './types';
+import type { ProviderOutput, DirectDependency } from './types';
+
+function makeProviderOutput(overrides?: Partial<ProviderOutput>): ProviderOutput {
+    return {
+        name: 'test-provider',
+        ecosystem: 'npm',
+        supportsCatalog: false,
+        installCommand: 'pnpm install',
+        urlPatterns: {},
+        dependencies: [],
+        ...overrides,
+    };
+}
+
+function makeDep(overrides?: Partial<DirectDependency>): DirectDependency {
+    return {
+        name: 'test-pkg',
+        ecosystem: 'npm',
+        versions: [
+            {
+                version: '1.0.0',
+                latestVersion: '2.0.0',
+                usedBy: ['app'],
+                dependencyTypes: ['prod'],
+                publishDate: '2024-01-01T00:00:00.000Z',
+                inCatalog: false,
+            },
+        ],
+        ...overrides,
+    };
+}
+
+describe('mergeProviderDependencies', () => {
+    it('merges single provider (passthrough)', () => {
+        const dep = makeDep();
+        const provider = makeProviderOutput({
+            name: 'pnpm',
+            supportsCatalog: false,
+            dependencies: [dep],
+        });
+
+        const result = mergeProviderDependencies([provider]);
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toEqual(dep);
+    });
+
+    it('merges two providers with same package/version - unions usedBy and dependencyTypes', () => {
+        const dep1 = makeDep({
+            name: 'lodash',
+            versions: [
+                {
+                    version: '4.17.21',
+                    latestVersion: '4.17.21',
+                    usedBy: ['app'],
+                    dependencyTypes: ['prod'],
+                    publishDate: '2024-01-01T00:00:00.000Z',
+                    inCatalog: false,
+                },
+            ],
+        });
+
+        const dep2 = makeDep({
+            name: 'lodash',
+            versions: [
+                {
+                    version: '4.17.21',
+                    latestVersion: '4.17.21',
+                    usedBy: ['lib', 'tools'],
+                    dependencyTypes: ['dev'],
+                    publishDate: '2024-01-01T00:00:00.000Z',
+                    inCatalog: false,
+                },
+            ],
+        });
+
+        const provider1 = makeProviderOutput({
+            name: 'pnpm',
+            dependencies: [dep1],
+        });
+
+        const provider2 = makeProviderOutput({
+            name: 'yarn',
+            dependencies: [dep2],
+        });
+
+        const result = mergeProviderDependencies([provider1, provider2]);
+
+        expect(result).toHaveLength(1);
+        expect(result[0]!.name).toBe('lodash');
+        expect(result[0]!.versions).toHaveLength(1);
+        expect(result[0]!.versions[0]).toEqual({
+            version: '4.17.21',
+            latestVersion: '4.17.21',
+            usedBy: ['app', 'lib', 'tools'],
+            dependencyTypes: ['dev', 'prod'],
+            publishDate: '2024-01-01T00:00:00.000Z',
+            inCatalog: false,
+        });
+    });
+
+    it('merges two providers with different packages - includes both', () => {
+        const dep1 = makeDep({
+            name: 'lodash',
+            versions: [
+                {
+                    version: '4.17.21',
+                    latestVersion: '4.17.21',
+                    usedBy: ['app'],
+                    dependencyTypes: ['prod'],
+                    publishDate: '2024-01-01T00:00:00.000Z',
+                    inCatalog: false,
+                },
+            ],
+        });
+
+        const dep2 = makeDep({
+            name: 'express',
+            versions: [
+                {
+                    version: '4.18.0',
+                    latestVersion: '4.18.0',
+                    usedBy: ['app'],
+                    dependencyTypes: ['prod'],
+                    publishDate: '2024-01-01T00:00:00.000Z',
+                    inCatalog: false,
+                },
+            ],
+        });
+
+        const provider1 = makeProviderOutput({
+            name: 'pnpm',
+            dependencies: [dep1],
+        });
+
+        const provider2 = makeProviderOutput({
+            name: 'yarn',
+            dependencies: [dep2],
+        });
+
+        const result = mergeProviderDependencies([provider1, provider2]);
+
+        expect(result).toHaveLength(2);
+        expect(result[0]!.name).toBe('express');
+        expect(result[1]!.name).toBe('lodash');
+    });
+
+    it('sets inCatalog true if any provider has it true', () => {
+        const dep1 = makeDep({
+            name: 'react',
+            versions: [
+                {
+                    version: '18.0.0',
+                    latestVersion: '18.0.0',
+                    usedBy: ['app'],
+                    dependencyTypes: ['prod'],
+                    publishDate: '2024-01-01T00:00:00.000Z',
+                    inCatalog: false,
+                },
+            ],
+        });
+
+        const dep2 = makeDep({
+            name: 'react',
+            versions: [
+                {
+                    version: '18.0.0',
+                    latestVersion: '18.0.0',
+                    usedBy: ['lib'],
+                    dependencyTypes: ['prod'],
+                    publishDate: '2024-01-01T00:00:00.000Z',
+                    inCatalog: true,
+                },
+            ],
+        });
+
+        const provider1 = makeProviderOutput({
+            name: 'pnpm',
+            supportsCatalog: true,
+            dependencies: [dep1],
+        });
+
+        const provider2 = makeProviderOutput({
+            name: 'yarn',
+            supportsCatalog: false,
+            dependencies: [dep2],
+        });
+
+        const result = mergeProviderDependencies([provider1, provider2]);
+
+        expect(result).toHaveLength(1);
+        expect(result[0]!.versions[0]!.inCatalog).toBe(true);
+    });
+
+    it('results sorted by package name', () => {
+        const dep1 = makeDep({
+            name: 'zebra',
+            versions: [
+                {
+                    version: '1.0.0',
+                    latestVersion: '1.0.0',
+                    usedBy: ['app'],
+                    dependencyTypes: ['prod'],
+                    publishDate: '2024-01-01T00:00:00.000Z',
+                    inCatalog: false,
+                },
+            ],
+        });
+
+        const dep2 = makeDep({
+            name: 'apple',
+            versions: [
+                {
+                    version: '1.0.0',
+                    latestVersion: '1.0.0',
+                    usedBy: ['app'],
+                    dependencyTypes: ['prod'],
+                    publishDate: '2024-01-01T00:00:00.000Z',
+                    inCatalog: false,
+                },
+            ],
+        });
+
+        const dep3 = makeDep({
+            name: 'monkey',
+            versions: [
+                {
+                    version: '1.0.0',
+                    latestVersion: '1.0.0',
+                    usedBy: ['app'],
+                    dependencyTypes: ['prod'],
+                    publishDate: '2024-01-01T00:00:00.000Z',
+                    inCatalog: false,
+                },
+            ],
+        });
+
+        const provider = makeProviderOutput({
+            name: 'pnpm',
+            dependencies: [dep1, dep2, dep3],
+        });
+
+        const result = mergeProviderDependencies([provider]);
+
+        expect(result).toHaveLength(3);
+        expect(result[0]!.name).toBe('apple');
+        expect(result[1]!.name).toBe('monkey');
+        expect(result[2]!.name).toBe('zebra');
+    });
+});
+
+describe('buildProviderInfoMap', () => {
+    it('builds map from providers, first provider per ecosystem wins', () => {
+        const p1 = makeProviderOutput({
+            name: 'pnpm',
+            ecosystem: 'npm',
+            installCommand: 'pnpm install',
+            urlPatterns: { Registry: 'https://npmjs.com/{{name}}' },
+        });
+        const p2 = makeProviderOutput({
+            name: 'bun',
+            ecosystem: 'npm',
+            installCommand: 'bun install',
+        });
+        const p3 = makeProviderOutput({
+            name: 'mise',
+            ecosystem: 'mise',
+            installCommand: 'mise install',
+            urlPatterns: { Registry: 'https://mise-versions.jdx.dev/tools/{{name}}' },
+        });
+
+        const map = buildProviderInfoMap([p1, p2, p3]);
+
+        expect(map.size).toBe(2);
+        expect(map.get('npm')!.name).toBe('pnpm');
+        expect(map.get('npm')!.installCommand).toBe('pnpm install');
+        expect(map.get('mise')!.name).toBe('mise');
+    });
+
+    it('omits dependencies from ProviderInfo', () => {
+        const p = makeProviderOutput({
+            dependencies: [makeDep()],
+        });
+
+        const map = buildProviderInfoMap([p]);
+        const info = map.get('npm')!;
+
+        expect(info).not.toHaveProperty('dependencies');
+    });
+});

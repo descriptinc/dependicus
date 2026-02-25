@@ -1,0 +1,44 @@
+[project]
+site_name = "Dependicus"
+repo_url = "https://github.com/descriptinc/dependicus"
+repo_name = "descriptinc/dependicus"
+edit_uri = "edit/main/docs/docs/"
+nav = [
+    { "Docs" = [
+        { "Basics" = [
+            { "What is Dependicus?" = "index.md" },
+            { "Getting Started" = "gettingstarted.md" },
+            { "Configuration" = "configuration.md" },
+            { "Continuous Integration" = "ci.md" },
+            { "BasicCompliancePlugin" = "compliance.md" },
+        ] },
+        { "Tickets" = [
+            { "Linear Issues" = "linearissues.md" },
+            { "GitHub Issues" = "githubissues.md" },
+        ] },
+        { "Package Managers" = [
+            { "Overview" = "package-managers.md" },
+            { "Node.js" = "providers/node.md" },
+            { "Mise" = "providers/mise.md" },
+            { "Python (uv)" = "providers/uv.md" },
+            { "Go" = "providers/go.md" },
+            { "Rust (Cargo)" = "providers/rust.md" },
+        ] },
+        { "Guides" = [
+            { "Writing Plugins" = "plugins.md" },
+            { "Using Coding Agents" = "coding-agents.md" },
+            { "Contributing" = "contributing.md" },
+        ] },
+        { "Comparisons" = [
+            { "vs Renovate" = "dependicus-vs-renovate.md" },
+            { "vs Dependabot" = "dependicus-vs-dependabot.md" },
+        ] },
+    ] },
+    { "API" = "/api/" },
+    { "Dependencies" = "/dependencies/" },
+]
+
+[project.theme]
+logo = "images/logo.svg"
+favicon = "images/favicon.svg"
+features = ["navigation.footer", "navigation.tabs", "content.action.edit", "content.action.view"]

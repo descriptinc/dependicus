@@ -1,0 +1,40 @@
+<div id="container" class="dep-container">
+    {{#unless singleProvider}}
+    <div id="provider-bar" class="dep-provider-bar">
+        {{#each providersSummary}}
+        <button class="dep-provider {{#if @first}}active{{/if}}" data-provider="{{name}}">
+            {{name}}
+        </button>
+        {{/each}}
+    </div>
+    {{/unless}}
+    <div id="tabs" class="dep-tabs">
+        <button class="dep-tab active" data-tab-type="deps">
+            Dependencies
+            <span class="dep-tab-count">0</span>
+        </button>
+        <button class="dep-tab" data-tab-type="dups">
+            Duplicates
+            <span class="dep-tab-count">0</span>
+        </button>
+        <label id="responsive-toggle" class="dep-responsive-toggle">
+            <input type="checkbox" id="responsive-checkbox">
+            <span>Responsive</span>
+        </label>
+    </div>
+    <div id="table-container" class="dep-table-container">
+        {{#each tabs}}
+        <div id="table-{{id}}" class="dep-table-wrapper {{#if grouped}}dep-multi-versions-table{{/if}}"></div>
+        {{/each}}
+    </div>
+</div>
+
+<script>
+    window.dependicusData = {
+        providers: {{{providersJson}}},
+        tabs: {{{tabsJson}}},
+        uniqueNotes: {{{uniqueNotesJson}}},
+        customColumns: {{{customColumnsJson}}},
+        groupings: {{{groupingsJson}}}
+    };
+</script>

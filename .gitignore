@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.tsbuildinfo
+docs-out/
+dependicus-out/
+.dependicus-cache/
+hk.local.pkl
+.package-manager
+.yarn/install-state.gz
+.claude/*.local.json
+.claude/settings.local.json
+.venv/

@@ -1,0 +1,9 @@
+<nav class="dep-top-nav">
+    <span class="dep-nav-site-name">{{siteName}}</span>
+    <span class="dep-nav-chevron">&#8250;</span>
+    <a href="{{baseHref}}index.html">Dependencies</a>
+    {{#each groupings}}
+    <a href="{{../baseHref}}{{../providerPrefix}}{{slug}}/index.html">{{label}}</a>
+    {{/each}}
+    {{#if timestamp}}<span class="dep-nav-timestamp">Generated: {{timestamp}}</span>{{/if}}
+</nav>

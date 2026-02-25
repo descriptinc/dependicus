@@ -1,0 +1,88 @@
+<header class="dep-detail-header">
+    <h1><code>{{name}}@{{version}}</code></h1>
+    {{#if description}}<p class="dep-detail-description">{{description}}</p>{{/if}}
+    <div class="dep-detail-links">
+        {{#each urls}}<a href="{{this.url}}">{{this.label}}</a>{{/each}}
+        {{#if homepage}}<a href="{{homepage}}">Homepage</a>{{/if}}
+        {{#if repositoryUrl}}<a href="{{repositoryUrl}}">Repository</a>{{/if}}
+        {{#if changelogUrl}}<a href="{{changelogUrl}}">CHANGELOG</a>{{/if}}
+        {{#if bugsUrl}}<a href="{{bugsUrl}}">Issues</a>{{/if}}
+    </div>
+</header>
+
+<div class="dep-detail-columns">
+    <aside class="dep-detail-sidebar">
+        <section class="dep-detail-card">
+            <h2>Metadata</h2>
+            <dl class="dep-metadata-dl">
+                {{#if customMeta}}
+                {{#each customMeta}}
+                <dt>{{this.label}}</dt>
+                <dd>{{{this.value}}}</dd>
+                {{/each}}
+                {{/if}}
+
+                <dt>Type</dt>
+                <dd>{{dependencyTypes}}</dd>
+
+                {{#if formattedPublishDate}}
+                <dt>Published</dt>
+                <dd>{{formattedPublishDate}}{{#if publishDateAge}} <span class="dep-age-text">({{publishDateAge}})</span>{{/if}}</dd>
+                {{/if}}
+
+                <dt>Latest Version</dt>
+                <dd><code>{{latestVersion}}</code>{{versionsBehindText}}</dd>
+
+                <dt>In Catalog</dt>
+                <dd>{{#if inCatalog}}<span class="dep-catalog-yes">Yes</span>{{else}}<span class="dep-catalog-no">No</span>{{/if}}</dd>
+
+                {{#if formattedInstalledSize}}
+                <dt>Installed Size</dt>
+                <dd>{{formattedInstalledSize}}</dd>
+                {{/if}}
+
+                {{#if notes}}
+                <dt>Notes</dt>
+                <dd>{{notes}}</dd>
+                {{/if}}
+            </dl>
+        </section>
+
+        <section class="dep-detail-card">
+            <h2>Used By <span class="dep-count-badge">{{usedByCount}}</span></h2>
+            {{#if usedByGrouped}}
+            {{#each usedByGrouped}}
+            <details class="dep-plain-details" open>
+                <summary><strong>{{this.owner}}</strong> ({{length this.packages}})</summary>
+                <ul class="dep-used-by-list">
+                    {{#each this.packages}}
+                    <li><code>{{this}}</code></li>
+                    {{/each}}
+                </ul>
+            </details>
+            {{/each}}
+            {{else}}
+            <ul class="dep-used-by-list">
+                {{#each usedByFlat}}
+                <li><code>{{this}}</code></li>
+                {{/each}}
+            </ul>
+            {{/if}}
+        </section>
+
+        {{#if hasDeprecatedDeps}}
+        <section class="dep-detail-card dep-detail-card-warn">
+            <h2>Deprecated Transitive Dependencies</h2>
+            <ul class="dep-used-by-list">
+                {{#each deprecatedTransitiveDeps}}
+                <li><code>{{this}}</code></li>
+                {{/each}}
+            </ul>
+        </section>
+        {{/if}}
+    </aside>
+
+    <div class="dep-detail-main">
+        {{> upgrade-path upgradePath}}
+    </div>
+</div>
