@@ -1,0 +1,62 @@
+This issue tracks updates for the **{{groupName}}** dependency group.
+
+## Summary
+
+- **Group:** {{groupName}}
+- **Dependencies:** {{dependencyCount}}
+{{#if notificationsOnly}}
+- *Tracked for awareness only (no mandatory updates)*
+{{else}}
+- **Worst update type:** {{updateType}}
+{{#if hasOverdue}}
+- **Days overdue:** {{daysOverdue}}
+{{/if}}
+{{/if}}
+{{#if dueDate}}
+- **Due date:** {{dueDate}}
+{{/if}}
+
+## Dependencies to Update
+
+{{#each dependencies}}
+### {{this.name}}
+
+{{#if this.description}}
+> {{this.description}}
+
+{{/if}}
+- **Current:** `{{this.currentVersion}}`
+- **Target:** `{{this.minVersion}}`
+{{#if this.showLatest}}
+- **Latest:** `{{this.effectiveLatestVersion}}`
+{{/if}}
+- **Update type:** {{this.updateType}}
+- **In catalog:** {{#if this.inCatalog}}Yes{{else}}No{{/if}}
+- [Dependicus Detail]({{this.detailUrl}}){{#each this.urls}} | [{{this.label}}]({{this.url}}){{/each}}
+
+{{/each}}
+## How to Update
+
+{{#if supportsCatalog}}
+Update each dependency in the `{{catalogFile}}` catalog (if applicable) or individual package.json files:
+
+```yaml
+catalog:
+{{#each dependencies}}
+  {{this.name}}: "{{this.effectiveLatestVersion}}"
+{{/each}}
+```
+
+Then run `{{installCommand}}` to update the lockfile.
+{{else}}
+{{updateInstructions}}
+{{/if}}
+
+*Notes for coding agents*
+
+*PR title should be: "Update {{groupName}} dependencies"*
+
+*If the PR body makes claims about the changes in the new versions, include URL references to release notes, changelogs, or commit diffs that support those claims.*
+
+---
+*This issue was automatically created by Dependicus. It will be recreated if closed while dependencies in this group remain non-compliant.*

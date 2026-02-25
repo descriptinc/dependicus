@@ -1,0 +1,168 @@
+{{#if description}}
+> {{description}}
+
+{{/if}}
+## Summary
+
+{{#if ownerLabel}}
+- {{ownerLabel}}
+{{/if}}
+{{#if multiVersion}}
+- **Current versions in monorepo:**
+{{#each versions}}
+  - `{{this.version}}`{{#if this.publishDate}} (published {{formatDateShort this.publishDate}}){{/if}} — used by {{join this.usedByPreview ", "}}{{#if this.usedByExtra}} +{{this.usedByExtra}} more{{/if}}
+{{/each}}
+{{else}}
+- **Current version:** `{{currentVersion}}`{{#if currentPublishDate}} (published {{formatDateShort currentPublishDate}}){{/if}}
+{{/if}}
+- **Target version:** `{{minVersion}}`{{#if targetPublishDate}} (published {{formatDateShort targetPublishDate}}){{/if}}
+{{#if showLatest}}
+- **Latest version:** `{{effectiveLatestVersion}}`{{#if latestPublishDate}} (published {{formatDateShort latestPublishDate}}){{/if}}
+{{/if}}
+- **Update type:** {{updateType}}
+- **Versions behind:** {{versionsBehindCount}}
+{{#if formattedInstalledSize}}
+- **Installed size:** {{formattedInstalledSize}}
+{{/if}}
+- **Dependency types:** {{join dependencyTypes ", "}}
+- **In catalog:** {{#if inCatalog}}Yes{{else}}No{{/if}}
+{{#if dueDate}}
+- **Due date:** {{dueDate}}
+{{/if}}
+
+## How to Update
+
+{{#if supportsCatalog}}
+{{#if inCatalog}}
+This dependency is managed in the catalog. Edit `{{catalogFile}}`:
+
+```yaml
+catalog:
+  {{name}}: "{{effectiveLatestVersion}}"
+```
+
+Then, run `{{installCommand}}` to update the lockfile.
+{{else}}
+{{#if shouldRecommendCatalog}}
+This dependency is used by {{usedByCount}} packages. Consider adding it to the catalog:
+
+1. **Add to catalog** - Edit `{{catalogFile}}`:
+
+```yaml
+catalog:
+  {{name}}: "{{effectiveLatestVersion}}"
+```
+
+2. **Update each package** to use `"{{name}}": "catalog:"` instead of the version number.
+
+3. **Run `{{installCommand}}`** to update the lockfile.
+
+**Packages to update:**
+
+{{#each usedByList}}
+- `{{this}}`
+{{/each}}
+{{#if usedByOverflow}}
+- ... and {{usedByOverflow}} more
+{{/if}}
+
+---
+
+Alternatively, update each package to `"{{name}}": "{{effectiveLatestVersion}}"` individually.
+{{else}}
+This dependency is NOT in the catalog. {{updatePrefix}}
+
+{{#each usedByList}}
+- `{{this}}`
+{{/each}}
+{{#if usedByOverflow}}
+- ... and {{usedByOverflow}} more
+{{/if}}
+
+{{updateSuffix}}
+{{/if}}
+{{/if}}
+{{else}}
+{{updatePrefix}}
+
+{{#each usedByList}}
+- `{{this}}`
+{{/each}}
+{{#if usedByOverflow}}
+- ... and {{usedByOverflow}} more
+{{/if}}
+
+{{updateSuffix}}
+{{/if}}
+
+{{#if hasPatches}}
+## ⚠️ Patch Applied
+
+{{patchHint}}
+
+{{/if}}
+{{#each descriptionSections}}
+## {{this.title}}
+
+{{this.body}}
+
+{{/each}}
+{{#if availableMajorVersion}}
+## Note: Major Version Available
+
+A major version (`{{availableMajorVersion}}`) is available but not required by this policy. This issue tracks the required minor/patch update within the current major version.
+
+{{/if}}
+{{#if hasVersionsBetween}}
+## Upgrade Path
+
+{{#if compareUrl}}
+[View full diff on GitHub]({{compareUrl}})
+
+{{/if}}
+{{#each versionsToShow}}
+- {{#if this.isLatest}}**{{this.version}}** (latest){{else}}{{this.version}}{{/if}}{{#if this.publishDate}} ({{formatDateShort this.publishDate}}){{/if}}{{#if this.formattedSize}} — {{this.formattedSize}}{{#if this.sizeChange}} ({{this.sizeChange}}){{/if}}{{/if}}
+  - {{#if this.registryUrl}}[Registry]({{this.registryUrl}}){{/if}}{{#if this.releaseUrl}} | [GitHub Release]({{this.releaseUrl}}){{/if}}
+{{/each}}
+{{#if versionsOverflow}}
+- *... and {{versionsOverflow}} more versions*
+{{/if}}
+
+{{/if}}
+## Links
+
+- [Dependicus Detail Page]({{detailUrl}})
+{{#each urls}}
+- [{{this.label}}]({{this.url}})
+{{/each}}
+{{#if homepage}}
+- [Homepage]({{homepage}})
+{{/if}}
+{{#if repositoryUrl}}
+- [Repository]({{repositoryUrl}})
+{{/if}}
+{{#if changelogUrl}}
+- [CHANGELOG]({{changelogUrl}})
+{{/if}}
+{{#if bugsUrl}}
+- [Issues]({{bugsUrl}})
+{{/if}}
+
+{{#if hasDeprecatedTransitiveDeps}}
+## ⚠️ Deprecated Transitive Dependencies
+
+This dependency brings in the following deprecated transitive dependencies:
+
+{{#each deprecatedTransitiveDeps}}
+- `{{this}}`
+{{/each}}
+
+{{/if}}
+*Notes for coding agents*
+
+*PR title should be: "Update {{name}} from {{currentVersion}} to {{minVersion}}"*
+
+*If the PR body makes claims about the changes in the new version, include URL references to release notes, changelogs, or commit diffs that support those claims.*
+
+---
+*This issue was automatically created by Dependicus. It will be recreated if closed while the dependency remains non-compliant.*

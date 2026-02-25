@@ -1,0 +1,10 @@
+<h1>{{label}}</h1>
+<p>{{length items}} entries</p>
+<ul>
+{{#each items}}
+    <li>
+        <a href="{{slug}}">{{value}}</a>
+        <span>({{count}} dependencies{{#if (gt outdatedCount 0)}}, {{outdatedCount}} outdated{{/if}})</span>
+    </li>
+{{/each}}
+</ul>

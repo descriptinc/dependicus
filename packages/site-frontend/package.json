@@ -1,0 +1,30 @@
+{
+    "name": "@dependicus/site-frontend",
+    "version": "0.1.0",
+    "files": [
+        "dist"
+    ],
+    "type": "module",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "default": "./dist/index.mjs"
+        }
+    },
+    "scripts": {
+        "build": "tsdown",
+        "clean": "rm -rf dist",
+        "test": "vitest run",
+        "typecheck": "tsc --build tsconfig.json"
+    },
+    "dependencies": {
+        "open-props": "^1.7.23",
+        "tabulator-tables": "^6.3.1"
+    },
+    "devDependencies": {
+        "@types/node": "^25.3.0",
+        "tsdown": "^0.20.3",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18"
+    }
+}

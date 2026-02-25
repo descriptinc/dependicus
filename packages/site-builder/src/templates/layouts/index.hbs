@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{siteName}} - {{title}}</title>
+    <style>
+{{{cssContent}}}
+    </style>
+</head>
+<body class="dep-dashboard">
+    {{> nav baseHref="" groupings=groupings siteName=siteName timestamp=timestamp}}
+    {{{content}}}
+
+    <script>
+        // Bundled browser code (main.ts + formatters.ts + config.ts)
+{{{bundledJs}}}
+    </script>
+</body>
+</html>

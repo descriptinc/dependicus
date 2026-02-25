@@ -1,0 +1,343 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+env:
+    MISE_NODE_VERSION: '20'
+
+jobs:
+    check-pnpm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: pnpm install
+            - run: mise run pnpm:typecheck
+            - run: mise run pnpm:test
+
+    check-bun:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: bun install
+            - run: mise run bun:typecheck
+            - run: mise run bun:test
+
+    lint-pnpm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: pnpm install
+            - run: pnpm run format:check
+            - run: pnpm run lint
+            - run: mise run check-versions
+
+    lint-bun:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: bun install
+            - run: bun run format:check
+            - run: bun run lint
+
+    zensical:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: uv run zensical build
+              working-directory: docs
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: zensical
+                  path: docs/site
+
+    typedoc-pnpm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: pnpm install
+            - run: mise run pnpm:build
+            - run: pnpm run typedoc
+              working-directory: packages/dependicus
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: typedoc-pnpm
+                  path: packages/dependicus/typedoc-out
+
+    typedoc-bun:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: bun install
+            - run: mise run bun:build
+            - run: bun run typedoc
+              working-directory: packages/dependicus
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: typedoc-bun
+                  path: packages/dependicus/typedoc-out
+
+    dependicus-pnpm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: pnpm install
+            - run: mise run pnpm:build
+            - uses: actions/cache@v4
+              with:
+                  path: .dependicus-cache
+                  key: dependicus-pnpm-cache-${{ github.sha }}
+                  restore-keys: dependicus-pnpm-cache-
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: dependicus-pnpm
+                  path: dependicus-out
+
+    dependicus-bun:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: bun install
+            - run: mise run bun:build
+            - uses: actions/cache@v4
+              with:
+                  path: .dependicus-cache
+                  key: dependicus-bun-cache-${{ github.sha }}
+                  restore-keys: dependicus-bun-cache-
+            - run: bun run packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: dependicus-bun
+                  path: dependicus-out
+
+    check-yarn:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: mise exec -- yarn install
+            - run: mise run yarn:typecheck
+            - run: mise run yarn:test
+
+    lint-yarn:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: mise exec -- yarn install
+            - run: yarn run format:check
+            - run: yarn run lint
+
+    dependicus-yarn:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: mise exec -- yarn install
+            - run: mise run yarn:build
+            - uses: actions/cache@v4
+              with:
+                  path: .dependicus-cache
+                  key: dependicus-yarn-cache-${{ github.sha }}
+                  restore-keys: dependicus-yarn-cache-
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: dependicus-yarn
+                  path: dependicus-out
+
+    typedoc-yarn:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: mise exec -- yarn install
+            - run: mise run yarn:build
+            - run: yarn run typedoc
+              working-directory: packages/dependicus
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: typedoc-yarn
+                  path: packages/dependicus/typedoc-out
+
+    check-npm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: sed -i 's/"workspace:\*"/"*"/g' packages/*/package.json
+            - run: rm -f yarn.lock
+            - run: npm ci
+            - run: mise run npm:typecheck
+            - run: mise run npm:test
+
+    lint-npm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: sed -i 's/"workspace:\*"/"*"/g' packages/*/package.json
+            - run: rm -f yarn.lock
+            - run: npm ci
+            - run: npm run format:check
+            - run: npm run lint
+
+    typedoc-npm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: sed -i 's/"workspace:\*"/"*"/g' packages/*/package.json
+            - run: rm -f yarn.lock
+            - run: npm ci
+            - run: mise run npm:build
+            - run: npm run typedoc
+              working-directory: packages/dependicus
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: typedoc-npm
+                  path: packages/dependicus/typedoc-out
+
+    dependicus-npm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: sed -i 's/"workspace:\*"/"*"/g' packages/*/package.json
+            - run: npm ci
+            - run: git checkout -- yarn.lock packages/*/package.json
+            - run: mise run npm:build
+            - uses: actions/cache@v4
+              with:
+                  path: .dependicus-cache
+                  key: dependicus-npm-cache-${{ github.sha }}
+                  restore-keys: dependicus-npm-cache-
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: dependicus-npm
+                  path: dependicus-out
+
+    github-issues:
+        if: github.ref == 'refs/heads/main'
+        needs: [check-pnpm, lint-pnpm, dependicus-pnpm]
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            issues: write
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: pnpm install
+            - run: mise run pnpm:build
+            - uses: actions/cache@v4
+              with:
+                  path: .dependicus-cache
+                  key: dependicus-pnpm-cache-${{ github.sha }}
+                  restore-keys: dependicus-pnpm-cache-
+            - uses: actions/download-artifact@v4
+              with:
+                  name: dependicus-pnpm
+                  path: dependicus-out
+            - run: node packages/dependicus/dist/bin.mjs make-github-issues --dependicus-base-url https://descriptinc.github.io/dependicus/dependencies --rate-limit-days 14
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    deploy:
+        if: github.ref == 'refs/heads/main'
+        needs:
+            [
+                check-pnpm,
+                check-bun,
+                check-npm,
+                check-yarn,
+                lint-pnpm,
+                lint-bun,
+                lint-npm,
+                lint-yarn,
+                zensical,
+                typedoc-pnpm,
+                typedoc-bun,
+                typedoc-npm,
+                typedoc-yarn,
+                dependicus-pnpm,
+                dependicus-bun,
+                dependicus-npm,
+                dependicus-yarn,
+            ]
+        runs-on: ubuntu-latest
+        permissions:
+            pages: write
+            id-token: write
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - uses: actions/download-artifact@v4
+              with:
+                  name: zensical
+                  path: site
+            - uses: actions/download-artifact@v4
+              with:
+                  name: typedoc-pnpm
+                  path: site/api
+            - uses: actions/download-artifact@v4
+              with:
+                  name: dependicus-pnpm
+                  path: site/dependencies
+            - uses: actions/download-artifact@v4
+              with:
+                  name: typedoc-bun
+                  path: site/bun/api
+            - uses: actions/download-artifact@v4
+              with:
+                  name: dependicus-bun
+                  path: site/bun/dependencies
+            - uses: actions/download-artifact@v4
+              with:
+                  name: typedoc-yarn
+                  path: site/yarn/api
+            - uses: actions/download-artifact@v4
+              with:
+                  name: dependicus-yarn
+                  path: site/yarn/dependencies
+            - uses: actions/download-artifact@v4
+              with:
+                  name: typedoc-npm
+                  path: site/npm/api
+            - uses: actions/download-artifact@v4
+              with:
+                  name: dependicus-npm
+                  path: site/npm/dependencies
+            - uses: actions/upload-pages-artifact@v3
+              with:
+                  path: site
+            - id: deployment
+              uses: actions/deploy-pages@v4

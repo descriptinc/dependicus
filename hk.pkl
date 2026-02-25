@@ -1,0 +1,31 @@
+amends "package://github.com/jdx/hk/releases/download/v1.36.0/hk@1.36.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.36.0/hk@1.36.0#/Builtins.pkl"
+
+local linters = new Mapping<String, Step> {
+    ["oxlint"] = (Builtins.ox_lint) {
+        check = "./node_modules/.bin/oxlint --deny-warnings {{files}}"
+        fix = "./node_modules/.bin/oxlint --fix --deny-warnings {{files}}"
+    }
+    ["oxfmt"] {
+        glob = List("**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json", "**/*.css", "**/*.md", "**/*.yml", "**/*.yaml")
+        exclude = List("pnpm-lock.yaml", "bun.lock", "yarn.lock", "package-lock.json", ".claude/settings.json", ".claude/settings.local.json")
+        check = "./node_modules/.bin/oxfmt --check {{files}}"
+        fix = "./node_modules/.bin/oxfmt --write {{files}}"
+        batch = true
+    }
+}
+
+hooks {
+    ["pre-commit"] {
+        fix = true
+        stash = "git"
+        steps = linters
+    }
+    ["fix"] {
+        fix = true
+        steps = linters
+    }
+    ["check"] {
+        steps = linters
+    }
+}
