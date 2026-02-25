@@ -1,5 +1,15 @@
 # Contributing to Dependicus
 
+## Setup
+
+```sh
+mise install
+hk install
+pnpm install
+```
+
+## Discussion
+
 We accept contributions exclusively in the form of discussions on GitHub. Some topics we are curious about include:
 
 - Are there bugs? We don't think so, but are there?
