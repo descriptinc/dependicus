@@ -27,10 +27,11 @@ export async function getCssContent(): Promise<string> {
 
     const { output } = await bundle.generate({});
 
-    if (output.length === 0 || !output[0]) {
+    const cssAsset = output.find((o) => o.type === 'asset' && o.fileName.endsWith('.css'));
+    if (!cssAsset || cssAsset.type !== 'asset') {
         throw new Error('rolldown failed to produce CSS output');
     }
 
-    cachedCss = output[0].code;
+    cachedCss = String(cssAsset.source);
     return cachedCss;
 }
