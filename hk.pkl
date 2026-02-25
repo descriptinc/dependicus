@@ -1,0 +1,30 @@
+amends "package://github.com/jdx/hk/releases/download/v1.36.0/hk@1.36.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.36.0/hk@1.36.0#/Builtins.pkl"
+
+local linters = new Mapping<String, Step> {
+    ["oxlint"] = (Builtins.ox_lint) {
+        check = "pnpm exec oxlint --deny-warnings {{files}}"
+        fix = "pnpm exec oxlint --fix --deny-warnings {{files}}"
+    }
+    ["oxfmt"] {
+        glob = List("**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json", "**/*.css")
+        check = "pnpm exec oxfmt --check {{files}}"
+        fix = "pnpm exec oxfmt --write {{files}}"
+        batch = true
+    }
+}
+
+hooks {
+    ["pre-commit"] {
+        fix = true
+        stash = "git"
+        steps = linters
+    }
+    ["fix"] {
+        fix = true
+        steps = linters
+    }
+    ["check"] {
+        steps = linters
+    }
+}
