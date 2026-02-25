@@ -14,6 +14,10 @@ nav = [
         "ci.md",
         { "Contributing" = "contributing.md" },
     ] },
+    { "Comparisons" = [
+        { "vs Renovate" = "dependicus-vs-renovate.md" },
+        { "vs Dependabot" = "dependicus-vs-dependabot.md" },
+    ] },
     { "API" = "/api/" },
     { "Dependencies" = "/dependencies/" },
 ]
