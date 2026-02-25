@@ -33,7 +33,9 @@ void dependicusCli({
             // Read facts from the store — skip deprecated packages
             // rather than filing tickets to update them
             const isDeprecated = store.getVersionFact<boolean>(
-                packageName, latestVersion, FactKeys.IS_DEPRECATED,
+                packageName,
+                latestVersion,
+                FactKeys.IS_DEPRECATED,
             );
             if (isDeprecated) return undefined;
 
@@ -42,14 +44,17 @@ void dependicusCli({
             // package has local patches (pnpm patch), since those
             // need human attention when updating.
             const isPatched = store.getVersionFact<boolean>(
-                packageName, currentVersion, FactKeys.IS_PATCHED,
+                packageName,
+                currentVersion,
+                FactKeys.IS_PATCHED,
             );
             return {
                 teamId,
                 policy: { type: 'dueDate' },
-                assignment: updateType === 'patch' && !isPatched
-                    ? { type: 'delegate', assigneeId: 'your-bot-user-uuid' }
-                    : { type: 'unassigned' },
+                assignment:
+                    updateType === 'patch' && !isPatched
+                        ? { type: 'delegate', assigneeId: 'your-bot-user-uuid' }
+                        : { type: 'unassigned' },
             };
         },
     },

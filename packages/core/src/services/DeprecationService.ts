@@ -38,9 +38,7 @@ export class DeprecationService {
             process.stderr.write('Using cached pnpm install --resolution-only output\n');
             output = await this.cacheService.readCache(cacheKey);
         } else {
-            process.stderr.write(
-                'Running: pnpm install --resolution-only --no-frozen-lockfile\n',
-            );
+            process.stderr.write('Running: pnpm install --resolution-only --no-frozen-lockfile\n');
 
             // Backup lockfile before modifying
             const lockfileBackup = `${this.lockfilePath}.bak`;
@@ -207,7 +205,7 @@ export class DeprecationService {
                 );
                 output = result.stdout;
                 await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
-            } catch (error) {
+            } catch {
                 // Package might not be found or other errors
                 return [];
             }
@@ -240,7 +238,7 @@ export class DeprecationService {
             }
 
             return Array.from(directDeps);
-        } catch (error) {
+        } catch {
             // Invalid JSON or empty output
             return [];
         }

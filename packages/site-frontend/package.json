@@ -13,8 +13,8 @@
         "typecheck": "tsc --build tsconfig.json"
     },
     "dependencies": {
-        "tabulator-tables": "6.3.1",
-        "open-props": "^1.7.23"
+        "open-props": "catalog:",
+        "tabulator-tables": "catalog:"
     },
     "devDependencies": {
         "@types/node": "catalog:",

@@ -17,7 +17,7 @@
         "@dependicus/site-frontend": "workspace:*",
         "esbuild": "catalog:",
         "handlebars": "catalog:",
-        "marked": "13.0.3"
+        "marked": "catalog:"
     },
     "devDependencies": {
         "@types/node": "catalog:",

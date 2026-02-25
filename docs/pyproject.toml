@@ -2,6 +2,4 @@
 name = "dependicus-docs"
 version = "0.0.0"
 requires-python = ">=3.10"
-dependencies = [
-    "zensical==0.0.23",
-]
+dependencies = ["zensical==0.0.23"]

@@ -6,10 +6,10 @@ The update step is the only one that requires network access, and it's the slowe
 
 ## Environment variables
 
-| Variable | Required by | Description |
-|---|---|---|
-| `GITHUB_TOKEN` | `update` | Strongly recommended. Without it you'll hit GitHub API rate limits quickly. |
-| `LINEAR_API_KEY` | `make-linear-tickets` | Required. Must have write access to the teams you route tickets to. |
+| Variable         | Required by           | Description                                                                 |
+| ---------------- | --------------------- | --------------------------------------------------------------------------- |
+| `GITHUB_TOKEN`   | `update`              | Strongly recommended. Without it you'll hit GitHub API rate limits quickly. |
+| `LINEAR_API_KEY` | `make-linear-tickets` | Required. Must have write access to the teams you route tickets to.         |
 
 ## GitHub Actions
 
@@ -17,76 +17,76 @@ The update step is the only one that requires network access, and it's the slowe
 name: dependicus
 
 on:
-  push:
-    branches: [main]
+    push:
+        branches: [main]
 
 jobs:
-  dependicus-update:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    dependicus-update:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
 
-      # Set up Node and pnpm however you normally do
+            # Set up Node and pnpm however you normally do
 
-      - name: Cache Dependicus
-        uses: actions/cache@v4
-        with:
-          path: .dependicus-cache
-          # No need to bust on lockfile changes—dependicus
-          # can still reuse most of the cached data.
-          key: dependicus
-          restore-keys: dependicus
+            - name: Cache Dependicus
+              uses: actions/cache@v4
+              with:
+                  path: .dependicus-cache
+                  # No need to bust on lockfile changes—dependicus
+                  # can still reuse most of the cached data.
+                  key: dependicus
+                  restore-keys: dependicus
 
-      - name: Collect dependency data
-        run: node your-dependicus-script.js update
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Collect dependency data
+              run: node your-dependicus-script.js update
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload dependency data
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependicus-data
-          path: dependicus-out/dependencies.json
+            - name: Upload dependency data
+              uses: actions/upload-artifact@v4
+              with:
+                  name: dependicus-data
+                  path: dependicus-out/dependencies.json
 
-  dependicus-html:
-    runs-on: ubuntu-latest
-    needs: dependicus-update
-    steps:
-      - uses: actions/checkout@v4
+    dependicus-html:
+        runs-on: ubuntu-latest
+        needs: dependicus-update
+        steps:
+            - uses: actions/checkout@v4
 
-      # Set up Node and pnpm however you normally do
+            # Set up Node and pnpm however you normally do
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: dependicus-data
-          path: dependicus-out/
+            - uses: actions/download-artifact@v4
+              with:
+                  name: dependicus-data
+                  path: dependicus-out/
 
-      - name: Generate HTML site
-        run: node your-dependicus-script.js html
+            - name: Generate HTML site
+              run: node your-dependicus-script.js html
 
-      - name: Upload site
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependicus-site
-          path: dependicus-out/
+            - name: Upload site
+              uses: actions/upload-artifact@v4
+              with:
+                  name: dependicus-site
+                  path: dependicus-out/
 
-  dependicus-linear-tickets:
-    runs-on: ubuntu-latest
-    needs: dependicus-update
-    steps:
-      - uses: actions/checkout@v4
+    dependicus-linear-tickets:
+        runs-on: ubuntu-latest
+        needs: dependicus-update
+        steps:
+            - uses: actions/checkout@v4
 
-      # Set up Node and pnpm however you normally do
+            # Set up Node and pnpm however you normally do
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: dependicus-data
-          path: dependicus-out/
+            - uses: actions/download-artifact@v4
+              with:
+                  name: dependicus-data
+                  path: dependicus-out/
 
-      - name: Create/update Linear tickets
-        run: node your-dependicus-script.js make-linear-tickets
-        env:
-          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+            - name: Create/update Linear tickets
+              run: node your-dependicus-script.js make-linear-tickets
+              env:
+                  LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
 ```
 
 Replace `your-dependicus-script.js` with whatever script calls `dependicusCli()`. Adjust `dependicus-out` and `.dependicus-cache` if you've overridden `outputDir` or `cacheDir`.

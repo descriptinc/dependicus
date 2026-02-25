@@ -49,9 +49,7 @@ describe('FactStore', () => {
 
         it('returns undefined for missing keys', () => {
             const store = new FactStore();
-            expect(
-                store.getVersionFact('react', '18.2.0', FactKeys.UNPACKED_SIZE),
-            ).toBeUndefined();
+            expect(store.getVersionFact('react', '18.2.0', FactKeys.UNPACKED_SIZE)).toBeUndefined();
         });
 
         it('overwrites existing values', () => {
@@ -159,12 +157,8 @@ describe('FactStore', () => {
             expect(restored.getPackageFact('react', FactKeys.SIZE_MAP)).toEqual({
                 '18.2.0': 50000,
             });
-            expect(restored.getVersionFact('react', '18.2.0', FactKeys.UNPACKED_SIZE)).toBe(
-                12345,
-            );
-            expect(restored.getVersionFact('react', '18.2.0', FactKeys.IS_DEPRECATED)).toBe(
-                false,
-            );
+            expect(restored.getVersionFact('react', '18.2.0', FactKeys.UNPACKED_SIZE)).toBe(12345);
+            expect(restored.getVersionFact('react', '18.2.0', FactKeys.IS_DEPRECATED)).toBe(false);
             expect(restored.getVersionFact('vue', '3.0.0', FactKeys.DESCRIPTION)).toBe('Vue 3');
         });
     });

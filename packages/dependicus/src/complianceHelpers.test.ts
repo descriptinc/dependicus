@@ -113,10 +113,7 @@ describe('getPackageComplianceStatus', () => {
                     '2.0.1',
                     new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString(),
                 ),
-                makeVersion(
-                    '2.0.5',
-                    new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-                ),
+                makeVersion('2.0.5', new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()),
             ];
 
             const result = getPackageComplianceStatus('1.0.0', '2.0.5', versions, 360);

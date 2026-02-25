@@ -26,7 +26,7 @@
     },
     "devDependencies": {
         "@types/node": "catalog:",
-        "typedoc": "latest",
+        "typedoc": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:"
     }

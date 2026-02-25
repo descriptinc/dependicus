@@ -9,11 +9,7 @@ import type {
     ChangelogInfo,
 } from '../services/GitHubService';
 
-function makeDep(
-    packageName: string,
-    version: string,
-    latestVersion: string,
-): DirectDependency {
+function makeDep(packageName: string, version: string, latestVersion: string): DirectDependency {
     return {
         packageName,
         versions: [

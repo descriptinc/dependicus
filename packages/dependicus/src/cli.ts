@@ -105,10 +105,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                 .option('--html', 'Also generate HTML site after collecting data')
                 .action(async (options: { html?: boolean }) => {
                     const { effectiveConfig, resolved, outputDir, jsonPath } = resolveConfig();
-                    const dependicus = await createDependicusInstance(
-                        effectiveConfig,
-                        resolved,
-                    );
+                    const dependicus = await createDependicusInstance(effectiveConfig, resolved);
 
                     process.stderr.write('Collecting dependencies...\n');
                     const { store, ...output } = await dependicus.collectData();
@@ -132,10 +129,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                 .option('--json-file <path>', 'Path to dependencies.json file')
                 .action(async (options: { jsonFile?: string }) => {
                     const { effectiveConfig, resolved, outputDir, jsonPath } = resolveConfig();
-                    const dependicus = await createDependicusInstance(
-                        effectiveConfig,
-                        resolved,
-                    );
+                    const dependicus = await createDependicusInstance(effectiveConfig, resolved);
                     const effectivePath = options.jsonFile ?? jsonPath;
 
                     const { dependencies: deps, store } = await loadDependencies(

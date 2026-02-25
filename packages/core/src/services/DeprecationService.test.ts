@@ -294,10 +294,7 @@ describe('DeprecationService', () => {
             mockExecFileReturns(whyOutput);
 
             const allDirectDeps = new Set(['my-wrapper', 'react']);
-            const result = await service.getDeprecatedTransitiveDeps(
-                'my-wrapper',
-                allDirectDeps,
-            );
+            const result = await service.getDeprecatedTransitiveDeps('my-wrapper', allDirectDeps);
 
             expect(result).toEqual(['transitive-dep@1.0.0']);
         });
@@ -324,10 +321,7 @@ describe('DeprecationService', () => {
 
             // direct-pkg is also a direct dep -> should be excluded
             const allDirectDeps = new Set(['my-wrapper', 'direct-pkg']);
-            const result = await service.getDeprecatedTransitiveDeps(
-                'my-wrapper',
-                allDirectDeps,
-            );
+            const result = await service.getDeprecatedTransitiveDeps('my-wrapper', allDirectDeps);
 
             expect(result).toEqual([]);
         });

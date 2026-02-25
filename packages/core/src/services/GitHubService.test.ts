@@ -136,10 +136,7 @@ describe('GitHubService', () => {
         });
 
         it('detects v-prefix format', () => {
-            const toTag = svc.detectTagFormat([
-                createRelease('v1.0.0'),
-                createRelease('v2.0.0'),
-            ]);
+            const toTag = svc.detectTagFormat([createRelease('v1.0.0'), createRelease('v2.0.0')]);
             expect(toTag('3.0.0')).toBe('v3.0.0');
         });
 

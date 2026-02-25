@@ -3,20 +3,27 @@
     "version": "0.0.0",
     "private": true,
     "description": "Dependency governance tool for JavaScript/TypeScript monorepos",
+    "homepage": "https://github.com/descriptinc/dependicus",
+    "bugs": "https://github.com/descriptinc/dependicus/issues",
     "license": "MIT",
     "repository": {
         "type": "git",
         "url": "https://github.com/descriptinc/dependicus.git"
     },
-    "homepage": "https://github.com/descriptinc/dependicus",
-    "bugs": "https://github.com/descriptinc/dependicus/issues",
-    "engines": {
-        "node": ">=20"
-    },
-    "packageManager": "pnpm@10.27.0",
     "scripts": {
+        "lint": "oxlint --deny-warnings",
+        "format": "oxfmt --write .",
+        "format:check": "oxfmt --check .",
         "test": "pnpm -r run test",
         "typecheck": "pnpm -r run typecheck",
         "clean": "pnpm -r run clean"
-    }
+    },
+    "devDependencies": {
+        "oxfmt": "catalog:",
+        "oxlint": "catalog:"
+    },
+    "engines": {
+        "node": ">=20"
+    },
+    "packageManager": "pnpm@10.27.0"
 }

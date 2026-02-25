@@ -4,11 +4,7 @@ import { FactStore, FactKeys } from './FactStore';
 import type { DirectDependency, PackageVersionInfo } from '../types';
 import type { RegistryService, PackageMetadata } from '../services/RegistryService';
 
-function makeDep(
-    packageName: string,
-    version: string,
-    latestVersion: string,
-): DirectDependency {
+function makeDep(packageName: string, version: string, latestVersion: string): DirectDependency {
     return {
         packageName,
         versions: [
@@ -147,12 +143,8 @@ describe('NpmRegistrySource', () => {
         await source.fetch([makeDep('unknown-pkg', '1.0.0', '2.0.0')], store);
 
         // Should not throw, and versions-between should still be stored
-        expect(
-            store.getVersionFact('unknown-pkg', '1.0.0', FactKeys.DESCRIPTION),
-        ).toBeUndefined();
-        expect(store.getVersionFact('unknown-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN)).toEqual(
-            [],
-        );
+        expect(store.getVersionFact('unknown-pkg', '1.0.0', FactKeys.DESCRIPTION)).toBeUndefined();
+        expect(store.getVersionFact('unknown-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN)).toEqual([]);
     });
 
     it('processes multiple versions per dependency', async () => {
@@ -190,11 +182,7 @@ describe('NpmRegistrySource', () => {
 
         await source.fetch([dep], store);
 
-        expect(store.getVersionFact('react', '17.0.0', FactKeys.DESCRIPTION)).toBe(
-            'react@17.0.0',
-        );
-        expect(store.getVersionFact('react', '18.2.0', FactKeys.DESCRIPTION)).toBe(
-            'react@18.2.0',
-        );
+        expect(store.getVersionFact('react', '17.0.0', FactKeys.DESCRIPTION)).toBe('react@17.0.0');
+        expect(store.getVersionFact('react', '18.2.0', FactKeys.DESCRIPTION)).toBe('react@18.2.0');
     });
 });

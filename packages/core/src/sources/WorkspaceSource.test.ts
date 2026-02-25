@@ -67,9 +67,7 @@ describe('WorkspaceSource', () => {
 
         await source.fetch([makeDep('react', '17.0.0')], store);
 
-        expect(store.getVersionFact('react', '17.0.0', FactKeys.HAS_CATALOG_MISMATCH)).toBe(
-            true,
-        );
+        expect(store.getVersionFact('react', '17.0.0', FactKeys.HAS_CATALOG_MISMATCH)).toBe(true);
     });
 
     it('sets HAS_CATALOG_MISMATCH=false when version matches catalog', async () => {
@@ -82,9 +80,7 @@ describe('WorkspaceSource', () => {
 
         await source.fetch([makeDep('react', '18.2.0')], store);
 
-        expect(store.getVersionFact('react', '18.2.0', FactKeys.HAS_CATALOG_MISMATCH)).toBe(
-            false,
-        );
+        expect(store.getVersionFact('react', '18.2.0', FactKeys.HAS_CATALOG_MISMATCH)).toBe(false);
     });
 
     it('sets HAS_CATALOG_MISMATCH=false when package is not in catalog', async () => {
@@ -96,9 +92,7 @@ describe('WorkspaceSource', () => {
 
         await source.fetch([makeDep('react', '18.2.0')], store);
 
-        expect(store.getVersionFact('react', '18.2.0', FactKeys.HAS_CATALOG_MISMATCH)).toBe(
-            false,
-        );
+        expect(store.getVersionFact('react', '18.2.0', FactKeys.HAS_CATALOG_MISMATCH)).toBe(false);
     });
 
     it('handles multiple dependencies and versions', async () => {

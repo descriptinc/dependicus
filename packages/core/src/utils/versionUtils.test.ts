@@ -165,9 +165,9 @@ describe('extractLatestVersionFromTitle', () => {
 
 describe('extractPackageNameFromTitle', () => {
     it('extracts package name from update title', () => {
-        expect(
-            extractPackageNameFromTitle('[Dependicus] Update react from 18.2.0 to 19.2.3'),
-        ).toBe('react');
+        expect(extractPackageNameFromTitle('[Dependicus] Update react from 18.2.0 to 19.2.3')).toBe(
+            'react',
+        );
     });
 
     it('extracts package name from FYI title', () => {
@@ -180,9 +180,7 @@ describe('extractPackageNameFromTitle', () => {
 
     it('handles scoped packages', () => {
         expect(
-            extractPackageNameFromTitle(
-                '[Dependicus] Update @linear/sdk from 32.0.0 to 65.0.0',
-            ),
+            extractPackageNameFromTitle('[Dependicus] Update @linear/sdk from 32.0.0 to 65.0.0'),
         ).toBe('@linear/sdk');
     });
 
@@ -193,9 +191,9 @@ describe('extractPackageNameFromTitle', () => {
     });
 
     it('differentiates similar package names', () => {
-        expect(
-            extractPackageNameFromTitle('[Dependicus] Update react from 18.0.0 to 19.0.0'),
-        ).toBe('react');
+        expect(extractPackageNameFromTitle('[Dependicus] Update react from 18.0.0 to 19.0.0')).toBe(
+            'react',
+        );
 
         expect(
             extractPackageNameFromTitle('[Dependicus] Update react-utils from 1.0.0 to 2.0.0'),
@@ -310,10 +308,7 @@ describe('findFirstVersionOfType', () => {
     });
 
     it('returns undefined when no matching version type exists', () => {
-        const versions = [
-            makeVersion('1.0.1', '2024-01-01'),
-            makeVersion('1.0.2', '2024-02-01'),
-        ];
+        const versions = [makeVersion('1.0.1', '2024-01-01'), makeVersion('1.0.2', '2024-02-01')];
 
         const result = findFirstVersionOfType('1.0.0', versions, 'major');
         expect(result).toBeUndefined();
@@ -335,10 +330,7 @@ describe('calculateDueDate', () => {
     });
 
     it('calculates due date from first required version publish date', () => {
-        const versions = [
-            makeVersion('2.0.0', '2024-06-15'),
-            makeVersion('2.0.1', '2024-07-01'),
-        ];
+        const versions = [makeVersion('2.0.0', '2024-06-15'), makeVersion('2.0.1', '2024-07-01')];
 
         const dueDate = calculateDueDate('1.0.0', versions, 'major', 360, '2023-01-01');
 
@@ -430,10 +422,7 @@ describe('findLatestWithinMajor', () => {
     });
 
     it('returns undefined when only major updates exist', () => {
-        const versions = [
-            makeVersion('13.0.0', '2024-01-01'),
-            makeVersion('13.1.0', '2024-02-01'),
-        ];
+        const versions = [makeVersion('13.0.0', '2024-01-01'), makeVersion('13.1.0', '2024-02-01')];
 
         const result = findLatestWithinMajor('12.19.0', versions);
         expect(result).toBeUndefined();

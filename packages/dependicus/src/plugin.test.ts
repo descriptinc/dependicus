@@ -173,9 +173,7 @@ describe('resolvePlugins', () => {
 
         it('merges getTicketSpec results from multiple plugins', () => {
             const fn1 = (ctx: VersionContext) =>
-                ctx.packageName === 'react'
-                    ? { teamId: 'team', group: 'react-group' }
-                    : undefined;
+                ctx.packageName === 'react' ? { teamId: 'team', group: 'react-group' } : undefined;
             const fn2 = () => ({ teamId: 'team', group: 'default-group' });
 
             const p1: DependicusPlugin = { name: 'p1', getTicketSpec: fn1 };

@@ -156,11 +156,7 @@ export function formatComplianceDetail(result: PackageComplianceStatus): string 
     }
 
     const updateTypeLabel =
-        result.updateType === 'major'
-            ? 'Major'
-            : result.updateType === 'minor'
-              ? 'Minor'
-              : 'Patch';
+        result.updateType === 'major' ? 'Major' : result.updateType === 'minor' ? 'Minor' : 'Patch';
 
     const months = Math.floor(result.daysOverdue / 30);
     if (months > 0) {
@@ -359,19 +355,13 @@ export class BasicCompliancePlugin implements DependicusPlugin {
                         `This dependency is managed under **${policy.name}** policy:`,
                         '',
                         ...(policy.thresholdDays?.major !== undefined
-                            ? [
-                                  `- Major updates: ${formatThreshold(policy.thresholdDays.major)}`,
-                              ]
+                            ? [`- Major updates: ${formatThreshold(policy.thresholdDays.major)}`]
                             : []),
                         ...(policy.thresholdDays?.minor !== undefined
-                            ? [
-                                  `- Minor updates: ${formatThreshold(policy.thresholdDays.minor)}`,
-                              ]
+                            ? [`- Minor updates: ${formatThreshold(policy.thresholdDays.minor)}`]
                             : []),
                         ...(policy.thresholdDays?.patch !== undefined
-                            ? [
-                                  `- Patch updates: ${formatThreshold(policy.thresholdDays.patch)}`,
-                              ]
+                            ? [`- Patch updates: ${formatThreshold(policy.thresholdDays.patch)}`]
                             : []),
                         ...(policy.notificationsOnly
                             ? ['- Notifications only (no mandatory updates)']
@@ -464,12 +454,8 @@ export class BasicCompliancePlugin implements DependicusPlugin {
                     return STATUS_LABELS[status] ?? status;
                 },
                 getFilterValue: (packageName, version, store) =>
-                    this.computeStatus(
-                        packageName,
-                        version.version,
-                        version.latestVersion,
-                        store,
-                    ).status,
+                    this.computeStatus(packageName, version.version, version.latestVersion, store)
+                        .status,
             },
             {
                 key: 'complianceDetail',

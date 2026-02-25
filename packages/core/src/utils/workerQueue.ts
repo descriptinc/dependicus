@@ -8,7 +8,7 @@ export async function processInParallel<T, R>(
     options: WorkerQueueOptions = {},
 ): Promise<R[]> {
     const { workerCount = 4 } = options;
-    const results: R[] = new Array(items.length);
+    const results: R[] = Array.from<R>({ length: items.length });
     let nextIndex = 0;
 
     const worker = async (): Promise<void> => {

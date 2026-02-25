@@ -1,20 +1,23 @@
 [project]
 site_name = "Dependicus"
+repo_url = "https://github.com/descriptinc/dependicus"
+repo_name = "descriptinc/dependicus"
+edit_uri = "edit/main/docs/docs/"
 nav = [
-    {"Docs" = [
-        {"Home" = "index.md"},
+    { "Docs" = [
+        { "Home" = "index.md" },
         "gettingstarted.md",
         "configuration.md",
         "plugins.md",
         "compliance.md",
-        {"Linear Tickets" = "lineartickets.md"},
+        { "Linear Tickets" = "lineartickets.md" },
         "ci.md",
-    ]},
-    {"API" = "/api/"},
-    {"Dependencies" = "/dependencies/"},
+    ] },
+    { "API" = "/api/" },
+    { "Dependencies" = "/dependencies/" },
 ]
 
 [project.theme]
 logo = "images/logo.svg"
 favicon = "images/logo.svg"
-features = ["navigation.footer", "navigation.tabs"]
+features = ["navigation.footer", "navigation.tabs", "content.action.edit", "content.action.view"]

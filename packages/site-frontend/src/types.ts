@@ -80,11 +80,7 @@ export interface TabulatorColumn {
     headerFilterFunc?:
         | string
         | ((headerValue: string, rowValue: string) => boolean)
-        | ((
-              headerValue: string,
-              rowValue: string,
-              rowData: Record<string, unknown>,
-          ) => boolean);
+        | ((headerValue: string, rowValue: string, rowData: Record<string, unknown>) => boolean);
     headerFilterParams?: Record<string, unknown>;
     responsive?: number;
     resizable?: boolean;

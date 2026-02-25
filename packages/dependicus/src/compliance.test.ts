@@ -218,9 +218,7 @@ describe('getSections', () => {
         const store = new FactStore();
         const ctx: GroupingDetailContext = {
             groupValue: 'test-group',
-            dependencies: [
-                { packageName: 'no-policy-pkg', versions: [makeDependencyVersion()] },
-            ],
+            dependencies: [{ packageName: 'no-policy-pkg', versions: [makeDependencyVersion()] }],
             store,
         };
 

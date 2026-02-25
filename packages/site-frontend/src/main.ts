@@ -27,14 +27,9 @@ function init() {
         // Update configs with responsive setting
         const responsiveLayout: 'collapse' | false = responsive ? 'collapse' : false;
         const allConfig = getTableConfig(data.allData, 'all-deps', columnDefs);
-        const multiConfig = getTableConfig(
-            data.multiVersionData,
-            'multi-versions',
-            columnDefs,
-            {
-                groupBy: 'Package Name',
-            },
-        );
+        const multiConfig = getTableConfig(data.multiVersionData, 'multi-versions', columnDefs, {
+            groupBy: 'Package Name',
+        });
         const catalogConfig = getTableConfig(data.catalogData, 'catalog', columnDefs);
 
         allConfig.responsiveLayout = responsiveLayout;
@@ -127,9 +122,7 @@ function init() {
     createTables(false);
 
     // Responsive toggle logic
-    const responsiveCheckbox = document.getElementById(
-        'responsive-checkbox',
-    ) as HTMLInputElement;
+    const responsiveCheckbox = document.getElementById('responsive-checkbox') as HTMLInputElement;
 
     if (responsiveCheckbox) {
         responsiveCheckbox.addEventListener('change', () => {

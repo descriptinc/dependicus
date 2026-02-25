@@ -4,11 +4,7 @@ import { FactStore, FactKeys } from './FactStore';
 import type { DirectDependency } from '../types';
 import type { DeprecationService } from '../services/DeprecationService';
 
-function makeDep(
-    packageName: string,
-    version: string,
-    latestVersion = '2.0.0',
-): DirectDependency {
+function makeDep(packageName: string, version: string, latestVersion = '2.0.0'): DirectDependency {
     return {
         packageName,
         versions: [
@@ -24,9 +20,7 @@ function makeDep(
     };
 }
 
-function mockDeprecationService(
-    overrides: Partial<DeprecationService> = {},
-): DeprecationService {
+function mockDeprecationService(overrides: Partial<DeprecationService> = {}): DeprecationService {
     return {
         getDeprecatedPackages: vi.fn(async () => new Set<string>()),
         getDeprecationMap: vi.fn(async () => new Map<string, string[]>()),

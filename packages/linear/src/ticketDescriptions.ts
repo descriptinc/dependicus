@@ -3,12 +3,7 @@ import { resolve, join } from 'node:path';
 import Handlebars from 'handlebars';
 import type { PackageVersionInfo, GitHubData } from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
-import {
-    FactKeys,
-    findFirstVersionOfType,
-    formatBytes,
-    formatSizeChange,
-} from '@dependicus/core';
+import { FactKeys, findFirstVersionOfType, formatBytes, formatSizeChange } from '@dependicus/core';
 import { helpers } from './templates/helpers';
 import type { OutdatedPackage, OutdatedGroup } from './types';
 
@@ -65,21 +60,13 @@ export function buildTicketDescription(
         version.version,
         FactKeys.DESCRIPTION,
     );
-    const homepage = store.getVersionFact<string>(
-        packageName,
-        version.version,
-        FactKeys.HOMEPAGE,
-    );
+    const homepage = store.getVersionFact<string>(packageName, version.version, FactKeys.HOMEPAGE);
     const repositoryUrl = store.getVersionFact<string>(
         packageName,
         version.version,
         FactKeys.REPOSITORY_URL,
     );
-    const bugsUrl = store.getVersionFact<string>(
-        packageName,
-        version.version,
-        FactKeys.BUGS_URL,
-    );
+    const bugsUrl = store.getVersionFact<string>(packageName, version.version, FactKeys.BUGS_URL);
     const unpackedSize = store.getVersionFact<number>(
         packageName,
         version.version,

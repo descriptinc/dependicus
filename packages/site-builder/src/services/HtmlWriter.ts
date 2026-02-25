@@ -81,11 +81,7 @@ export interface CustomColumn {
      * When set, header filter matches against this value instead of the display value.
      * Implemented via a custom [`headerFilterFunc`](https://tabulator.info/docs/6.3/filter#header-function).
      */
-    getFilterValue?: (
-        packageName: string,
-        version: DependencyVersion,
-        store: FactStore,
-    ) => string;
+    getFilterValue?: (packageName: string, version: DependencyVersion, store: FactStore) => string;
 }
 
 export interface HtmlWriterOptions {
@@ -153,11 +149,7 @@ export class HtmlWriter {
                 data[`${col.key}__tooltip`] = col.getTooltip(packageName, version, store);
             }
             if (col.getFilterValue) {
-                data[`${col.key}__filterValue`] = col.getFilterValue(
-                    packageName,
-                    version,
-                    store,
-                );
+                data[`${col.key}__filterValue`] = col.getFilterValue(packageName, version, store);
             }
         }
         return data;
@@ -174,9 +166,7 @@ export class HtmlWriter {
         if (store.getVersionFact<boolean>(packageName, version, FactKeys.IS_FORKED)) {
             parts.push('Forked');
         }
-        if (
-            store.getVersionFact<boolean>(packageName, version, FactKeys.HAS_CATALOG_MISMATCH)
-        ) {
+        if (store.getVersionFact<boolean>(packageName, version, FactKeys.HAS_CATALOG_MISMATCH)) {
             parts.push('Catalog Mismatch');
         }
         if (store.getVersionFact<boolean>(packageName, version, FactKeys.IS_DEPRECATED)) {
@@ -414,10 +404,7 @@ export class HtmlWriter {
 
         for (const dep of dependencies) {
             for (const versionInfo of dep.versions) {
-                const filename = HtmlWriter.getDetailFilename(
-                    dep.packageName,
-                    versionInfo.version,
-                );
+                const filename = HtmlWriter.getDetailFilename(dep.packageName, versionInfo.version);
                 const html = this.generateDetailPage(dep, versionInfo, store);
                 pages.push({ filename, html });
 
@@ -442,14 +429,10 @@ export class HtmlWriter {
     ): string {
         const packageName = dep.packageName;
         const description =
-            store.getVersionFact<string>(
-                packageName,
-                versionInfo.version,
-                FactKeys.DESCRIPTION,
-            ) ?? '';
-        const homepage =
-            store.getVersionFact<string>(packageName, versionInfo.version, FactKeys.HOMEPAGE) ??
+            store.getVersionFact<string>(packageName, versionInfo.version, FactKeys.DESCRIPTION) ??
             '';
+        const homepage =
+            store.getVersionFact<string>(packageName, versionInfo.version, FactKeys.HOMEPAGE) ?? '';
         const repositoryUrl =
             store.getVersionFact<string>(
                 packageName,
@@ -457,8 +440,7 @@ export class HtmlWriter {
                 FactKeys.REPOSITORY_URL,
             ) ?? '';
         const bugsUrl =
-            store.getVersionFact<string>(packageName, versionInfo.version, FactKeys.BUGS_URL) ??
-            '';
+            store.getVersionFact<string>(packageName, versionInfo.version, FactKeys.BUGS_URL) ?? '';
         const unpackedSize = store.getVersionFact<number>(
             packageName,
             versionInfo.version,
@@ -534,8 +516,7 @@ export class HtmlWriter {
 
         // Get deprecated transitive deps
         const deprecatedTransitiveDeps =
-            store.getPackageFact<string[]>(packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS) ??
-            [];
+            store.getPackageFact<string[]>(packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS) ?? [];
 
         // Render content using template
         const content = this.templateService.render('pages/package-detail', {
@@ -545,9 +526,7 @@ export class HtmlWriter {
             customMeta: customMeta.length > 0 ? customMeta : undefined,
             dependencyTypes: versionInfo.dependencyTypes.join(', '),
             formattedPublishDate: formatDate(versionInfo.publishDate),
-            publishDateAge: versionInfo.publishDate
-                ? formatAgeHuman(versionInfo.publishDate)
-                : '',
+            publishDateAge: versionInfo.publishDate ? formatAgeHuman(versionInfo.publishDate) : '',
             latestVersion: versionInfo.latestVersion,
             versionsBehindText,
             inCatalog: versionInfo.inCatalog,

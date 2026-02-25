@@ -164,8 +164,7 @@ export class LinearService {
      * Returns the issue identifier (e.g., "BIX-1234") or "DRY-RUN" in dry-run mode.
      */
     async createTicket(params: CreateTicketParams): Promise<string> {
-        const { packageName, title, teamId, projectId, dueDate, description, delegateId } =
-            params;
+        const { packageName, title, teamId, projectId, dueDate, description, delegateId } = params;
 
         if (this.dryRun) {
             process.stderr.write('\n');
@@ -234,9 +233,7 @@ export class LinearService {
             process.stderr.write(`\nTitle: ${TITLE_PREFIX} ${params.title}\n\n`);
             process.stderr.write(`Description:\n${params.description}\n`);
             if (params.dueDate) {
-                process.stderr.write(
-                    `\nDue Date: ${params.dueDate.toISOString().split('T')[0]}\n`,
-                );
+                process.stderr.write(`\nDue Date: ${params.dueDate.toISOString().split('T')[0]}\n`);
             } else {
                 process.stderr.write(`\nDue Date: (none - notifications only)\n`);
             }

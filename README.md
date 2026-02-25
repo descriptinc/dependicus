@@ -29,7 +29,7 @@ npx dependicus@latest update --html
 ```
 
 !!!note
-    Setting `$GITHUB_TOKEN` will significantly speed up GitHub metadata fetching.
+Setting `$GITHUB_TOKEN` will significantly speed up GitHub metadata fetching.
 
 After running this command, you'll have a static site under `./dependicus-out/`, as well as a JSON representation at `./dependicus-out/dependencies.json`.
 
@@ -46,11 +46,11 @@ If you like what you see, then you can add `dependicus` to your `package.json` a
 
 ## AI nutrition label
 
-| Item | Status |
-|------|--------|
-| 🤖#️⃣ Contains code written by agents | ✅ |
-| 🤖📄 Contains docs written by agents | ❌ |
-| 🧑🏻‍💻🧑🏻‍💻 Human code review | ✅ |
+| Item                                 | Status |
+| ------------------------------------ | ------ |
+| 🤖#️⃣ Contains code written by agents | ✅     |
+| 🤖📄 Contains docs written by agents | ❌     |
+| 🧑🏻‍💻🧑🏻‍💻 Human code review               | ✅     |
 
 ## Contributing
 

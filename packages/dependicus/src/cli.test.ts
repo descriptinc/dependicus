@@ -256,9 +256,7 @@ describe('dependicusCli', () => {
         it('is not registered when linear config is omitted', async () => {
             const cli = dependicusCli(baseConfig);
             // Commander will throw/exit for unknown commands
-            const stderrWrite = vi
-                .spyOn(process.stderr, 'write')
-                .mockImplementation(() => true);
+            const stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
             const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
                 throw new Error('process.exit');
             });

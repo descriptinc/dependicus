@@ -21,10 +21,10 @@ For example, Dependicus comes with `BasicCompliancePlugin` for threshold-based c
 
 ```ts
 const packageOwners = {
-    'react': 'devex',
+    react: 'devex',
     'react-dom': 'devex',
-    'express': 'api',
-}
+    express: 'api',
+};
 
 const teams = {
     devex: {
@@ -35,7 +35,7 @@ const teams = {
         name: 'API',
         teamId: 'yyy',
     },
-}
+};
 
 void dependicusCli({
     repoRoot,
@@ -61,17 +61,14 @@ void dependicusCli({
                 // Bonus example: batch all updates for packages of the form
                 // @x/y into single tickets, so for example you get @react/*
                 // as just one ticket
-                if (
-                    context.packageName.startsWith("@")
-                    && context.packageName.includes("/")
-                ) {
-                    return { group: context.packageName.split("/")[0] };
+                if (context.packageName.startsWith('@') && context.packageName.includes('/')) {
+                    return { group: context.packageName.split('/')[0] };
                 } else {
                     return undefined;
                 }
             },
-        }
-    ]
+        },
+    ],
 }).run(process.argv);
 ```
 
@@ -112,9 +109,7 @@ The `update` stage is the right time to fetch information and add it to `FactSto
 This example fetches CVE count from an imaginary source and stores it in `FactStore`, then uses the new fact to show a table column in the HTML and a section in the Linear ticket.
 
 ```ts
-import type {
-    DependicusPlugin, DataSource, DirectDependency, CustomColumn,
-} from 'dependicus';
+import type { DependicusPlugin, DataSource, DirectDependency, CustomColumn } from 'dependicus';
 import type { VersionContext, TicketSpec } from 'dependicus';
 import { FactStore } from 'dependicus';
 import { getCveCount } from 'magic-cve-fetcher';
@@ -150,7 +145,8 @@ class CvePlugin implements DependicusPlugin {
                 width: 80,
                 getValue: (packageName, version, store) => {
                     const counts = store.getPackageFact<Record<string, number>>(
-                        packageName, CVE_FACT,
+                        packageName,
+                        CVE_FACT,
                     );
                     return String(counts?.[version.version] ?? 0);
                 },
@@ -162,9 +158,7 @@ class CvePlugin implements DependicusPlugin {
         context: VersionContext,
         store: FactStore,
     ): Partial<TicketSpec> | undefined => {
-        const counts = store.getPackageFact<Record<string, number>>(
-            context.packageName, CVE_FACT,
-        );
+        const counts = store.getPackageFact<Record<string, number>>(context.packageName, CVE_FACT);
         const cveCount = counts?.[context.currentVersion] ?? 0;
         if (cveCount === 0) return undefined;
 

@@ -48,10 +48,7 @@ describe('processInParallel', () => {
 
     it('passes item index to processor', async () => {
         const items = ['a', 'b', 'c'];
-        const results = await processInParallel(
-            items,
-            async (item, index) => `${item}-${index}`,
-        );
+        const results = await processInParallel(items, async (item, index) => `${item}-${index}`);
 
         expect(results).toEqual(['a-0', 'b-1', 'c-2']);
     });

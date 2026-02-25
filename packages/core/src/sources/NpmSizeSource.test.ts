@@ -226,8 +226,6 @@ describe('NpmSizeSource', () => {
 
         await source.fetch([makeDep('react')], store);
 
-        expect(
-            store.getVersionFact('react', '1.0.0', FactKeys.VERSIONS_BETWEEN),
-        ).toBeUndefined();
+        expect(store.getVersionFact('react', '1.0.0', FactKeys.VERSIONS_BETWEEN)).toBeUndefined();
     });
 });

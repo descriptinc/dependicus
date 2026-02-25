@@ -266,11 +266,7 @@ export async function reconcileTickets(
             const thresholdDays = ctx.thresholdDays;
 
             // Skip if no threshold and not notifications-only (nothing to track)
-            if (
-                thresholdDays === undefined &&
-                !isNotificationsOnly &&
-                targetVersion === undefined
-            )
+            if (thresholdDays === undefined && !isNotificationsOnly && targetVersion === undefined)
                 continue;
 
             // Determine the effective policy for this version entry
@@ -418,9 +414,7 @@ export async function reconcileTickets(
     // Close duplicate tickets proactively
     let closedDuplicates = 0;
     if (duplicateTickets.length > 0) {
-        process.stderr.write(
-            `Found ${duplicateTickets.length} duplicate tickets to close...\n`,
-        );
+        process.stderr.write(`Found ${duplicateTickets.length} duplicate tickets to close...\n`);
         for (const duplicate of duplicateTickets) {
             try {
                 await linearService.closeTicket(duplicate.id, duplicate.identifier);
@@ -513,8 +507,7 @@ export async function reconcileTickets(
 
             // Check if new versions were released since last update
             const oldLatestVersion = extractLatestVersionFromTitle(existingTicket.title);
-            const hasNewVersions =
-                oldLatestVersion && oldLatestVersion !== effectiveLatestVersion;
+            const hasNewVersions = oldLatestVersion && oldLatestVersion !== effectiveLatestVersion;
 
             // For fyi packages with rate limits, check if we should skip
             const skipRateLimitDays = shouldSkipUpdateDueToRateLimit(
@@ -576,9 +569,7 @@ export async function reconcileTickets(
                     );
                 }
             } else if (!dryRun) {
-                process.stderr.write(
-                    `Updated ${pkg.packageName} (${existingTicket.identifier})\n`,
-                );
+                process.stderr.write(`Updated ${pkg.packageName} (${existingTicket.identifier})\n`);
             }
             updated++;
 
@@ -659,9 +650,7 @@ export async function reconcileTickets(
                     version.version,
                     versionsBetween,
                     pkg.worstCompliance.updateType,
-                    pkg.worstCompliance.thresholdDays ??
-                        group.worstCompliance.thresholdDays ??
-                        0,
+                    pkg.worstCompliance.thresholdDays ?? group.worstCompliance.thresholdDays ?? 0,
                     version.publishDate,
                 );
                 if (!earliestDueDate || pkgDueDate < earliestDueDate) {

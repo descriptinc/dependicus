@@ -22,10 +22,7 @@ export interface DependicusPlugin {
     getUsedByGroupKey?: UsedByGroupKeyFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
 
-    getTicketSpec?: (
-        context: VersionContext,
-        store: FactStore,
-    ) => Partial<TicketSpec> | undefined;
+    getTicketSpec?: (context: VersionContext, store: FactStore) => Partial<TicketSpec> | undefined;
 }
 
 export interface ResolvedPlugins {
@@ -71,13 +68,10 @@ export function resolvePlugins(
     // getSections: concatenate across all plugins
     const sectionFns = plugins
         .map((p) => p.getSections)
-        .filter(
-            (fn): fn is (ctx: GroupingDetailContext) => GroupingSection[] => fn !== undefined,
-        );
+        .filter((fn): fn is (ctx: GroupingDetailContext) => GroupingSection[] => fn !== undefined);
     const getSections =
         sectionFns.length > 0
-            ? (ctx: GroupingDetailContext): GroupingSection[] =>
-                  sectionFns.flatMap((fn) => fn(ctx))
+            ? (ctx: GroupingDetailContext): GroupingSection[] => sectionFns.flatMap((fn) => fn(ctx))
             : undefined;
 
     // Merge plugin ticket specs; direct config override bypasses merging

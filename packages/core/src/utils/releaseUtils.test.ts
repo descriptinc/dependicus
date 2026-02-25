@@ -25,10 +25,7 @@ describe('releaseUtils', () => {
         });
 
         it('should find release by package@version tag', () => {
-            const releases = [
-                createRelease('my-package@1.0.0'),
-                createRelease('my-package@1.1.0'),
-            ];
+            const releases = [createRelease('my-package@1.0.0'), createRelease('my-package@1.1.0')];
             const result = findReleaseForVersion(releases, '1.0.0', 'my-package');
             expect(result?.tagName).toBe('my-package@1.0.0');
         });

@@ -84,12 +84,7 @@ function makeStore(
         );
     }
     if (opts.homepage !== undefined) {
-        store.setVersionFact(
-            pkg.packageName,
-            version.version,
-            FactKeys.HOMEPAGE,
-            opts.homepage,
-        );
+        store.setVersionFact(pkg.packageName, version.version, FactKeys.HOMEPAGE, opts.homepage);
     }
     if (opts.repositoryUrl !== undefined) {
         store.setVersionFact(
@@ -136,10 +131,7 @@ function makeStore(
 }
 
 /** Create a store for a group of packages (populates facts for all packages). */
-function makeGroupStore(
-    group: OutdatedGroup,
-    descriptions?: Record<string, string>,
-): FactStore {
+function makeGroupStore(group: OutdatedGroup, descriptions?: Record<string, string>): FactStore {
     const store = new FactStore();
     for (const pkg of group.packages) {
         const version = pkg.versions[0];
@@ -275,9 +267,7 @@ describe('buildTicketDescription', () => {
 
     it('renders consumer-provided description sections', () => {
         const pkg = makePackage({
-            descriptionSections: [
-                { title: 'Policy Info', body: 'Must comply within 90 days.' },
-            ],
+            descriptionSections: [{ title: 'Policy Info', body: 'Must comply within 90 days.' }],
         });
         const store = makeStore(pkg);
         const result = buildTicketDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);

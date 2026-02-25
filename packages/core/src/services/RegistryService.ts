@@ -77,7 +77,7 @@ export class RegistryService {
                 );
                 output = result.stdout;
                 await this.cacheService.writePermanentCache(cacheKey, output);
-            } catch (error) {
+            } catch {
                 // Package might not exist in registry
                 return undefined;
             }
@@ -85,7 +85,7 @@ export class RegistryService {
 
         try {
             return JSON.parse(output) as PackageMetadata;
-        } catch (error) {
+        } catch {
             return undefined;
         }
     }
@@ -139,7 +139,7 @@ export class RegistryService {
                 });
                 output = result.stdout;
                 await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
-            } catch (error) {
+            } catch {
                 return undefined;
             }
         }

@@ -117,10 +117,7 @@ export class GitHubService {
             // Cache each new release permanently
             for (const release of newReleases) {
                 const releaseKey = this.getReleaseCacheKey(repo, release.tagName);
-                await this.cacheService.writePermanentCache(
-                    releaseKey,
-                    JSON.stringify(release),
-                );
+                await this.cacheService.writePermanentCache(releaseKey, JSON.stringify(release));
             }
 
             // Update the list of cached tags
@@ -146,10 +143,7 @@ export class GitHubService {
     /**
      * Load releases from permanent cache by tag names.
      */
-    private async loadCachedReleases(
-        repo: GitHubRepo,
-        tags: string[],
-    ): Promise<GitHubRelease[]> {
+    private async loadCachedReleases(repo: GitHubRepo, tags: string[]): Promise<GitHubRelease[]> {
         const releases: GitHubRelease[] = [];
         for (const tag of tags) {
             const releaseKey = this.getReleaseCacheKey(repo, tag);

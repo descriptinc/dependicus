@@ -57,10 +57,7 @@ function testTeamId(packageName: string): string | undefined {
     return 'linear-team-123';
 }
 
-const testGetTicketSpec = (
-    context: VersionContext,
-    store: FactStore,
-): TicketSpec | undefined => {
+const testGetTicketSpec = (context: VersionContext, store: FactStore): TicketSpec | undefined => {
     const m = store.getPackageFact<TestMeta>(context.packageName, 'testMeta');
     if (!m || m.notificationOptOut) return undefined;
     const teamId = testTeamId(context.packageName);
@@ -124,19 +121,9 @@ function populateFacts(
     const vb = opts.versionsBetween ?? defaultVersionsBetween;
     store.setVersionFact(packageName, version.version, FactKeys.VERSIONS_BETWEEN, vb);
     if (opts.description !== undefined) {
-        store.setVersionFact(
-            packageName,
-            version.version,
-            FactKeys.DESCRIPTION,
-            opts.description,
-        );
+        store.setVersionFact(packageName, version.version, FactKeys.DESCRIPTION, opts.description);
     } else {
-        store.setVersionFact(
-            packageName,
-            version.version,
-            FactKeys.DESCRIPTION,
-            'A test package',
-        );
+        store.setVersionFact(packageName, version.version, FactKeys.DESCRIPTION, 'A test package');
     }
     if (opts.meta !== undefined) {
         store.setPackageFact(packageName, 'testMeta', opts.meta);
@@ -799,12 +786,7 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'cool-pkg', v, { versionsBetween: vb });
         const deps: DirectDependency[] = [makeDep('cool-pkg', [v])];
 
-        const result = await reconcileTickets(
-            deps,
-            store,
-            defaultConfig,
-            cooldownGetTicketSpec,
-        );
+        const result = await reconcileTickets(deps, store, defaultConfig, cooldownGetTicketSpec);
         expect(result.created).toBe(0);
     });
 
@@ -900,12 +882,7 @@ describe('reconcileTickets', () => {
                 makeDep('group-b', [gB.version]),
             ];
 
-            const result = await reconcileTickets(
-                deps,
-                store,
-                defaultConfig,
-                testGetTicketSpec,
-            );
+            const result = await reconcileTickets(deps, store, defaultConfig, testGetTicketSpec);
             expect(result.updated).toBe(0);
             expect(result.closed).toBe(0);
         });
@@ -935,12 +912,7 @@ describe('reconcileTickets', () => {
                 makeDep('group-b', [gB.version]),
             ];
 
-            const result = await reconcileTickets(
-                deps,
-                store,
-                defaultConfig,
-                testGetTicketSpec,
-            );
+            const result = await reconcileTickets(deps, store, defaultConfig, testGetTicketSpec);
             expect(result.updated).toBe(1);
             expect(result.created).toBe(0);
         });
@@ -973,12 +945,7 @@ describe('reconcileTickets', () => {
             // No packages in the group are outdated
             const deps: DirectDependency[] = [];
 
-            const result = await reconcileTickets(
-                deps,
-                store,
-                defaultConfig,
-                testGetTicketSpec,
-            );
+            const result = await reconcileTickets(deps, store, defaultConfig, testGetTicketSpec);
             expect(result.closed).toBe(1);
         });
 

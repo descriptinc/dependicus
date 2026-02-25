@@ -102,11 +102,7 @@ export function computeOutputMetadata(
     for (const dep of dependencies) {
         for (const ver of dep.versions) {
             if (
-                store.getVersionFact<boolean>(
-                    dep.packageName,
-                    ver.version,
-                    FactKeys.IS_DEPRECATED,
-                )
+                store.getVersionFact<boolean>(dep.packageName, ver.version, FactKeys.IS_DEPRECATED)
             ) {
                 deprecatedCount++;
             }

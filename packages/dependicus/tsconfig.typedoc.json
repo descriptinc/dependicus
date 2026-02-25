@@ -8,11 +8,6 @@
             "@dependicus/site-builder": ["../site-builder/src/index.ts"]
         }
     },
-    "include": [
-        "src/**/*",
-        "../core/src/**/*",
-        "../linear/src/**/*",
-        "../site-builder/src/**/*"
-    ],
+    "include": ["src/**/*", "../core/src/**/*", "../linear/src/**/*", "../site-builder/src/**/*"],
     "exclude": ["node_modules", "dist"]
 }

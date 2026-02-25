@@ -47,13 +47,7 @@ export class DependencyCollector {
                     continue;
                 }
 
-                this.addDependencyToMap(
-                    dependencyMap,
-                    depName,
-                    depInfo.version,
-                    pkg.name,
-                    'prod',
-                );
+                this.addDependencyToMap(dependencyMap, depName, depInfo.version, pkg.name, 'prod');
             }
         }
 
@@ -65,13 +59,7 @@ export class DependencyCollector {
                     continue;
                 }
 
-                this.addDependencyToMap(
-                    dependencyMap,
-                    depName,
-                    depInfo.version,
-                    pkg.name,
-                    'dev',
-                );
+                this.addDependencyToMap(dependencyMap, depName, depInfo.version, pkg.name, 'dev');
             }
         }
     }

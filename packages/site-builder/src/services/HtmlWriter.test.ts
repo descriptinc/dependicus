@@ -113,9 +113,7 @@ describe('HtmlWriter', () => {
         });
 
         it('generates safe filename for unscoped packages', () => {
-            expect(HtmlWriter.getDetailFilename('lodash', '4.17.21')).toBe(
-                'lodash@4.17.21.html',
-            );
+            expect(HtmlWriter.getDetailFilename('lodash', '4.17.21')).toBe('lodash@4.17.21.html');
         });
     });
 
@@ -175,12 +173,7 @@ describe('HtmlWriter', () => {
             const store = new FactStore();
             // Set minimal facts for both versions
             for (const ver of dep.versions) {
-                store.setVersionFact(
-                    dep.packageName,
-                    ver.version,
-                    FactKeys.VERSIONS_BETWEEN,
-                    [],
-                );
+                store.setVersionFact(dep.packageName, ver.version, FactKeys.VERSIONS_BETWEEN, []);
             }
             store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
@@ -246,10 +239,7 @@ describe('HtmlWriter', () => {
                         key: 'surface',
                         header: 'Surface',
                         getValue: (pkg, _ver, s) => {
-                            const meta = s.getPackageFact<{ surfaceId: string }>(
-                                pkg,
-                                'testMeta',
-                            );
+                            const meta = s.getPackageFact<{ surfaceId: string }>(pkg, 'testMeta');
                             return meta?.surfaceId ?? '';
                         },
                     },
@@ -257,10 +247,7 @@ describe('HtmlWriter', () => {
                         key: 'team',
                         header: 'Team',
                         getValue: (pkg, _ver, s) => {
-                            const meta = s.getPackageFact<{ teamName: string }>(
-                                pkg,
-                                'testMeta',
-                            );
+                            const meta = s.getPackageFact<{ teamName: string }>(pkg, 'testMeta');
                             return meta?.teamName ?? '';
                         },
                     },
@@ -284,10 +271,7 @@ describe('HtmlWriter', () => {
                         key: 'surface',
                         header: 'Surface',
                         getValue: (pkg, _ver, s) => {
-                            const meta = s.getPackageFact<{ surfaceId: string }>(
-                                pkg,
-                                'testMeta',
-                            );
+                            const meta = s.getPackageFact<{ surfaceId: string }>(pkg, 'testMeta');
                             return meta?.surfaceId ?? '';
                         },
                     },
@@ -312,10 +296,7 @@ describe('HtmlWriter', () => {
             label: 'Teams',
             slugPrefix: 'teams',
             getValue: (packageName: string, store: FactStore) => {
-                const meta = store.getPackageFact<{ teamName: string }>(
-                    packageName,
-                    'testMeta',
-                );
+                const meta = store.getPackageFact<{ teamName: string }>(packageName, 'testMeta');
                 return meta?.teamName ?? 'Unknown';
             },
         };
@@ -631,10 +612,7 @@ describe('HtmlWriter', () => {
                         key: 'surface',
                         header: 'Surface',
                         getValue: (pkg, _ver, s) => {
-                            const meta = s.getPackageFact<{ surfaceId: string }>(
-                                pkg,
-                                'testMeta',
-                            );
+                            const meta = s.getPackageFact<{ surfaceId: string }>(pkg, 'testMeta');
                             return meta?.surfaceId ?? '';
                         },
                     },

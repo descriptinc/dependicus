@@ -261,9 +261,7 @@ describe('convertGitUrlToHttps', () => {
     });
 
     it('handles github: shorthand with .git suffix', () => {
-        expect(convertGitUrlToHttps('github:owner/repo.git')).toBe(
-            'https://github.com/owner/repo',
-        );
+        expect(convertGitUrlToHttps('github:owner/repo.git')).toBe('https://github.com/owner/repo');
     });
 
     it('leaves https:// URLs unchanged (except .git suffix)', () => {
