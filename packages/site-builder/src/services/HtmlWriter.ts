@@ -1,4 +1,4 @@
-import * as esbuild from 'esbuild';
+import { rolldown } from 'rolldown';
 import { marked } from 'marked';
 import { getCssContent } from '../paths';
 import type {
@@ -176,43 +176,33 @@ export class HtmlWriter {
     }
 
     /**
-     * Bundle browser-side JavaScript code using esbuild
+     * Bundle browser-side JavaScript code using rolldown.
      */
-    private bundleBrowserCode(): string {
-        const browserEntry = browserEntryPath;
-
-        const result = esbuild.buildSync({
-            entryPoints: [browserEntry],
-            bundle: true,
-            write: false,
-            format: 'iife',
-            target: 'es2020',
-            minify: false,
+    private async bundleBrowserCode(): Promise<string> {
+        const bundle = await rolldown({
+            input: browserEntryPath,
+            platform: 'browser',
         });
+        const { output } = await bundle.generate({ format: 'iife' });
 
-        if (!result.outputFiles || result.outputFiles.length === 0) {
-            throw new Error('esbuild failed to produce output files');
+        if (output.length === 0 || !output[0]) {
+            throw new Error('rolldown failed to produce output files');
         }
 
-        const outputFile = result.outputFiles[0];
-        if (!outputFile) {
-            throw new Error('esbuild output file is undefined');
-        }
-
-        return outputFile.text;
+        return output[0].code;
     }
 
     /**
      * Read bundled CSS (open-props + styles.css)
      */
-    private readCssFile(): string {
+    private readCssFile(): Promise<string> {
         return getCssContent();
     }
 
     /**
      * Generate a standalone HTML page with embedded data and enhanced Tabulator viewer.
      */
-    toHtml(dependencies: DirectDependency[], store: FactStore): string {
+    async toHtml(dependencies: DirectDependency[], store: FactStore): Promise<string> {
         // Flatten data into rows (similar to CSV structure)
         const allRows: Array<
             Record<string, string | number | boolean | Record<string, string[]> | null>
@@ -282,8 +272,8 @@ export class HtmlWriter {
         }
 
         // Bundle browser code and load CSS
-        const bundledJs = this.bundleBrowserCode();
-        const cssContent = this.readCssFile();
+        const bundledJs = await this.bundleBrowserCode();
+        const cssContent = await this.readCssFile();
 
         // Prepare custom column definitions for browser
         const browserColumns: BrowserColumnDef[] = this.columns.map((col) => ({

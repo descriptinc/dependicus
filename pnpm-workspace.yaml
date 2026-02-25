@@ -13,9 +13,8 @@ catalog:
     'vitest': '^4.0.18'
     '@linear/sdk': '^76.0.0'
     'handlebars': '^4.7.8'
-    'esbuild': '^0.27.3'
     'commander': '^14.0.3'
-    'esbuild-register': '^3.6.0'
+    'rolldown': '^1.0.0-rc.5'
     'marked': '^17.0.3'
     'open-props': '^1.7.23'
     'tabulator-tables': '^6.3.1'
@@ -24,4 +23,4 @@ catalog:
     'oxfmt': '^0.35.0'
 
 onlyBuiltDependencies:
-    - 'esbuild'
+    - 'rolldown'

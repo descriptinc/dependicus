@@ -1,4 +1,4 @@
-import * as esbuild from 'esbuild';
+import { rolldown } from 'rolldown';
 import { stylesCssPath, cssEntryPath } from '@dependicus/site-frontend';
 
 /**
@@ -14,31 +14,23 @@ let cachedCss: string | undefined;
 
 /**
  * Bundle the CSS entry point (open-props + styles.css) into a single string.
- * The result is cached so repeated calls don't re-run esbuild.
+ * The result is cached so repeated calls don't re-run rolldown.
  */
-export function getCssContent(): string {
+export async function getCssContent(): Promise<string> {
     if (cachedCss !== undefined) {
         return cachedCss;
     }
 
-    const entryPoint = cssEntryPath;
-
-    const result = esbuild.buildSync({
-        entryPoints: [entryPoint],
-        bundle: true,
-        write: false,
-        minify: false,
+    const bundle = await rolldown({
+        input: cssEntryPath,
     });
 
-    if (!result.outputFiles || result.outputFiles.length === 0) {
-        throw new Error('esbuild failed to produce CSS output');
+    const { output } = await bundle.generate({});
+
+    if (output.length === 0 || !output[0]) {
+        throw new Error('rolldown failed to produce CSS output');
     }
 
-    const outputFile = result.outputFiles[0];
-    if (!outputFile) {
-        throw new Error('esbuild CSS output file is undefined');
-    }
-
-    cachedCss = outputFile.text;
+    cachedCss = output[0].code;
     return cachedCss;
 }

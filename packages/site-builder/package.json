@@ -15,9 +15,9 @@
     "dependencies": {
         "@dependicus/core": "workspace:*",
         "@dependicus/site-frontend": "workspace:*",
-        "esbuild": "catalog:",
         "handlebars": "catalog:",
-        "marked": "catalog:"
+        "marked": "catalog:",
+        "rolldown": "catalog:"
     },
     "devDependencies": {
         "@types/node": "catalog:",

@@ -3,14 +3,14 @@
     "version": "0.1.0",
     "private": true,
     "bin": {
-        "dependicus": "cli.js"
+        "dependicus": "dist/bin.js"
     },
     "exports": {
         ".": "./src/index.ts"
     },
     "scripts": {
-        "dependicus": "node cli.js",
-        "build": "echo no-op",
+        "dependicus": "node dist/bin.js",
+        "build": "rolldown -c rolldown.config.ts",
         "clean": "rm -rf dist",
         "test": "vitest run",
         "typedoc": "typedoc --tsconfig tsconfig.typedoc.json --entryPoints src/index.ts --out typedoc-out --name 'Dependicus API Reference'",
@@ -21,8 +21,7 @@
         "@dependicus/linear": "workspace:*",
         "@dependicus/site-builder": "workspace:*",
         "commander": "catalog:",
-        "esbuild": "catalog:",
-        "esbuild-register": "catalog:"
+        "rolldown": "catalog:"
     },
     "devDependencies": {
         "@types/node": "catalog:",

@@ -118,11 +118,11 @@ describe('HtmlWriter', () => {
     });
 
     describe('toHtml', () => {
-        it('generates HTML with dependency data', () => {
+        it('generates HTML with dependency data', async () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = writer.toHtml([dep], store);
+            const html = await writer.toHtml([dep], store);
 
             // Check that the output is valid HTML with expected structure
             expect(html).toContain('<!DOCTYPE html>');
@@ -132,28 +132,28 @@ describe('HtmlWriter', () => {
             expect(html).toContain('2.0.0');
         });
 
-        it('includes Tabulator script tags', () => {
+        it('includes Tabulator script tags', async () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = writer.toHtml([dep], store);
+            const html = await writer.toHtml([dep], store);
 
             expect(html).toContain('tabulator-tables');
             expect(html).toContain('window.dependicusData');
         });
 
-        it('includes tab structure', () => {
+        it('includes tab structure', async () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = writer.toHtml([dep], store);
+            const html = await writer.toHtml([dep], store);
 
             expect(html).toContain('data-sheet="all"');
             expect(html).toContain('Multiple Versions');
             expect(html).toContain('Catalog');
         });
 
-        it('generates multi-version rows for packages with multiple versions', () => {
+        it('generates multi-version rows for packages with multiple versions', async () => {
             const dep = makeMockDependency({
                 versions: [
                     makeMockVersion({
@@ -178,7 +178,7 @@ describe('HtmlWriter', () => {
             store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
-            const html = writer.toHtml([dep], store);
+            const html = await writer.toHtml([dep], store);
 
             // Multi-version tab should have count > 0
             expect(html).toContain('multiVersionData');
@@ -416,13 +416,13 @@ describe('HtmlWriter', () => {
             expect(filenames).toContain('env/production.html');
         });
 
-        it('includes nav links for configured groupings', () => {
+        it('includes nav links for configured groupings', async () => {
             const writer = new HtmlWriter({
                 groupings: [teamGrouping],
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = writer.toHtml([dep], store);
+            const html = await writer.toHtml([dep], store);
 
             expect(html).toContain('teams/index.html');
             expect(html).toContain('Teams');
@@ -475,22 +475,22 @@ describe('HtmlWriter', () => {
     });
 
     describe('edge cases', () => {
-        it('handles empty dependencies array', () => {
+        it('handles empty dependencies array', async () => {
             const writer = new HtmlWriter();
             const store = new FactStore();
-            const html = writer.toHtml([], store);
+            const html = await writer.toHtml([], store);
             expect(html).toContain('<!DOCTYPE html>');
             expect(html).toContain('Dependicus - Dependency Report');
         });
 
-        it('handles dependencies with empty versions array', () => {
+        it('handles dependencies with empty versions array', async () => {
             const writer = new HtmlWriter();
             const dep: DirectDependency = {
                 packageName: 'empty-pkg',
                 versions: [],
             };
             const store = new FactStore();
-            const html = writer.toHtml([dep], store);
+            const html = await writer.toHtml([dep], store);
             expect(html).toContain('<!DOCTYPE html>');
         });
 
@@ -605,7 +605,7 @@ describe('HtmlWriter', () => {
             expect(html).not.toContain('CHANGELOG');
         });
 
-        it('toHtml includes custom column data in JSON', () => {
+        it('toHtml includes custom column data in JSON', async () => {
             const writer = new HtmlWriter({
                 columns: [
                     {
@@ -620,7 +620,7 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = writer.toHtml([dep], store);
+            const html = await writer.toHtml([dep], store);
 
             // The custom column data should be in the allData JSON
             expect(html).toContain('"surface"');
@@ -628,7 +628,7 @@ describe('HtmlWriter', () => {
             expect(html).toContain('customColumns');
         });
 
-        it('toHtml includes standard notes in filter even when absent from data', () => {
+        it('toHtml includes standard notes in filter even when absent from data', async () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             // Store without any boolean note facts
@@ -636,7 +636,7 @@ describe('HtmlWriter', () => {
             store.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
             store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
-            const html = writer.toHtml([dep], store);
+            const html = await writer.toHtml([dep], store);
 
             // Standard notes should still appear in uniqueNotes for filter dropdown
             expect(html).toContain('Patched');
@@ -644,26 +644,26 @@ describe('HtmlWriter', () => {
             expect(html).toContain('Catalog Mismatch');
         });
 
-        it('toHtml works without getSections configured', () => {
+        it('toHtml works without getSections configured', async () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
             // Should not throw
-            const html = writer.toHtml([dep], store);
+            const html = await writer.toHtml([dep], store);
             expect(html).toContain('<!DOCTYPE html>');
         });
 
-        it('groupPackagesByMeta returns null when no getUsedByGroupKey', () => {
+        it('groupPackagesByMeta returns null when no getUsedByGroupKey', async () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = writer.toHtml([dep], store);
+            const html = await writer.toHtml([dep], store);
 
             // Without getUsedByGroupKey, Used By Grouped should be null in the JSON data
             expect(html).toContain('"Used By Grouped": null');
         });
 
-        it('groupPackagesByMeta uses custom group key', () => {
+        it('groupPackagesByMeta uses custom group key', async () => {
             const writer = new HtmlWriter({
                 getUsedByGroupKey: (pkg, _ver, s) => {
                     const meta = s.getPackageFact<{ teamName: string }>(pkg, 'testMeta');
@@ -672,7 +672,7 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = writer.toHtml([dep], store);
+            const html = await writer.toHtml([dep], store);
 
             expect(html).toContain('TestTeam');
         });

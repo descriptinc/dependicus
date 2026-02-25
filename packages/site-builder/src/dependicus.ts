@@ -79,11 +79,11 @@ export async function createDependicus(config: DependicusConfig): Promise<Depend
             await mkdir(outputDir, { recursive: true });
 
             // Generate index
-            const html = htmlWriter.toHtml(dependencies, store);
+            const html = await htmlWriter.toHtml(dependencies, store);
             await writeFile(join(outputDir, 'index.html'), html, 'utf-8');
 
             // Write bundled CSS for detail and grouping pages
-            await writeFile(join(outputDir, 'styles.css'), getCssContent(), 'utf-8');
+            await writeFile(join(outputDir, 'styles.css'), await getCssContent(), 'utf-8');
 
             // Generate detail pages
             const detailsDir = join(outputDir, 'details');
