@@ -1,50 +1,47 @@
 # Dependicus
 
-_Make informed decisions about your JavaScript dependency graph, at an organizational scale._
+Dependicus is a tool that combines many data sources, then builds a dashboard and creates tickets, so you can make informed decisions about your JavaScript dependency graph at an organizational scale. It has a plugin system so you can customize it to your unique needs. It’s a young open source project, but we use it daily at [Descript](https://descript.com).
 
-Do you ever find yourself wishing you could see a big table of every dependency in every package in your monorepo? Or automatically create tickets in Linear for dependency upgrades, with lots of detail and with a due date that reflects the needs and realities of your engineering organization? Do you use pnpm or Linear?
+[Full documentation](https://descriptinc.github.io/dependicus/)
 
-If you answered "yes" to any of these questions, Dependicus could be for you!
+```mermaid
+graph LR
+    pnpm --> dependicus-update["<tt>dependicus update</tt><br>&rarr; <tt>dependencies.json</tt>"]
+    GitHub --> dependicus-update
+    npmjs.org --> dependicus-update
+    dependicus-update --> dependicus-html["<tt>dependicus html</tt>"]
+    dependicus-update --> dependicus-make-linear-tickets["<tt>dependicus make-linear-tickets</tt>"]
 
-## What is Dependicus?
-
-Dependicus scrapes a bunch of data sources—package.json, pnpm workspaces, npmjs.org, even GitHub—and saves it in a massive JSON file. Then, it can build a static site to give you actionable visibility into your dependency graph like you've never had before. And it can create and update tickets in Linear in an incredibly customizeable way. It takes tens of minutes to collect information about hundreds of packages (assuming you’re lucky enough to have hundreds of dependencies), and then you get to browse it at your own speed instead of waiting for API calls.
-
-Dependicus is a static site generator for your `pnpm-lock.yaml` that can directly link to individual releases and changelogs on npmjs.org and GitHub.
-
-Dependicus is a ticket-creation bot that you can customize to only bother you when you really want it to, and make precisely the correct amount of noise.
-
-Dependicus is our best attempt at a tool that lets you make informed decisions about your JavaScript dependency graph.
-
-TODO: Large screenshot here
-
-TODO: Link the Dependicus of Dependicus
-
-## How do I start using Dependicus?
-
-The simplest way to experience Dependicus is to run this command at the root of a pnpm-powered codebase:
-
-```
-npx dependicus@latest update --html
+    dependicus-html --> static-site["Static site"]
+    dependicus-make-linear-tickets --> linear-tickets["Linear tickets"]
 ```
 
-!!!note
-Setting `$GITHUB_TOKEN` will significantly speed up GitHub metadata fetching.
+Today, Dependicus only supports pnpm, but the discussion is open for adding additional package managers.
 
-After running this command, you'll have a static site under `./dependicus-out/`, as well as a JSON representation at `./dependicus-out/dependencies.json`.
+## Quickstart
 
-If you want to demo creating Linear tickets, you can set the `LINEAR_API_KEY` env var and then run this command to see what Linear tickets would be created based on the JSON:
+You only need to run a couple of commands to see whether Dependicus is useful to you. First, collect the data and generate the static site.
 
+```sh
+export GITHUB_TOKEN=<a GitHub token> # speeds up fetching of changelogs and tags
+pnpm dlx dependicus@latest update --html
+# open ./dependicus-out/index.html
 ```
-npx dependicus@latest make-linear-tickets --linear-team-id=<uuid of a Linear team>
+
+If you’re a Linear shop, you can reuse the same data to create tickets when updates are available. The default behavior is very naive, so this example uses `--dry-run` just to give you a sense of what would happen.
+
+```sh
+export LINEAR_API_KEY=<a Linear API key>
+pnpm dlx dependicus@latest make-linear-tickets \
+    --linear-team-id=<uuid of a Linear team> \
+    --dry-run
 ```
 
-If you like what you see, then you can add `dependicus` to your `package.json` and do one of two things:
+Dependicus offers extensive customization through its JavaScript API. [Read the docs](https://descriptinc.github.io/dependicus/) to find out how.
 
-1. Invoke it on the command line with `pnpm exec dependicus` and get the output you’ve been seeing.
-2. Customize by writing your own CLI wrapper. Add extra columns to the table or customize the Linear behavior.
+## LLM usage disclaimer
 
-## AI nutrition label
+We use coding agents as part of the process of working on Dependicus. It’s not vibecoded; the architecture reflects our human intent, and changes are reviewed carefully. But if you’re avoiding software written with the assistance of LLMs, Dependicus is not a good fit for you.
 
 | Item                                 | Status |
 | ------------------------------------ | ------ |
@@ -52,14 +49,4 @@ If you like what you see, then you can add `dependicus` to your `package.json` a
 | 🤖📄 Contains docs written by agents | ❌     |
 | 🧑🏻‍💻🧑🏻‍💻 Human code review               | ✅     |
 
-## Contributing
 
-We accept contributions exclusively in the form of discussions on GitHub. Some topics we are curious about include:
-
-- Are there bugs? We don't think so, but are there?
-- What’s the urgency of adding support for other package managers, like yarn, bun, or regular npm?
-- Does anyone else assign teams to own dependencies and route Linear tickets accordingly, like we do at Descript? Should we include a way to do that?
-- Is the HTML output ugly? If so, what would make it better?
-- Is there a valuable data source we should add to enrich dependency metadata?
-
-If you have something to say about these topics, head on over to the Discussions tab and let us know!
