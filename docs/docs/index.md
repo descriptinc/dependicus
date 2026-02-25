@@ -40,9 +40,3 @@ Dependicus offers extensive customization through its JavaScript API. Read on to
 ## LLM usage disclaimer
 
 We use coding agents as part of the process of working on Dependicus. It’s not vibecoded; the architecture reflects our human intent, and changes are reviewed carefully. But if you’re avoiding software written with the assistance of LLMs, Dependicus is not a good fit for you.
-
-| Item                                 | Status |
-| ------------------------------------ | ------ |
-| 🤖#️⃣ Contains code written by agents | ✅     |
-| 🤖📄 Contains docs written by agents | ❌     |
-| 🧑🏻‍💻🧑🏻‍💻 Human code review               | ✅     |
