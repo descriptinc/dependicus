@@ -3,6 +3,7 @@ hk = "1.36.0"
 node = "22"
 pkl = "0.30.2"
 pnpm = "10.27.0"
+uv = "0.6.11"
 
 [tasks.docs]
 description = "Build unified docs site (zensical + typedoc + dependicus) into docs-out/"
