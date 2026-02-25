@@ -20,3 +20,7 @@ run = "pnpm typedoc"
 [tasks."docs:dependicus"]
 description = "Run dependicus on itself"
 run = "node packages/dependicus/cli.js update --html"
+
+[tasks.test]
+description = "Run all tests in all packages"
+run = "pnpm run test"
