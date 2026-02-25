@@ -1,0 +1,27 @@
+{
+    "name": "@dependicus/site-builder",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "build": "echo no-op",
+        "clean": "rm -rf dist",
+        "test": "vitest run",
+        "typecheck": "tsc --build tsconfig.json"
+    },
+    "dependencies": {
+        "@dependicus/core": "workspace:*",
+        "@dependicus/site-frontend": "workspace:*",
+        "esbuild": "catalog:",
+        "handlebars": "catalog:",
+        "marked": "13.0.3"
+    },
+    "devDependencies": {
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    }
+}

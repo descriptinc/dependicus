@@ -1,0 +1,26 @@
+{
+    "name": "@dependicus/linear",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "build": "echo no-op",
+        "clean": "rm -rf dist",
+        "test": "vitest run",
+        "typecheck": "tsc --build tsconfig.json"
+    },
+    "dependencies": {
+        "@dependicus/core": "workspace:*",
+        "@linear/sdk": "catalog:",
+        "handlebars": "catalog:",
+        "zod": "catalog:"
+    },
+    "devDependencies": {
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    }
+}

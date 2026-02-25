@@ -1,0 +1,20 @@
+[project]
+site_name = "Dependicus"
+nav = [
+    {"Docs" = [
+        {"Home" = "index.md"},
+        "gettingstarted.md",
+        "configuration.md",
+        "plugins.md",
+        "compliance.md",
+        {"Linear Tickets" = "lineartickets.md"},
+        "ci.md",
+    ]},
+    {"API" = "/api/"},
+    {"Dependencies" = "/dependencies/"},
+]
+
+[project.theme]
+logo = "images/logo.svg"
+favicon = "images/logo.svg"
+features = ["navigation.footer", "navigation.tabs"]

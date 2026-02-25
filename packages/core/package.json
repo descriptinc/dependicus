@@ -1,0 +1,28 @@
+{
+    "name": "@dependicus/core",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "build": "echo no-op",
+        "clean": "rm -rf dist",
+        "test": "vitest run",
+        "typecheck": "tsc --build tsconfig.json"
+    },
+    "dependencies": {
+        "@octokit/rest": "catalog:",
+        "js-yaml": "catalog:",
+        "semver": "catalog:",
+        "zod": "catalog:"
+    },
+    "devDependencies": {
+        "@types/js-yaml": "catalog:",
+        "@types/node": "catalog:",
+        "@types/semver": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    }
+}

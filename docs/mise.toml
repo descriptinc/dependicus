@@ -1,0 +1,9 @@
+[tools]
+uv = "latest"
+python = "3.14"
+
+[tasks.serve]
+run = "uv run zensical serve"
+
+[tasks.build]
+run = "uv run zensical build"

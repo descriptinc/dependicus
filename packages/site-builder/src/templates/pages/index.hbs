@@ -1,0 +1,37 @@
+<div id="container" class="dep-container">
+    <div id="tabs" class="dep-tabs">
+        <button class="dep-tab active" data-sheet="all">
+            All
+            <span class="dep-tab-count">{{allRowsCount}}</span>
+        </button>
+        <button class="dep-tab" data-sheet="multi">
+            Multiple Versions
+            <span class="dep-tab-count">{{multiVersionRowsCount}}</span>
+        </button>
+        <button class="dep-tab" data-sheet="catalog">
+            Catalog
+            <span class="dep-tab-count">{{catalogRowsCount}}</span>
+        </button>
+        <label id="responsive-toggle" class="dep-responsive-toggle">
+            <input type="checkbox" id="responsive-checkbox">
+            <span>Responsive</span>
+        </label>
+    </div>
+    <div id="table-container" class="dep-table-container">
+        <div id="all-deps-table" class="dep-table-wrapper active"></div>
+        <div id="multi-versions-table" class="dep-multi-versions-table dep-table-wrapper"></div>
+        <div id="catalog-table" class="dep-table-wrapper"></div>
+    </div>
+</div>
+
+<script>
+    // Data passed to browser code via global variable
+    window.dependicusData = {
+        allData: {{{allDataJson}}},
+        multiVersionData: {{{multiVersionDataJson}}},
+        catalogData: {{{catalogDataJson}}},
+        uniqueNotes: {{{uniqueNotesJson}}},
+        customColumns: {{{customColumnsJson}}},
+        groupings: {{{groupingsJson}}}
+    };
+</script>

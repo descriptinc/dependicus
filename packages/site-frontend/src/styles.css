@@ -1,0 +1,701 @@
+/* Dependicus styles — built on open-props tokens.
+   open-props normalize handles box-sizing, font-family, and base element spacing. */
+
+/* ── Color-pair custom properties ──
+   Semantic color scales (--red-0…--red-12) are static and need manual
+   light/dark handling. These pairs let badge/pill rules reference a single
+   token that flips automatically. */
+:root {
+    --red-bg: var(--red-1);
+    --red-fg: var(--red-9);
+    --green-bg: var(--green-1);
+    --green-fg: var(--green-9);
+    --yellow-bg: var(--yellow-1);
+    --yellow-fg: var(--yellow-9);
+    --blue-bg: var(--blue-1);
+    --blue-fg: var(--blue-8);
+    --purple-bg: var(--purple-1);
+    --purple-fg: var(--purple-8);
+    --orange-bg: var(--orange-1);
+    --orange-fg: var(--orange-9);
+    --cyan-bg: var(--cyan-1);
+    --cyan-fg: var(--cyan-9);
+    --red-accent: var(--red-7);
+    --green-accent: var(--green-7);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --red-bg: var(--red-11);
+        --red-fg: var(--red-3);
+        --green-bg: var(--green-11);
+        --green-fg: var(--green-3);
+        --yellow-bg: var(--yellow-11);
+        --yellow-fg: var(--yellow-3);
+        --blue-bg: var(--blue-11);
+        --blue-fg: var(--blue-3);
+        --purple-bg: var(--purple-11);
+        --purple-fg: var(--purple-3);
+        --orange-bg: var(--orange-11);
+        --orange-fg: var(--orange-3);
+        --cyan-bg: var(--cyan-11);
+        --cyan-fg: var(--cyan-3);
+        --red-accent: var(--red-4);
+        --green-accent: var(--green-4);
+    }
+}
+
+/* ── Body scroll default ──
+   Pages scroll normally. The dashboard locks the viewport. */
+body.dep-dashboard {
+    height: 100vh;
+    overflow: hidden;
+}
+
+.dep-top-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--size-1);
+    padding: var(--size-2) var(--size-3);
+    background: var(--surface-2);
+    border-bottom: var(--border-size-1) solid var(--surface-3);
+}
+
+.dep-nav-site-name {
+    font-size: var(--font-size-2);
+    font-weight: var(--font-weight-7);
+    color: var(--text-1);
+}
+
+.dep-nav-chevron {
+    margin-left: var(--size-1);
+    color: var(--text-2);
+    font-size: var(--font-size-2);
+}
+
+.dep-nav-timestamp {
+    margin-left: auto;
+    font-size: var(--font-size-0);
+    color: var(--text-2);
+}
+
+.dep-top-nav a {
+    padding: var(--size-1) var(--size-3);
+    border-radius: var(--radius-2);
+    text-decoration: none;
+    color: var(--text-2);
+    font-weight: var(--font-weight-5);
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.dep-top-nav a:hover {
+    background: var(--surface-3);
+    color: var(--text-1);
+}
+
+main {
+    padding: var(--size-3);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.dep-flow > * + * {
+    margin-top: var(--size-3);
+}
+
+main h1,
+main h2,
+main h3,
+main h4,
+main h5,
+main h6 {
+    margin-top: var(--size-4);
+    margin-bottom: var(--size-2);
+}
+
+main h1 {
+    margin-top: 0;
+}
+
+main p,
+main ul,
+main ol {
+    margin-bottom: var(--size-2);
+}
+
+.dep-badge {
+    padding: var(--size-1) var(--size-2);
+    background: var(--surface-2);
+    border-radius: var(--radius-2);
+}
+
+.dep-badge.warning {
+    background: var(--yellow-bg);
+    color: var(--yellow-fg);
+}
+
+.dep-badge.outdated {
+    background: var(--red-bg);
+    color: var(--red-fg);
+}
+
+.dep-badge.success {
+    background: var(--green-bg);
+    color: var(--green-fg);
+}
+
+/* ── Details reset ──
+   Undo open-props normalize styling on <details> elements that should
+   look plain (e.g. upgrade-path version history). */
+.dep-plain-details {
+    background: none;
+    border-radius: 0;
+    padding: 0;
+}
+
+.dep-plain-details summary {
+    background: none;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+    font-weight: var(--font-weight-6);
+    cursor: pointer;
+}
+
+.dep-plain-details[open] > summary {
+    border-radius: 0;
+    margin-bottom: var(--size-1);
+}
+
+.dep-plain-details ul {
+    margin-top: var(--size-2);
+}
+
+main table {
+    width: 100%;
+    margin-top: var(--size-3);
+    border-collapse: collapse;
+    border: none;
+}
+
+main table th,
+main table td {
+    padding: var(--size-2);
+    text-align: left;
+}
+
+main thead tr {
+    border-bottom: var(--border-size-2) solid var(--surface-3);
+}
+
+main tbody tr {
+    border-bottom: var(--border-size-1) solid var(--surface-3);
+}
+
+/* ── Detail page header ── */
+.dep-detail-header {
+    border-bottom: var(--border-size-1) solid var(--surface-3);
+    padding-bottom: var(--size-3);
+}
+
+.dep-detail-header h1 {
+    font-size: var(--font-size-4);
+    font-weight: var(--font-weight-7);
+    letter-spacing: -0.01em;
+}
+
+.dep-detail-header h1 code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+}
+
+.dep-detail-description {
+    color: var(--text-2);
+    margin-top: var(--size-1);
+}
+
+.dep-detail-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-2);
+    margin-top: var(--size-3);
+}
+
+.dep-detail-links a {
+    padding: var(--size-1) var(--size-3);
+    background: var(--surface-2);
+    border: var(--border-size-1) solid var(--surface-3);
+    border-radius: var(--radius-2);
+    text-decoration: none;
+    color: var(--link);
+    font-size: var(--font-size-1);
+    transition: background 0.15s ease;
+}
+
+.dep-detail-links a:hover {
+    background: var(--surface-3);
+}
+
+/* ── Two-column layout ── */
+.dep-detail-columns {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-4);
+    margin-top: var(--size-4);
+}
+
+@media (min-width: 900px) {
+    .dep-detail-columns {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .dep-detail-sidebar {
+        flex: 0 0 320px;
+        position: sticky;
+        top: var(--size-3);
+    }
+
+    .dep-detail-main {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+/* ── Sidebar cards ── */
+.dep-detail-card {
+    background: var(--surface-2);
+    border-radius: var(--radius-3);
+    padding: var(--size-3);
+    margin-bottom: var(--size-3);
+}
+
+.dep-detail-card h2 {
+    font-size: var(--font-size-2);
+    margin: 0 0 var(--size-3) 0;
+    padding-bottom: var(--size-2);
+    border-bottom: var(--border-size-1) solid var(--surface-3);
+}
+
+.dep-detail-card-warn {
+    border-left: var(--border-size-3) solid var(--red-6);
+}
+
+/* ── Metadata definition list ── */
+.dep-metadata-dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0 var(--size-3);
+    align-items: baseline;
+    margin: 0;
+}
+
+.dep-metadata-dl dt {
+    font-weight: var(--font-weight-6);
+    color: var(--text-2);
+    font-size: var(--font-size-1);
+    white-space: nowrap;
+}
+
+.dep-metadata-dl dd {
+    margin: 0;
+}
+
+.dep-age-text {
+    color: var(--text-2);
+    font-size: var(--font-size-0);
+}
+
+.dep-catalog-yes {
+    color: var(--green-7);
+}
+
+.dep-catalog-no {
+    color: var(--text-2);
+}
+
+.dep-count-badge {
+    display: inline-block;
+    padding: 0 var(--size-2);
+    background: var(--surface-3);
+    border-radius: var(--radius-round);
+    font-size: var(--font-size-0);
+    font-weight: var(--font-weight-5);
+    vertical-align: middle;
+}
+
+.dep-used-by-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dep-used-by-list li {
+    padding: var(--size-1) 0;
+    border-bottom: var(--border-size-1) solid var(--surface-3);
+}
+
+.dep-used-by-list li:last-child {
+    border-bottom: none;
+}
+
+/* ── Upgrade path (main column) ── */
+.dep-detail-main section {
+    margin-top: 0;
+}
+
+.dep-detail-main h2 {
+    font-size: var(--font-size-3);
+    margin-top: 0;
+    margin-bottom: var(--size-3);
+}
+
+/* Version history grid */
+.dep-version-history-grid {
+    display: grid;
+    grid-template-columns: auto auto auto 1fr;
+    gap: var(--size-2) var(--size-3);
+    margin-top: var(--size-3);
+}
+
+.dep-version-header {
+    font-weight: var(--font-weight-6);
+    padding-bottom: var(--size-2);
+    border-bottom: var(--border-size-2) solid var(--surface-3);
+}
+
+.dep-version-cell {
+    padding: var(--size-2) 0;
+    border-bottom: var(--border-size-1) solid var(--surface-3);
+}
+
+.dep-version-notes {
+    grid-column: 1 / -1;
+    padding: var(--size-2) 0;
+    border-bottom: var(--border-size-1) solid var(--surface-3);
+}
+
+.dep-release-notes-content {
+    margin-top: var(--size-2);
+}
+
+.dep-size-change {
+    font-size: var(--font-size-0);
+    white-space: nowrap;
+}
+
+.dep-size-increase {
+    color: var(--red-accent);
+}
+
+.dep-size-decrease {
+    color: var(--green-accent);
+}
+
+/* ── Dashboard layout ── */
+.dep-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.dep-tabs {
+    display: flex;
+    gap: var(--size-1);
+    padding: var(--size-2) var(--size-3) 0 var(--size-3);
+    background: var(--surface-1);
+    align-items: center;
+}
+
+.dep-tab {
+    padding: var(--size-2) var(--size-4);
+    border: var(--border-size-1) solid var(--surface-3);
+    border-bottom: none;
+    background: var(--surface-2);
+    border-radius: var(--radius-2) var(--radius-2) 0 0;
+    cursor: pointer;
+    position: relative;
+    top: var(--size-1);
+    transition: background 0.15s ease;
+}
+
+.dep-tab:hover {
+    background: var(--surface-3);
+}
+
+.dep-tab.active {
+    background: var(--surface-1);
+    border-bottom: var(--border-size-2) solid var(--surface-1);
+}
+
+.dep-tab-count {
+    display: inline-block;
+    margin-left: var(--size-2);
+    padding: var(--size-1) var(--size-2);
+    background: var(--surface-3);
+    border-radius: var(--radius-2);
+}
+
+.dep-tab.active .dep-tab-count {
+    background: var(--green-7);
+    color: var(--gray-0);
+}
+
+.dep-table-container {
+    flex: 1;
+    overflow: hidden;
+}
+
+.dep-table-wrapper {
+    display: none;
+    height: 100%;
+}
+
+.dep-table-wrapper.active {
+    display: block;
+}
+
+/* Highlight multiple version rows */
+.dep-multi-versions-table .tabulator-row {
+    background: var(--yellow-0);
+}
+
+/* Custom formatter styles */
+.dep-type-pill {
+    display: inline-block;
+    padding: var(--size-1) var(--size-2);
+    margin: var(--size-1);
+    border-radius: var(--radius-2);
+}
+
+.dep-type-pill.dev {
+    background: var(--blue-bg);
+    color: var(--blue-fg);
+}
+
+.dep-type-pill.prod {
+    background: var(--green-bg);
+    color: var(--green-fg);
+}
+
+.dep-notes-badge {
+    display: inline-block;
+    padding: var(--size-1) var(--size-2);
+    margin: var(--size-1);
+    border-radius: var(--radius-2);
+}
+
+.dep-notes-badge.patched {
+    background: var(--blue-bg);
+    color: var(--blue-fg);
+}
+
+.dep-notes-badge.forked {
+    background: var(--purple-bg);
+    color: var(--purple-fg);
+}
+
+.dep-notes-badge.deprecated {
+    background: var(--red-bg);
+    color: var(--red-fg);
+}
+
+.dep-notes-badge.catalog-mismatch {
+    background: var(--orange-bg);
+    color: var(--orange-fg);
+}
+
+.dep-notes-badge.perf-sensitive {
+    background: var(--cyan-bg);
+    color: var(--cyan-fg);
+}
+
+.dep-version-behind-pill {
+    display: inline-block;
+    padding: var(--size-1) var(--size-3);
+    border-radius: var(--radius-2);
+}
+
+.dep-version-behind-pill.patch {
+    background: var(--green-bg);
+    color: var(--green-fg);
+}
+
+.dep-version-behind-pill.minor {
+    background: var(--yellow-bg);
+    color: var(--yellow-fg);
+}
+
+.dep-version-behind-pill.major {
+    background: var(--red-bg);
+    color: var(--red-fg);
+}
+
+.dep-package-pill {
+    display: inline-block;
+    padding: var(--size-1) var(--size-1);
+    margin: var(--size-1);
+    background: var(--surface-3);
+    border-radius: var(--radius-2);
+    white-space: nowrap;
+}
+
+/* Used By grouped by team */
+.dep-used-by-details {
+    width: 100%;
+}
+
+.dep-used-by-summary {
+    cursor: pointer;
+    padding: var(--size-1) 0;
+    list-style: none;
+}
+
+.dep-used-by-summary::-webkit-details-marker,
+.dep-used-by-summary::marker {
+    display: none;
+}
+
+.dep-used-by-summary::before {
+    content: '\25B6  ';
+}
+
+.dep-used-by-details[open] .dep-used-by-summary::before {
+    content: '\25BC  ';
+}
+
+.dep-used-by-content {
+    margin-top: 0;
+}
+
+/* Top-align Used By cells */
+.tabulator-cell:has(.dep-used-by-content),
+.tabulator-cell:has(.dep-used-by-details) {
+    vertical-align: top !important;
+}
+
+.dep-used-by-team-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: var(--size-1);
+    padding-bottom: var(--size-1);
+    border-bottom: var(--border-size-1) solid var(--surface-3);
+}
+
+.dep-used-by-team-row:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.dep-team-label {
+    margin-right: var(--size-1);
+    flex-shrink: 0;
+    font-weight: var(--font-weight-5);
+}
+
+/* Allow pills to wrap in variable height cells */
+.tabulator .tabulator-cell {
+    white-space: normal !important;
+}
+
+.tabulator .tabulator-row .tabulator-cell .tabulator-cell-contents {
+    white-space: normal !important;
+}
+
+.dep-count {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+a.dep-package-pill {
+    color: inherit;
+}
+
+/* Responsive toggle */
+.dep-responsive-toggle {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--size-1);
+    cursor: pointer;
+    user-select: none;
+    padding: var(--size-2) var(--size-3);
+}
+
+.dep-responsive-toggle input[type='checkbox'] {
+    cursor: pointer;
+}
+
+/* Tabulator theme overrides */
+.tabulator {
+    background: var(--surface-1);
+    border: var(--border-size-1) solid var(--surface-3);
+    color: var(--text-1);
+}
+
+.tabulator .tabulator-header {
+    background: var(--surface-2);
+    border-bottom: var(--border-size-2) solid var(--surface-3);
+    color: var(--text-1);
+}
+
+.tabulator .tabulator-header .tabulator-col {
+    background: var(--surface-2);
+    border-right: var(--border-size-1) solid var(--surface-3);
+    color: var(--text-1);
+}
+
+.tabulator .tabulator-header .tabulator-col .tabulator-col-content .tabulator-col-title {
+    color: var(--text-1);
+}
+
+.tabulator .tabulator-header .tabulator-col .tabulator-header-filter input {
+    background: var(--surface-1);
+    border: var(--border-size-1) solid var(--surface-3);
+    border-radius: var(--radius-1);
+    padding: 2px 4px;
+    color: var(--text-1);
+}
+
+.tabulator .tabulator-tableholder {
+    background: var(--surface-1);
+}
+
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row {
+    background: var(--surface-1);
+    border-bottom: var(--border-size-1) solid var(--surface-3);
+    color: var(--text-1);
+}
+
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-row-even {
+    background: var(--surface-2);
+}
+
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row:hover {
+    background: var(--surface-3);
+}
+
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell {
+    border-right: var(--border-size-1) solid var(--surface-3);
+}
+
+.tabulator .tabulator-footer {
+    background: var(--surface-2);
+    color: var(--text-1);
+}
+
+/* Dark mode — only items not covered by color-pair tokens above */
+@media (prefers-color-scheme: dark) {
+    .dep-tab.active .dep-tab-count {
+        background: var(--green-9);
+    }
+
+    .dep-multi-versions-table .tabulator-row {
+        background: var(--yellow-11);
+    }
+}

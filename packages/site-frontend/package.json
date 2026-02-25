@@ -1,0 +1,24 @@
+{
+    "name": "@dependicus/site-frontend",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "build": "echo no-op",
+        "clean": "rm -rf dist",
+        "test": "vitest run",
+        "typecheck": "tsc --build tsconfig.json"
+    },
+    "dependencies": {
+        "tabulator-tables": "6.3.1",
+        "open-props": "^1.7.23"
+    },
+    "devDependencies": {
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    }
+}

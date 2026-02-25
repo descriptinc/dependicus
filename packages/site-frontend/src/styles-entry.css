@@ -1,0 +1,4 @@
+@import 'open-props/open-props.min.css';
+@import 'open-props/normalize.min.css';
+@import 'tabulator-tables/dist/css/tabulator.min.css';
+@import './styles.css';

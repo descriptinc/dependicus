@@ -1,0 +1,22 @@
+[tools]
+node = "22"
+pnpm = "10.27.0"
+
+[tasks.docs]
+description = "Build unified docs site (zensical + typedoc + dependicus) into docs-out/"
+depends = ["docs:zensical", "docs:typedoc", "docs:dependicus"]
+run = "rm -rf docs-out && cp -r docs/site docs-out && cp -r packages/dependicus/typedoc-out docs-out/api && cp -r dependicus-out docs-out/dependencies"
+
+[tasks."docs:zensical"]
+description = "Build zensical docs"
+dir = "{{config_root}}/docs"
+run = "uv run zensical build"
+
+[tasks."docs:typedoc"]
+description = "Build typedoc API reference"
+dir = "{{config_root}}/packages/dependicus"
+run = "pnpm typedoc"
+
+[tasks."docs:dependicus"]
+description = "Run dependicus on itself"
+run = "node packages/dependicus/cli.js update --html"

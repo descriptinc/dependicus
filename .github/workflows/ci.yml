@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  MISE_NODE_VERSION: "20"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - run: pnpm install
+      - run: pnpm run typecheck
+      - run: pnpm run test
+
+  zensical:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - run: uv run zensical build
+        working-directory: docs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zensical
+          path: docs/site
+
+  typedoc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - run: pnpm install
+      - run: pnpm run typedoc
+        working-directory: packages/dependicus
+      - uses: actions/upload-artifact@v4
+        with:
+          name: typedoc
+          path: packages/dependicus/typedoc-out
+
+  dependicus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - run: pnpm install
+      - uses: actions/cache@v4
+        with:
+          path: .dependicus-cache
+          key: dependicus-cache-${{ github.sha }}
+          restore-keys: dependicus-cache-
+      - run: node packages/dependicus/cli.js update --html
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dependicus
+          path: dependicus-out
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: [check, zensical, typedoc, dependicus]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: zensical
+          path: site
+      - uses: actions/download-artifact@v4
+        with:
+          name: typedoc
+          path: site/api
+      - uses: actions/download-artifact@v4
+        with:
+          name: dependicus
+          path: site/dependencies
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

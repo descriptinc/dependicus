@@ -1,0 +1,74 @@
+<header class="dep-detail-header">
+    <h1>{{label}}: {{value}}</h1>
+</header>
+
+<div class="dep-detail-columns">
+    <aside class="dep-detail-sidebar">
+        <section class="dep-detail-card">
+            <h2>Statistics</h2>
+            <dl class="dep-metadata-dl">
+                <dt>Total Packages</dt><dd>{{stats.totalPackages}}</dd>
+                <dt>Outdated</dt><dd>{{stats.outdatedCount}}</dd>
+                <dt>In Catalog</dt><dd>{{stats.catalogCount}}</dd>
+            </dl>
+        </section>
+
+        {{#each sections}}
+        {{#if stats}}
+        <section class="dep-detail-card">
+            <h2>{{title}}</h2>
+            <dl class="dep-metadata-dl">
+                {{#each stats}}
+                <dt>{{label}}</dt><dd>{{#if url}}<a href="{{url}}">{{value}}</a>{{else}}{{value}}{{/if}}</dd>
+                {{/each}}
+            </dl>
+        </section>
+        {{/if}}
+        {{/each}}
+    </aside>
+
+    <div class="dep-detail-main">
+        {{#each sections}}
+        {{#if flaggedPackages.length}}
+        <section>
+            <h2>{{title}}</h2>
+            <ul>
+                {{#each flaggedPackages}}
+                <li>
+                    <a href="{{detailLink}}">{{packageName}}@{{version}}</a>
+                    <span class="dep-compliance-detail">{{label}}</span>
+                </li>
+                {{/each}}
+            </ul>
+        </section>
+        {{/if}}
+        {{/each}}
+
+        {{#each sections}}
+        {{#if html}}
+        <section>
+            <h2>{{title}}</h2>
+            {{{html}}}
+        </section>
+        {{/if}}
+        {{/each}}
+
+        <section>
+            <h2>Packages ({{count}})</h2>
+            <ul>
+            {{#each packages}}
+                <li>
+                    {{#if detailLink}}
+                    <a href="{{detailLink}}">{{packageName}}@{{version}}</a>
+                    {{else}}
+                    {{packageName}}
+                    {{/if}}
+                    {{#if (ne version latestVersion)}}
+                    <span> (latest: {{latestVersion}})</span>
+                    {{/if}}
+                </li>
+            {{/each}}
+            </ul>
+        </section>
+    </div>
+</div>

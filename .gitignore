@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.tsbuildinfo
+docs-out/
+dependicus-out/
+.dependicus-cache/
