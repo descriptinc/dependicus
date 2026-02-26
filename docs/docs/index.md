@@ -1,6 +1,10 @@
 # Dependicus
 
-Dependicus is a tool that combines many data sources, then builds a dashboard and creates tickets, so you can make informed decisions about your JavaScript dependency graph at an organizational scale. It has a plugin system so you can customize it to your unique needs. It’s a young open source project, but we use it daily at [Descript](https://descript.com).
+Dependicus is a dependency governance tool for JavaScript monorepos. It pulls data from your pnpm lockfile, the npm registry, and GitHub, then produces an interactive dashboard and Linear tickets so you can make informed decisions about your dependency graph at an organizational scale.
+
+If you maintain a monorepo with multiple teams, dozens of workspace packages, and hundreds of dependencies, Dependicus gives you the visibility that automated-PR tools don’t: which packages are behind, by how much, who owns them, and where teams have drifted to different versions of the same dependency. You can see our [own dashboard](../dependencies/index.html) for a sense of what it looks like in practice.
+
+Dependicus has a plugin system so you can customize it to your unique needs. It’s a young open source project, but we use it daily at [Descript](https://descript.com).
 
 ```mermaid
 graph LR

@@ -68,7 +68,15 @@ The plugin system lets you extend Dependicus with your own data sources, table c
 
 Dependicus's compliance features (SLOs, due dates, team routing, advisory vs. enforced policies) address a need that Renovate doesn't directly target. If your organization needs to demonstrate that dependencies are being managed according to policy, Dependicus can produce that evidence.
 
-The monorepo-aware usage tracking is useful for prioritization. If a dependency is used by 15 workspace packages across 4 teams, that's different from a dependency used by a single internal tool. Dependicus surfaces this in the dashboard and uses it in ticket routing.
+### Monorepo depth
+
+Renovate is monorepo-aware in the sense that it can group packages from the same monorepo into a single PR. But its model of a monorepo is structural, not organizational. It knows which packages live in the same repository. It doesn't know which team owns which package, or that three teams have drifted to different versions of the same dependency, or that a major bump to a shared utility needs coordination before anyone merges anything.
+
+Dependicus tracks per-package usage across every workspace in the monorepo. If a dependency is used by 15 packages across 4 teams, the dashboard shows that, and it's different from a dependency used by a single internal tool. You can sort by breadth of usage to prioritize the updates that affect the most people. You can see version dispersion: where teams have diverged on a shared dependency and whether that's intentional or accidental.
+
+Ticket routing follows the same structure. When Dependicus creates a Linear ticket for an outdated dependency, it routes the ticket to the team that owns the packages consuming it. If the dependency crosses team boundaries, the ticket reflects that. Renovate opens a PR and leaves the question of ownership to whoever notices it first.
+
+For monorepos that use pnpm catalogs to enforce version consistency, Dependicus tracks catalog membership directly. The dashboard shows at a glance whether each dependency is in the catalog, which makes it easy to spot packages that have opted out of the shared version (or were never added).
 
 ## Using them together
 
@@ -78,16 +86,16 @@ In this model, Renovate handles the routine, low-risk updates automatically, whi
 
 ## Summary
 
-|                         | Renovate                                                | Dependicus                                                           |
-| ----------------------- | ------------------------------------------------------- | -------------------------------------------------------------------- |
-| Primary output          | Pull requests                                           | Dashboard and tickets                                                |
-| Automation level        | High (creates branches, updates lockfiles)              | Low (surfaces information, creates tickets)                          |
-| Ecosystem support       | 90+ package managers                                    | pnpm                                                                 |
-| Platform support        | GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo | Platform-agnostic (reads lockfile locally)                           |
-| Dashboard               | GitHub issue listing pending PRs and update status      | Static site showing full dependency landscape with rich context      |
-| Ticket integration      | GitHub/GitLab issues                                    | Linear                                                               |
-| Compliance/SLO tracking | Not built-in                                            | Built-in (BasicCompliancePlugin)                                     |
-| Plugin system           | Presets and custom managers                             | JavaScript API for data sources, columns, groupings, ticket policies |
-| Monorepo awareness      | Groups monorepo packages in PRs                         | Tracks per-package usage across workspace                            |
-| Configuration           | JSON/JSON5 config file with presets                     | JavaScript function call                                             |
-| Best for                | Automating the mechanics of dependency updates          | Making informed decisions about dependencies at organizational scale |
+|                         | Renovate                                                | Dependicus                                                                          |
+| ----------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Primary output          | Pull requests                                           | Dashboard and tickets                                                               |
+| Automation level        | High (creates branches, updates lockfiles)              | Low (surfaces information, creates tickets)                                         |
+| Ecosystem support       | 90+ package managers                                    | pnpm                                                                                |
+| Platform support        | GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo | Platform-agnostic (reads lockfile locally)                                          |
+| Dashboard               | GitHub issue listing pending PRs and update status      | Static site showing full dependency landscape with rich context                     |
+| Ticket integration      | GitHub/GitLab issues                                    | Linear                                                                              |
+| Compliance/SLO tracking | Not built-in                                            | Built-in (BasicCompliancePlugin)                                                    |
+| Plugin system           | Presets and custom managers                             | JavaScript API for data sources, columns, groupings, ticket policies                |
+| Monorepo awareness      | Groups monorepo packages in PRs                         | Per-package usage tracking, version dispersion, team routing, pnpm catalog tracking |
+| Configuration           | JSON/JSON5 config file with presets                     | JavaScript function call                                                            |
+| Best for                | Automating the mechanics of dependency updates          | Making informed decisions about dependencies at organizational scale                |

@@ -32,6 +32,20 @@ Dependabot's approach is reactive and automated: a new version appears, a PR is 
 
 Dependicus's approach is proactive and informational: you see the full picture of your dependency health at a glance, then decide what to do about it. The unit of work is the decision, supported by context. This works well when you need to coordinate across teams, prioritize based on risk, or demonstrate compliance.
 
+## Monorepos make this harder
+
+The automated-PR model works reasonably well for a single-package repository with a handful of dependencies. In a monorepo, the picture gets more complicated.
+
+A typical JavaScript monorepo has dozens of workspace packages maintained by different teams, sharing hundreds of direct dependencies. The same package often appears at different versions across workspaces. Teams have different risk tolerances, different release cadences, and different opinions about when to take a major version bump. A shared utility library used by 15 packages across 4 teams is a fundamentally different update than a dev dependency pinned in a single package.
+
+Dependabot doesn't model any of this. It sees packages and versions, not teams and ownership. Its grouped updates feature can consolidate PRs within an ecosystem, but it can't distinguish between a patch to something only the platform team uses and a major bump to something every team depends on. It can't route an update to the team that owns the affected packages, or hold off on a shared dependency until the teams that consume it have coordinated.
+
+Filippo Valsorda's widely-discussed article ["Turn Dependabot Off"](https://words.filippo.io/dependabot/) ([HN discussion](https://news.ycombinator.com/item?id=47094192)) captures a related tension. Valsorda argues that Dependabot conflates two distinct concerns, security and freshness, and handles both poorly. Security alerts fire on vulnerabilities in code paths you may never call. Version updates generate PRs on someone else's release schedule, not yours. The result is alert fatigue: when everything looks urgent, nothing gets proper triage.
+
+These problems compound in a monorepo. The volume of PRs grows with the number of workspace packages. Teams either auto-merge aggressively (trading review quality for throughput) or let PRs pile up (trading currency for sanity). Neither outcome improves as the monorepo grows.
+
+Dependicus was built for this environment. It tracks which workspace packages use each dependency, routes tickets to owning teams, and lets you set different policies for different tiers of risk. The dashboard shows version dispersion across workspaces, so you can see at a glance where teams have drifted apart on a shared dependency and decide whether that matters.
+
 ## Where Dependabot has more to offer
 
 Dependabot's zero-configuration security updates are hard to beat. If you're on GitHub, you get vulnerability alerts and automated patches without lifting a finger. This is a genuinely important capability, and it's free.
@@ -44,15 +58,11 @@ For teams that are GitHub-only and want the simplest possible dependency managem
 
 ## Where Dependicus has more to offer
 
-Dependicus gives you a dashboard that shows the full state of your dependencies at once. This is a different experience from scrolling through a list of open PRs. You can sort by age, filter by team, see which packages are used most broadly, and identify deprecated transitive dependencies — all without leaving a single page.
+Dependicus gives you a dashboard that shows the full state of your dependencies at once. This is a different experience from scrolling through a list of open PRs. You can sort by age, filter by team, see which packages are used most broadly, and identify deprecated transitive dependencies, all without leaving a single page.
 
 The plugin system lets you attach custom data to your dependency graph. If you need to enrich dependencies with CVE data, internal ownership, compliance classifications, or anything else specific to your organization, you write a plugin and the dashboard and tickets reflect that data automatically.
 
-Dependicus's ticket routing is designed for organizations with multiple teams. You can route tickets based on which team owns the packages that use a dependency, set different SLO policies for different tiers of dependencies, and group related updates into single tickets. This is more structured than the PR-based model, where the question of "who owns this update?" is often answered by whoever notices the PR first.
-
 The compliance features (SLOs, due dates, policy types) serve teams that need to track and demonstrate that dependency updates are being handled according to organizational policy. Dependabot doesn't have an equivalent to this.
-
-Dependicus also tracks pnpm catalog membership, which is useful for monorepos that use catalogs to enforce version consistency. The dashboard shows at a glance whether each dependency is in the catalog and flags mismatches.
 
 ## Using them together
 
@@ -66,16 +76,16 @@ For version updates specifically, you might use Dependabot's version updates for
 
 ## Summary
 
-|                         | Dependabot                                      | Dependicus                                                           |
-| ----------------------- | ----------------------------------------------- | -------------------------------------------------------------------- |
-| Primary output          | Pull requests and security alerts               | Dashboard and tickets                                                |
-| Security updates        | Automatic, zero-config                          | Not a focus (can surface deprecations)                               |
-| Automation level        | High (creates branches, updates lockfiles)      | Low (surfaces information, creates tickets)                          |
-| Ecosystem support       | ~30 package managers                            | pnpm                                                                 |
-| Platform                | GitHub only                                     | Platform-agnostic (reads lockfile locally)                           |
-| Ticket integration      | GitHub PRs and alerts                           | Linear                                                               |
-| Compliance/SLO tracking | Not built-in                                    | Built-in (BasicCompliancePlugin)                                     |
-| Plugin system           | None                                            | JavaScript API for data sources, columns, groupings, ticket policies |
-| Configuration           | YAML file                                       | JavaScript function call                                             |
-| Monorepo awareness      | Grouped updates (same ecosystem)                | Per-package usage tracking across workspace                          |
-| Best for                | Automated dependency updates with minimal setup | Organizational dependency governance and informed decision-making    |
+|                         | Dependabot                                      | Dependicus                                                                          |
+| ----------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Primary output          | Pull requests and security alerts               | Dashboard and tickets                                                               |
+| Security updates        | Automatic, zero-config                          | Not a focus (can surface deprecations)                                              |
+| Automation level        | High (creates branches, updates lockfiles)      | Low (surfaces information, creates tickets)                                         |
+| Ecosystem support       | ~30 package managers                            | pnpm                                                                                |
+| Platform                | GitHub only                                     | Platform-agnostic (reads lockfile locally)                                          |
+| Ticket integration      | GitHub PRs and alerts                           | Linear                                                                              |
+| Compliance/SLO tracking | Not built-in                                    | Built-in (BasicCompliancePlugin)                                                    |
+| Plugin system           | None                                            | JavaScript API for data sources, columns, groupings, ticket policies                |
+| Configuration           | YAML file                                       | JavaScript function call                                                            |
+| Monorepo awareness      | Grouped updates (same ecosystem)                | Per-package usage tracking, version dispersion, team routing, pnpm catalog tracking |
+| Best for                | Automated dependency updates with minimal setup | Organizational dependency governance and informed decision-making                   |
