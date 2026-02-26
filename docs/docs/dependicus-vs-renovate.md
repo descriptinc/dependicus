@@ -16,7 +16,7 @@ Renovate also provides Merge Confidence badges that show adoption rate, age, and
 
 ## What Dependicus does
 
-Dependicus takes a different approach. Rather than opening pull requests, it collects data about your dependencies from multiple sources (your pnpm lockfile, the npm registry, GitHub releases, and deprecation databases), then produces two outputs: an interactive dashboard and (optionally) tickets in Linear.
+Dependicus takes a different approach. Rather than opening pull requests, it collects data about your dependencies from multiple sources (your pnpm lockfile, the npm registry, and GitHub), then produces two outputs: an interactive dashboard and (optionally) tickets in Linear.
 
 The dashboard gives you a single view of every direct dependency in your monorepo: what version you're on, what's latest, how old your version is, who in your codebase uses it, whether it's in your pnpm catalog, and whether any of its transitive dependencies are deprecated. Dependicus enriches each package with changelog links, GitHub release URLs, and size comparisons between your version and the latest.
 
