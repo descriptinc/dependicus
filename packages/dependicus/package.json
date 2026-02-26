@@ -1,16 +1,23 @@
 {
     "name": "dependicus",
     "version": "0.1.0",
-    "private": true,
     "bin": {
-        "dependicus": "dist/bin.js"
+        "dependicus": "dist/bin.mjs"
     },
+    "files": [
+        "dist"
+    ],
+    "type": "module",
     "exports": {
-        ".": "./src/index.ts"
+        ".": {
+            "types": "./dist/index.d.mts",
+            "default": "./dist/index.mjs"
+        }
     },
     "scripts": {
-        "dependicus": "node dist/bin.js",
-        "build": "rolldown -c rolldown.config.ts",
+        "dependicus": "node dist/bin.mjs",
+        "build": "tsdown",
+        "bundle": "rolldown -c rolldown.config.ts",
         "clean": "rm -rf dist",
         "test": "vitest run",
         "typedoc": "typedoc --tsconfig tsconfig.typedoc.json --entryPoints src/index.ts --out typedoc-out --name 'Dependicus API Reference'",
@@ -25,6 +32,7 @@
     },
     "devDependencies": {
         "@types/node": "catalog:",
+        "tsdown": "catalog:",
         "typedoc": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:"

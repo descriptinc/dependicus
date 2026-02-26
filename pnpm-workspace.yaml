@@ -21,6 +21,7 @@ catalog:
     'typedoc': '^0.28.17'
     'oxlint': '^1.50.0'
     'oxfmt': '^0.35.0'
+    'tsdown': '^0.20.3'
 
 onlyBuiltDependencies:
     - 'rolldown'

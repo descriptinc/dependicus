@@ -11,6 +11,7 @@
         "url": "https://github.com/descriptinc/dependicus.git"
     },
     "scripts": {
+        "build": "pnpm -r run build",
         "lint": "oxlint --deny-warnings",
         "format": "oxfmt --write .",
         "format:check": "oxfmt --check .",

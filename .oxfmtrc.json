@@ -2,5 +2,5 @@
     "$schema": "./node_modules/oxfmt/configuration_schema.json",
     "tabWidth": 4,
     "singleQuote": true,
-    "ignorePatterns": ["**/*.hbs"]
+    "ignorePatterns": ["**/*.hbs", "pnpm-lock.yaml"]
 }

@@ -1,0 +1,32 @@
+name: Publish
+
+on:
+    push:
+        tags: ['v*']
+
+permissions:
+    contents: read
+    id-token: write
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: pnpm install
+            - run: pnpm -r run build
+            - name: Publish packages in dependency order
+              env:
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  # Tier 1: no workspace deps
+                  pnpm --filter @dependicus/core publish --no-git-checks --provenance --access public
+                  pnpm --filter @dependicus/site-frontend publish --no-git-checks --provenance --access public
+                  sleep 10
+                  # Tier 2: depend on tier 1
+                  pnpm --filter @dependicus/linear publish --no-git-checks --provenance --access public
+                  pnpm --filter @dependicus/site-builder publish --no-git-checks --provenance --access public
+                  sleep 10
+                  # Tier 3: depends on tier 2
+                  pnpm --filter dependicus publish --no-git-checks --provenance --access public

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { dependicusCli } from './cli';
 
 void dependicusCli({

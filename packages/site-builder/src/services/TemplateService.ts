@@ -1,7 +1,10 @@
 import { readFileSync, readdirSync } from 'node:fs';
-import { resolve, join, basename } from 'node:path';
+import { dirname, resolve, join, basename } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import Handlebars from 'handlebars';
 import { helpers } from '../templates/helpers';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export class TemplateService {
     private handlebars: typeof Handlebars;

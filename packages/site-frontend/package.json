@@ -1,13 +1,18 @@
 {
     "name": "@dependicus/site-frontend",
     "version": "0.1.0",
-    "private": true,
+    "files": [
+        "dist"
+    ],
     "type": "module",
     "exports": {
-        ".": "./src/index.ts"
+        ".": {
+            "types": "./dist/index.d.mts",
+            "default": "./dist/index.mjs"
+        }
     },
     "scripts": {
-        "build": "echo no-op",
+        "build": "tsdown",
         "clean": "rm -rf dist",
         "test": "vitest run",
         "typecheck": "tsc --build tsconfig.json"
@@ -18,6 +23,7 @@
     },
     "devDependencies": {
         "@types/node": "catalog:",
+        "tsdown": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:"
     }

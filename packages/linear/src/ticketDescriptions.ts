@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { dirname, resolve, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import Handlebars from 'handlebars';
 import type { PackageVersionInfo, GitHubData } from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
@@ -7,6 +8,7 @@ import { FactKeys, findFirstVersionOfType, formatBytes, formatSizeChange } from 
 import { helpers } from './templates/helpers';
 import type { OutdatedPackage, OutdatedGroup } from './types';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const templatesDir = resolve(__dirname, 'templates');
 
 function createHandlebars(): typeof Handlebars {
