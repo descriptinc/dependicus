@@ -6,7 +6,7 @@ import { createDependicus } from '@dependicus/site-builder';
 import { readDependicusJson } from '@dependicus/core';
 import type { DirectDependency, FactStore } from '@dependicus/core';
 import { reconcileTickets } from '@dependicus/linear';
-import type { VersionContext, TicketSpec } from '@dependicus/linear';
+import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
 import type { DependicusPlugin, ResolvedPlugins } from './plugin';
 import { resolvePlugins } from './plugin';
 
@@ -29,7 +29,10 @@ export interface DependicusCliConfig {
     /** Linear ticket integration configuration. */
     linear?: {
         /** Given information about a package and specific version, return the ticket spec (policy, assignment, etc.) or undefined to skip. */
-        getTicketSpec?: (context: VersionContext, store: FactStore) => TicketSpec | undefined;
+        getLinearIssueSpec?: (
+            context: VersionContext,
+            store: FactStore,
+        ) => LinearIssueSpec | undefined;
         /** Number of days to wait before creating a new ticket for a newly-published version. */
         cooldownDays?: number;
         /** Whether to allow new ticket creation. Defaults to `true`. */
@@ -167,19 +170,19 @@ export function dependicusCli(config: DependicusCliConfig): {
 
                         const { effectiveConfig, resolved, jsonPath } = resolveConfig();
 
-                        // If --linear-team-id is given, wrap getTicketSpec to inject teamId
+                        // If --linear-team-id is given, wrap getLinearIssueSpec to inject teamId
                         const teamIdOverride = options.linearTeamId as string | undefined;
-                        const baseGetTicketSpec = resolved.getTicketSpec;
-                        const effectiveGetTicketSpec: typeof resolved.getTicketSpec =
-                            teamIdOverride && baseGetTicketSpec
+                        const baseGetLinearIssueSpec = resolved.getLinearIssueSpec;
+                        const effectiveGetLinearIssueSpec: typeof resolved.getLinearIssueSpec =
+                            teamIdOverride && baseGetLinearIssueSpec
                                 ? (ctx, s) => {
-                                      const spec = baseGetTicketSpec(ctx, s);
+                                      const spec = baseGetLinearIssueSpec(ctx, s);
                                       if (!spec) return undefined;
                                       return { ...spec, teamId: teamIdOverride };
                                   }
                                 : teamIdOverride
                                   ? () => ({ teamId: teamIdOverride })
-                                  : resolved.getTicketSpec;
+                                  : resolved.getLinearIssueSpec;
 
                         const dependicus = await createDependicusInstance(
                             effectiveConfig,
@@ -204,7 +207,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                                 cooldownDays: linearConfig.cooldownDays,
                                 allowNewTickets: linearConfig.allowNewTickets,
                             },
-                            effectiveGetTicketSpec,
+                            effectiveGetLinearIssueSpec,
                         );
                     },
                 );

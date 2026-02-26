@@ -40,7 +40,7 @@ describe('resolvePlugins', () => {
             expect(result.groupings).toEqual([]);
             expect(result.getSections).toBeUndefined();
             expect(result.getUsedByGroupKey).toBeUndefined();
-            expect(result.getTicketSpec).toBeUndefined();
+            expect(result.getLinearIssueSpec).toBeUndefined();
         });
     });
 
@@ -146,47 +146,47 @@ describe('resolvePlugins', () => {
     });
 
     describe('linear callbacks', () => {
-        it('direct config getTicketSpec wins over plugin', () => {
+        it('direct config getLinearIssueSpec wins over plugin', () => {
             const directFn = () => ({ teamId: 'team', group: 'direct-group' });
             const pluginFn = () => ({ teamId: 'team', group: 'plugin-group' });
 
-            const plugin: DependicusPlugin = { name: 'p1', getTicketSpec: pluginFn };
+            const plugin: DependicusPlugin = { name: 'p1', getLinearIssueSpec: pluginFn };
             const config = baseConfig({
                 linear: {
-                    getTicketSpec: directFn,
+                    getLinearIssueSpec: directFn,
                 },
             });
 
             const result = resolvePlugins([plugin], config);
-            expect(result.getTicketSpec?.({} as VersionContext, mockStore)).toEqual({
+            expect(result.getLinearIssueSpec?.({} as VersionContext, mockStore)).toEqual({
                 teamId: 'team',
                 group: 'direct-group',
             });
         });
 
-        it('getTicketSpec is undefined when no source provides it', () => {
+        it('getLinearIssueSpec is undefined when no source provides it', () => {
             const plugin: DependicusPlugin = { name: 'p1' };
 
             const result = resolvePlugins([plugin], baseConfig());
-            expect(result.getTicketSpec).toBeUndefined();
+            expect(result.getLinearIssueSpec).toBeUndefined();
         });
 
-        it('merges getTicketSpec results from multiple plugins', () => {
+        it('merges getLinearIssueSpec results from multiple plugins', () => {
             const fn1 = (ctx: VersionContext) =>
                 ctx.packageName === 'react' ? { teamId: 'team', group: 'react-group' } : undefined;
             const fn2 = () => ({ teamId: 'team', group: 'default-group' });
 
-            const p1: DependicusPlugin = { name: 'p1', getTicketSpec: fn1 };
-            const p2: DependicusPlugin = { name: 'p2', getTicketSpec: fn2 };
+            const p1: DependicusPlugin = { name: 'p1', getLinearIssueSpec: fn1 };
+            const p2: DependicusPlugin = { name: 'p2', getLinearIssueSpec: fn2 };
 
             const result = resolvePlugins([p1, p2], baseConfig());
             // Both plugins contribute for 'react': fn2 overrides fn1's group
             expect(
-                result.getTicketSpec?.({ packageName: 'react' } as VersionContext, mockStore),
+                result.getLinearIssueSpec?.({ packageName: 'react' } as VersionContext, mockStore),
             ).toEqual({ teamId: 'team', group: 'default-group' });
             // Only fn2 contributes for 'vue'
             expect(
-                result.getTicketSpec?.({ packageName: 'vue' } as VersionContext, mockStore),
+                result.getLinearIssueSpec?.({ packageName: 'vue' } as VersionContext, mockStore),
             ).toEqual({ teamId: 'team', group: 'default-group' });
         });
 
@@ -198,11 +198,11 @@ describe('resolvePlugins', () => {
                 thresholdDays: 30,
             });
 
-            const p1: DependicusPlugin = { name: 'p1', getTicketSpec: fn1 };
-            const p2: DependicusPlugin = { name: 'p2', getTicketSpec: fn2 };
+            const p1: DependicusPlugin = { name: 'p1', getLinearIssueSpec: fn1 };
+            const p2: DependicusPlugin = { name: 'p2', getLinearIssueSpec: fn2 };
 
             const result = resolvePlugins([p1, p2], baseConfig());
-            expect(result.getTicketSpec?.({} as VersionContext, mockStore)).toEqual({
+            expect(result.getLinearIssueSpec?.({} as VersionContext, mockStore)).toEqual({
                 teamId: 'team-a',
                 ownerLabel: 'Team A',
                 policy: { type: 'dueDate' },
@@ -220,11 +220,11 @@ describe('resolvePlugins', () => {
                 descriptionSections: [{ title: 'Notes', body: 'Extra info' }],
             });
 
-            const p1: DependicusPlugin = { name: 'p1', getTicketSpec: fn1 };
-            const p2: DependicusPlugin = { name: 'p2', getTicketSpec: fn2 };
+            const p1: DependicusPlugin = { name: 'p1', getLinearIssueSpec: fn1 };
+            const p2: DependicusPlugin = { name: 'p2', getLinearIssueSpec: fn2 };
 
             const result = resolvePlugins([p1, p2], baseConfig());
-            const spec = result.getTicketSpec?.({} as VersionContext, mockStore);
+            const spec = result.getLinearIssueSpec?.({} as VersionContext, mockStore);
             expect(spec?.descriptionSections).toEqual([
                 { title: 'Policy', body: 'Tier 1' },
                 { title: 'Notes', body: 'Extra info' },
@@ -234,10 +234,10 @@ describe('resolvePlugins', () => {
         it('returns undefined when merged result is missing teamId', () => {
             const fn1 = () => ({ policy: { type: 'fyi' as const } });
 
-            const p1: DependicusPlugin = { name: 'p1', getTicketSpec: fn1 };
+            const p1: DependicusPlugin = { name: 'p1', getLinearIssueSpec: fn1 };
 
             const result = resolvePlugins([p1], baseConfig());
-            expect(result.getTicketSpec?.({} as VersionContext, mockStore)).toBeUndefined();
+            expect(result.getLinearIssueSpec?.({} as VersionContext, mockStore)).toBeUndefined();
         });
 
         it('single plugin returning full spec works as before', () => {
@@ -249,10 +249,10 @@ describe('resolvePlugins', () => {
                 assignment: { type: 'unassigned' as const },
             });
 
-            const p1: DependicusPlugin = { name: 'p1', getTicketSpec: fn1 };
+            const p1: DependicusPlugin = { name: 'p1', getLinearIssueSpec: fn1 };
 
             const result = resolvePlugins([p1], baseConfig());
-            expect(result.getTicketSpec?.({} as VersionContext, mockStore)).toEqual({
+            expect(result.getLinearIssueSpec?.({} as VersionContext, mockStore)).toEqual({
                 teamId: 'team',
                 policy: { type: 'dueDate' },
                 daysOverdue: 10,

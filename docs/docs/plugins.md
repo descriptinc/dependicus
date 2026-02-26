@@ -15,7 +15,7 @@ Dependicus ships with [BasicCompliancePlugin](../api/classes/BasicCompliancePlug
 
 ## Setting ticket data and metadata
 
-To set the team, due date, content, or anything else supported by [TicketSpec](../api/types/TicketSpec.html), implement `getTicketSpec`. The return value is `Partial<TicketSpec>`, so you can only override what you need.
+To set the team, due date, content, or anything else supported by [LinearIssueSpec](../api/types/LinearIssueSpec.html), implement `getLinearIssueSpec`. The return value is `Partial<LinearIssueSpec>`, so you can only override what you need.
 
 For example, Dependicus comes with `BasicCompliancePlugin` for threshold-based compliance tracking. (See [Compliance](./compliance.md) for more on that). But compliance isn’t enough to make a ticket—you also need to put it somewhere. So one thing you could do would be to compose `BasicCompliancePlugin` with your own `OwnershipPlugin`, like this:
 
@@ -46,7 +46,7 @@ void dependicusCli({
         }),
         {
             name: 'Ownership',
-            getTicketSpec: (context, store) => {
+            getLinearIssueSpec: (context, store) => {
                 const ownerId = packageOwners[context.packageName];
                 const owner = teams[ownerId]!;
                 return {
@@ -57,7 +57,7 @@ void dependicusCli({
         },
         {
             name: 'Grouping',
-            getTicketSpec: (context, store) => {
+            getLinearIssueSpec: (context, store) => {
                 // Bonus example: batch all updates for packages of the form
                 // @x/y into single tickets, so for example you get @react/*
                 // as just one ticket
@@ -110,7 +110,7 @@ This example fetches CVE count from an imaginary source and stores it in `FactSt
 
 ```ts
 import type { DependicusPlugin, DataSource, DirectDependency, CustomColumn } from 'dependicus';
-import type { VersionContext, TicketSpec } from 'dependicus';
+import type { VersionContext, LinearIssueSpec } from 'dependicus';
 import { FactStore } from 'dependicus';
 import { getCveCount } from 'magic-cve-fetcher';
 
@@ -154,10 +154,10 @@ class CvePlugin implements DependicusPlugin {
         ];
     }
 
-    getTicketSpec = (
+    getLinearIssueSpec = (
         context: VersionContext,
         store: FactStore,
-    ): Partial<TicketSpec> | undefined => {
+    ): Partial<LinearIssueSpec> | undefined => {
         const counts = store.getPackageFact<Record<string, number>>(context.packageName, CVE_FACT);
         const cveCount = counts?.[context.currentVersion] ?? 0;
         if (cveCount === 0) return undefined;

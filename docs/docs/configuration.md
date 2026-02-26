@@ -28,13 +28,13 @@ Dependicus aggressively caches data in individual JSON files. This parameter con
 
 Dependicus assumes you want fine-grained control over how tickets are created. There is no default behavior because we aren’t confident enough to predict what you want.
 
-### `linear.getTicketSpec` (optional): `(context: VersionContext, store: FactStore) => TicketSpec | undefined`
+### `linear.getLinearIssueSpec` (optional): `(context: VersionContext, store: FactStore) => LinearIssueSpec | undefined`
 
-For a given package version, return a `TicketSpec` describing what ticket to create, or `undefined` to skip. See [Linear tickets](./lineartickets.md) for details on the `TicketSpec` fields.
+For a given package version, return a `LinearIssueSpec` describing what ticket to create, or `undefined` to skip. See [Linear tickets](./lineartickets.md) for details on the `LinearIssueSpec` fields.
 
 This field is optional because [plugins](./plugins.md) can provide the same functionality. Depending on how complex your setup is, you might choose to write a plugin instead of providing a function for this parameter.
 
-If you do not write a plugin or pass a `getTicketSpec()` function, then Dependicus cannot create Linear tickets for you.
+If you do not write a plugin or pass a `getLinearIssueSpec()` function, then Dependicus cannot create Linear tickets for you.
 
 ### `linear.cooldownDays` (optional, defaults to `0`)
 

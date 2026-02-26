@@ -229,7 +229,7 @@ describe('getSections', () => {
     });
 });
 
-describe('getTicketSpec', () => {
+describe('getLinearIssueSpec', () => {
     const defaultContext: VersionContext = {
         packageName: 'test-pkg',
         currentVersion: '1.0.0',
@@ -247,7 +247,7 @@ describe('getTicketSpec', () => {
             { version: '2.0.0', publishDate: '2022-01-01', isPrerelease: false, npmUrl: '' },
         ]);
 
-        const result = plugin.getTicketSpec!(defaultContext, store);
+        const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result).toBeDefined();
         expect(result!.policy).toEqual({ type: 'dueDate' });
     });
@@ -260,7 +260,7 @@ describe('getTicketSpec', () => {
         const plugin = new BasicCompliancePlugin(config);
         const store = new FactStore();
 
-        const result = plugin.getTicketSpec!(defaultContext, store);
+        const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result).toBeDefined();
         expect(result!.policy).toEqual({ type: 'fyi', rateLimitDays: 30 });
     });
@@ -273,7 +273,7 @@ describe('getTicketSpec', () => {
         const plugin = new BasicCompliancePlugin(config);
         const store = new FactStore();
 
-        const result = plugin.getTicketSpec!(defaultContext, store);
+        const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result).toBeDefined();
         expect(result!.policy).toEqual({ type: 'noTicket' });
     });
@@ -289,7 +289,7 @@ describe('getTicketSpec', () => {
             { version: '2.0.0', publishDate: '2022-01-01', isPrerelease: false, npmUrl: '' },
         ]);
 
-        const result = plugin.getTicketSpec!(defaultContext, store);
+        const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result!.daysOverdue).toBeGreaterThan(0);
         expect(result!.thresholdDays).toBe(360);
         expect(result!.targetVersion).toBe('2.0.0');
@@ -303,7 +303,7 @@ describe('getTicketSpec', () => {
         const plugin = new BasicCompliancePlugin(config);
         const store = new FactStore();
 
-        const result = plugin.getTicketSpec!(defaultContext, store);
+        const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result!.daysOverdue).toBeUndefined();
         expect(result!.thresholdDays).toBeUndefined();
         expect(result!.targetVersion).toBeUndefined();
@@ -321,7 +321,7 @@ describe('getTicketSpec', () => {
             { version: '2.0.0', publishDate: '2022-06-01', isPrerelease: false, npmUrl: '' },
         ]);
 
-        const result = plugin.getTicketSpec!(defaultContext, store);
+        const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result!.targetVersion).toBe('1.1.0');
         expect(result!.availableMajorVersion).toBe('2.0.0');
     });
@@ -349,7 +349,7 @@ describe('getTicketSpec', () => {
             { version: '1.5.0', publishDate: '2022-06-01', isPrerelease: false, npmUrl: '' },
         ]);
 
-        const result = plugin.getTicketSpec!(context, store);
+        const result = plugin.getLinearIssueSpec!(context, store);
         expect(result!.targetVersion).toBe('1.0.5');
         expect(result!.availableMajorVersion).toBeUndefined();
     });
@@ -362,7 +362,7 @@ describe('getTicketSpec', () => {
         const plugin = new BasicCompliancePlugin(config);
         const store = new FactStore();
 
-        const result = plugin.getTicketSpec!(defaultContext, store);
+        const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result!.descriptionSections).toHaveLength(1);
         const section = result!.descriptionSections![0]!;
         expect(section.title).toBe('Policy');
@@ -380,7 +380,7 @@ describe('getTicketSpec', () => {
         const plugin = new BasicCompliancePlugin(config);
         const store = new FactStore();
 
-        const result = plugin.getTicketSpec!(defaultContext, store);
+        const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result).toBeDefined();
         expect('teamId' in result!).toBe(false);
         expect('assignment' in result!).toBe(false);
@@ -396,7 +396,7 @@ describe('getTicketSpec', () => {
         const plugin = new BasicCompliancePlugin(config);
         const store = new FactStore();
 
-        const result = plugin.getTicketSpec!(defaultContext, store);
+        const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result).toBeUndefined();
     });
 
@@ -408,7 +408,7 @@ describe('getTicketSpec', () => {
         const plugin = new BasicCompliancePlugin(config);
         const store = new FactStore();
 
-        const result = plugin.getTicketSpec!(defaultContext, store);
+        const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result).toBeUndefined();
     });
 
@@ -420,7 +420,7 @@ describe('getTicketSpec', () => {
         const plugin = new BasicCompliancePlugin(config);
         const store = new FactStore();
 
-        const result = plugin.getTicketSpec!(defaultContext, store);
+        const result = plugin.getLinearIssueSpec!(defaultContext, store);
         const section = result!.descriptionSections![0]!;
         expect(section.body).toContain('Notifications only (no mandatory updates)');
     });

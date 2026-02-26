@@ -2,7 +2,7 @@
 
 # Creating and Updating Linear Tickets
 
-Linear tickets are defined by `getTicketSpec` functions, which take a [VersionContext](../api/interfaces/VersionContext.html) and a [FactStore](../api/classes/FactStore.html), and return a [TicketSpec](../api/types/TicketSpec.html).
+Linear tickets are defined by `getLinearIssueSpec` functions, which take a [VersionContext](../api/interfaces/VersionContext.html) and a [FactStore](../api/classes/FactStore.html), and return a [LinearIssueSpec](../api/types/LinearIssueSpec.html).
 
 Here's an example that covers the basics: skipping packages, routing to different teams, choosing between notification-only and SLA-enforced tickets, delegating simple updates, and reading from the `FactStore`.
 
@@ -13,7 +13,7 @@ void dependicusCli({
     repoRoot,
     dependicusBaseUrl: 'https://mycompany.internal/dependicus',
     linear: {
-        getTicketSpec: (context, store) => {
+        getLinearIssueSpec: (context, store) => {
             const { packageName, currentVersion, latestVersion } = context;
             const updateType = getUpdateType(currentVersion, latestVersion);
 

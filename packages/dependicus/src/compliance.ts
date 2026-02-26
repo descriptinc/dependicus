@@ -13,7 +13,7 @@ import {
     findLatestWithinMajor,
     findLatestWithinMinor,
 } from '@dependicus/core';
-import type { VersionContext, TicketSpec } from '@dependicus/linear';
+import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
 import type { CustomColumn } from '@dependicus/site-builder';
 import type { DependicusPlugin } from './plugin';
 
@@ -189,7 +189,7 @@ function formatThreshold(days: number): string {
  * You provide policy definitions and a function that maps packages to policy
  * IDs; the plugin handles columns, sections, and ticket spec generation.
  * It composes with ownership plugins — each plugin contributes its own
- * fields to the merged `TicketSpec`.
+ * fields to the merged `LinearIssueSpec`.
  *
  * See the [Compliance docs](https://TODO/compliance) for usage examples.
  *
@@ -276,13 +276,13 @@ export class BasicCompliancePlugin implements DependicusPlugin {
      * beyond the target, `availableMajorVersion` is set so the ticket can
      * mention it informatively.
      *
-     * Returns a partial TicketSpec (no teamId/assignment/group/ownerLabel —
+     * Returns a partial LinearIssueSpec (no teamId/assignment/group/ownerLabel —
      * those come from a separate ownership plugin).
      */
-    getTicketSpec = (
+    getLinearIssueSpec = (
         context: VersionContext,
         store: FactStore,
-    ): Partial<TicketSpec> | undefined => {
+    ): Partial<LinearIssueSpec> | undefined => {
         const policy = this.resolvePolicy(context.packageName, store);
         if (!policy) return undefined;
 

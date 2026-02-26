@@ -16,7 +16,7 @@
         "format": "oxfmt --write .",
         "format:check": "oxfmt --check .",
         "test": "pnpm -r run test",
-        "typecheck": "pnpm -r run typecheck",
+        "typecheck": "pnpm run build && pnpm -r run typecheck",
         "clean": "pnpm -r run clean"
     },
     "devDependencies": {

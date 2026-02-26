@@ -7,8 +7,8 @@ import type {
     UsedByGroupKeyFn,
 } from '@dependicus/core';
 import type { CustomColumn } from '@dependicus/site-builder';
-import type { VersionContext, TicketSpec } from '@dependicus/linear';
-import { ticketSpecSchema } from '@dependicus/linear';
+import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
+import { linearIssueSpecSchema } from '@dependicus/linear';
 import type { DependicusCliConfig } from './cli';
 
 /** @group Plugins */
@@ -22,7 +22,10 @@ export interface DependicusPlugin {
     getUsedByGroupKey?: UsedByGroupKeyFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
 
-    getTicketSpec?: (context: VersionContext, store: FactStore) => Partial<TicketSpec> | undefined;
+    getLinearIssueSpec?: (
+        context: VersionContext,
+        store: FactStore,
+    ) => Partial<LinearIssueSpec> | undefined;
 }
 
 export interface ResolvedPlugins {
@@ -31,12 +34,12 @@ export interface ResolvedPlugins {
     columns: CustomColumn[];
     getUsedByGroupKey?: UsedByGroupKeyFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
-    getTicketSpec?: (context: VersionContext, store: FactStore) => TicketSpec | undefined;
+    getLinearIssueSpec?: (context: VersionContext, store: FactStore) => LinearIssueSpec | undefined;
 }
 
-function mergeTicketSpecs(
-    fns: Array<(ctx: VersionContext, store: FactStore) => Partial<TicketSpec> | undefined>,
-): ((ctx: VersionContext, store: FactStore) => TicketSpec | undefined) | undefined {
+function mergeLinearIssueSpecs(
+    fns: Array<(ctx: VersionContext, store: FactStore) => Partial<LinearIssueSpec> | undefined>,
+): ((ctx: VersionContext, store: FactStore) => LinearIssueSpec | undefined) | undefined {
     if (fns.length === 0) return undefined;
     return (ctx, store) => {
         const partials = fns.map((fn) => fn(ctx, store)).filter((p) => p !== undefined);
@@ -44,7 +47,7 @@ function mergeTicketSpecs(
         const allSections = partials.flatMap((p) => p.descriptionSections ?? []);
         const merged = Object.assign({}, ...partials);
         if (allSections.length > 0) merged.descriptionSections = allSections;
-        const result = ticketSpecSchema.safeParse(merged);
+        const result = linearIssueSpecSchema.safeParse(merged);
         if (!result.success) {
             process.stderr.write(
                 `Warning: merged ticket spec failed validation: ${result.error.message}\n`,
@@ -75,18 +78,19 @@ export function resolvePlugins(
             : undefined;
 
     // Merge plugin ticket specs; direct config override bypasses merging
-    const pluginTicketSpecFns = plugins
-        .map((p) => p.getTicketSpec)
+    const pluginLinearIssueSpecFns = plugins
+        .map((p) => p.getLinearIssueSpec)
         .filter(
             (
                 fn,
             ): fn is (
                 context: VersionContext,
                 store: FactStore,
-            ) => Partial<TicketSpec> | undefined => fn !== undefined,
+            ) => Partial<LinearIssueSpec> | undefined => fn !== undefined,
         );
 
-    const getTicketSpec = config.linear?.getTicketSpec ?? mergeTicketSpecs(pluginTicketSpecFns);
+    const getLinearIssueSpec =
+        config.linear?.getLinearIssueSpec ?? mergeLinearIssueSpecs(pluginLinearIssueSpecFns);
 
     return {
         sources,
@@ -94,6 +98,6 @@ export function resolvePlugins(
         columns,
         getUsedByGroupKey,
         getSections,
-        getTicketSpec,
+        getLinearIssueSpec,
     };
 }

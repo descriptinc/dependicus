@@ -43,7 +43,7 @@ export const descriptionSectionSchema = z.object({
  * Instructions returned by the consumer for a given version: what ticket to create and how.
  * @group Ticket Creation
  */
-export const ticketSpecSchema = z.object({
+export const linearIssueSpecSchema = z.object({
     policy: linearPolicySchema.optional(),
     daysOverdue: z.number().optional(),
     thresholdDays: z.number().optional(),
@@ -70,12 +70,12 @@ export type TicketAssignment = z.infer<typeof ticketAssignmentSchema>;
 export type DescriptionSection = z.infer<typeof descriptionSectionSchema>;
 
 /** @group Ticket Creation */
-export type TicketSpec = z.infer<typeof ticketSpecSchema>;
+export type LinearIssueSpec = z.infer<typeof linearIssueSpecSchema>;
 
 // ── Context type ─────────────────────────────────────────────────────
 
 /**
- * Context passed to `getTicketSpec` for each outdated package version.
+ * Context passed to `getLinearIssueSpec` for each outdated package version.
  * The plugin uses this to decide what kind of ticket (if any) to create.
  * @group Ticket Creation
  */

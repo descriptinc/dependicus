@@ -58,7 +58,7 @@ export { FactKeys } from '@dependicus/core';
 export type { VersionContext } from '@dependicus/linear';
 
 /** @group Ticket Creation */
-export type { TicketSpec } from '@dependicus/linear';
+export type { LinearIssueSpec } from '@dependicus/linear';
 
 /** @group Ticket Creation */
 export type { LinearPolicy } from '@dependicus/linear';

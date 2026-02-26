@@ -21,7 +21,7 @@ import type {
     LinearPolicy,
     TicketAssignment,
     VersionContext,
-    TicketSpec,
+    LinearIssueSpec,
 } from './types';
 import {
     buildTicketDescription,
@@ -211,7 +211,7 @@ export async function reconcileTickets(
     dependencies: DirectDependency[],
     store: FactStore,
     config: TicketReconcilerConfig,
-    getTicketSpec?: (context: VersionContext, store: FactStore) => TicketSpec | undefined,
+    getLinearIssueSpec?: (context: VersionContext, store: FactStore) => LinearIssueSpec | undefined,
 ): Promise<ReconciliationResult> {
     const dryRun = config.dryRun ?? false;
     const allowNewTickets = config.allowNewTickets ?? true;
@@ -243,7 +243,7 @@ export async function reconcileTickets(
                 latestVersion: version.latestVersion,
             };
 
-            const ctx = getTicketSpec?.(versionContext, store);
+            const ctx = getLinearIssueSpec?.(versionContext, store);
             if (!ctx) continue;
 
             const policy = ctx.policy ?? DEFAULT_POLICY;

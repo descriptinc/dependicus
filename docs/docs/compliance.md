@@ -51,6 +51,6 @@ void dependicusCli({
 
     // BasicCompliancePlugin handles compliance status and due dates,
     // but doesn't know which team owns which package.
-    getTicketSpec: (context) => ({ teamId: 'your-team-uuid' }),
+    getLinearIssueSpec: (context) => ({ teamId: 'your-team-uuid' }),
 }).run(process.argv);
 ```
