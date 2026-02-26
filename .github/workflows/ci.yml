@@ -79,6 +79,31 @@ jobs:
                   name: dependicus
                   path: dependicus-out
 
+    github-issues:
+        if: github.ref == 'refs/heads/main'
+        needs: [check, lint, dependicus]
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            issues: write
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: pnpm install
+            - run: pnpm run build
+            - uses: actions/cache@v4
+              with:
+                  path: .dependicus-cache
+                  key: dependicus-cache-${{ github.sha }}
+                  restore-keys: dependicus-cache-
+            - uses: actions/download-artifact@v4
+              with:
+                  name: dependicus
+                  path: dependicus-out
+            - run: node packages/dependicus/dist/bin.mjs make-github-issues
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     deploy:
         if: github.ref == 'refs/heads/main'
         needs: [check, lint, zensical, typedoc, dependicus]

@@ -117,6 +117,9 @@ importers:
       '@dependicus/core':
         specifier: workspace:*
         version: link:../core
+      '@dependicus/github-issues':
+        specifier: workspace:*
+        version: link:../github-issues
       '@dependicus/linear':
         specifier: workspace:*
         version: link:../linear
@@ -139,6 +142,34 @@ importers:
       typedoc:
         specifier: 'catalog:'
         version: 0.28.17(typescript@5.9.3)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.0.18(@types/node@25.3.0)(yaml@2.8.2)
+
+  packages/github-issues:
+    dependencies:
+      '@dependicus/core':
+        specifier: workspace:*
+        version: link:../core
+      '@octokit/rest':
+        specifier: 'catalog:'
+        version: 22.0.1
+      handlebars:
+        specifier: 'catalog:'
+        version: 4.7.8
+      zod:
+        specifier: 'catalog:'
+        version: 4.3.6
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.0
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.20.3(typescript@5.9.3)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

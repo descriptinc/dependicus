@@ -9,6 +9,9 @@ import type {
 import type { CustomColumn } from '@dependicus/site-builder';
 import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
 import { linearIssueSpecSchema } from '@dependicus/linear';
+import type { GitHubIssueSpec } from '@dependicus/github-issues';
+import type { VersionContext as GitHubVersionContext } from '@dependicus/github-issues';
+import { gitHubIssueSpecSchema } from '@dependicus/github-issues';
 import type { DependicusCliConfig } from './cli';
 
 /** @group Plugins */
@@ -26,6 +29,11 @@ export interface DependicusPlugin {
         context: VersionContext,
         store: FactStore,
     ) => Partial<LinearIssueSpec> | undefined;
+
+    getGitHubIssueSpec?: (
+        context: GitHubVersionContext,
+        store: FactStore,
+    ) => Partial<GitHubIssueSpec> | undefined;
 }
 
 export interface ResolvedPlugins {
@@ -35,6 +43,10 @@ export interface ResolvedPlugins {
     getUsedByGroupKey?: UsedByGroupKeyFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
     getLinearIssueSpec?: (context: VersionContext, store: FactStore) => LinearIssueSpec | undefined;
+    getGitHubIssueSpec?: (
+        context: GitHubVersionContext,
+        store: FactStore,
+    ) => GitHubIssueSpec | undefined;
 }
 
 function mergeLinearIssueSpecs(
@@ -51,6 +63,29 @@ function mergeLinearIssueSpecs(
         if (!result.success) {
             process.stderr.write(
                 `Warning: merged ticket spec failed validation: ${result.error.message}\n`,
+            );
+            return undefined;
+        }
+        return result.data;
+    };
+}
+
+function mergeGitHubIssueSpecs(
+    fns: Array<
+        (ctx: GitHubVersionContext, store: FactStore) => Partial<GitHubIssueSpec> | undefined
+    >,
+): ((ctx: GitHubVersionContext, store: FactStore) => GitHubIssueSpec | undefined) | undefined {
+    if (fns.length === 0) return undefined;
+    return (ctx, store) => {
+        const partials = fns.map((fn) => fn(ctx, store)).filter((p) => p !== undefined);
+        if (partials.length === 0) return undefined;
+        const allSections = partials.flatMap((p) => p.descriptionSections ?? []);
+        const merged = Object.assign({}, ...partials);
+        if (allSections.length > 0) merged.descriptionSections = allSections;
+        const result = gitHubIssueSpecSchema.safeParse(merged);
+        if (!result.success) {
+            process.stderr.write(
+                `Warning: merged GitHub issue spec failed validation: ${result.error.message}\n`,
             );
             return undefined;
         }
@@ -92,6 +127,21 @@ export function resolvePlugins(
     const getLinearIssueSpec =
         config.linear?.getLinearIssueSpec ?? mergeLinearIssueSpecs(pluginLinearIssueSpecFns);
 
+    // Merge plugin GitHub issue specs; direct config override bypasses merging
+    const pluginGitHubIssueSpecFns = plugins
+        .map((p) => p.getGitHubIssueSpec)
+        .filter(
+            (
+                fn,
+            ): fn is (
+                context: GitHubVersionContext,
+                store: FactStore,
+            ) => Partial<GitHubIssueSpec> | undefined => fn !== undefined,
+        );
+
+    const getGitHubIssueSpec =
+        config.github?.getGitHubIssueSpec ?? mergeGitHubIssueSpecs(pluginGitHubIssueSpecFns);
+
     return {
         sources,
         groupings,
@@ -99,5 +149,6 @@ export function resolvePlugins(
         getUsedByGroupKey,
         getSections,
         getLinearIssueSpec,
+        getGitHubIssueSpec,
     };
 }

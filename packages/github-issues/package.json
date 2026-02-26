@@ -1,9 +1,6 @@
 {
-    "name": "@dependicus/internal",
+    "name": "@dependicus/github-issues",
     "version": "0.1.0",
-    "bin": {
-        "dependicus": "dist/bin.mjs"
-    },
     "files": [
         "dist"
     ],
@@ -15,26 +12,20 @@
         }
     },
     "scripts": {
-        "dependicus": "node dist/bin.mjs",
         "build": "tsdown",
-        "bundle": "rolldown -c rolldown.config.ts",
         "clean": "rm -rf dist",
         "test": "vitest run",
-        "typedoc": "typedoc --tsconfig tsconfig.typedoc.json --entryPoints src/index.ts --out typedoc-out --name 'Dependicus API Reference'",
         "typecheck": "tsc --build tsconfig.json"
     },
     "dependencies": {
         "@dependicus/core": "workspace:*",
-        "@dependicus/github-issues": "workspace:*",
-        "@dependicus/linear": "workspace:*",
-        "@dependicus/site-builder": "workspace:*",
-        "commander": "catalog:",
-        "rolldown": "catalog:"
+        "@octokit/rest": "catalog:",
+        "handlebars": "catalog:",
+        "zod": "catalog:"
     },
     "devDependencies": {
         "@types/node": "catalog:",
         "tsdown": "catalog:",
-        "typedoc": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:"
     }

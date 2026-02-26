@@ -1,0 +1,56 @@
+This issue tracks updates for the **{{groupName}}** package group.
+
+## Summary
+
+- **Group:** {{groupName}}
+- **Packages:** {{packageCount}}
+{{#if notificationsOnly}}
+- *Tracked for awareness only (no mandatory updates)*
+{{else}}
+- **Worst update type:** {{updateType}}
+{{#if hasOverdue}}
+- **Days overdue:** {{daysOverdue}}
+{{/if}}
+{{/if}}
+{{#if dueDate}}
+- **Due date:** {{dueDate}}
+{{/if}}
+
+## Packages to Update
+
+{{#each packages}}
+### {{this.packageName}}
+
+{{#if this.description}}
+> {{this.description}}
+
+{{/if}}
+- **Current:** `{{this.currentVersion}}`
+- **Target:** `{{this.minVersion}}`
+{{#if this.showLatest}}
+- **Latest:** `{{this.effectiveLatestVersion}}`
+{{/if}}
+- **Update type:** {{this.updateType}}
+- **In catalog:** {{#if this.inCatalog}}Yes{{else}}No{{/if}}
+- [Dependicus Detail]({{this.detailUrl}}) | [npm](https://www.npmjs.com/package/{{this.packageName}})
+
+{{/each}}
+## How to Update
+
+Update each package in `pnpm-workspace.yaml` catalog (if applicable) or individual package.json files:
+
+```yaml
+catalog:
+{{#each packages}}
+  {{this.packageName}}: "{{this.effectiveLatestVersion}}"
+{{/each}}
+```
+
+Then run `mise install` to update the lockfile.
+
+*PR title should be: "Update {{groupName}} packages"*
+
+*If the PR body makes claims about the changes in the new versions, include URL references to release notes, changelogs, or commit diffs that support those claims.*
+
+---
+*This issue was automatically created by Dependicus. It will be recreated if closed while dependencies in this group remain non-compliant.*

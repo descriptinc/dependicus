@@ -68,3 +68,14 @@ export type { TicketAssignment } from '@dependicus/linear';
 
 /** @group Ticket Creation */
 export { getUpdateType } from '@dependicus/core';
+
+// ── GitHub Issue Creation ────────────────────────────────────────────
+
+/** @group Issue Creation */
+export type { GitHubIssueSpec } from '@dependicus/github-issues';
+
+/** @group Issue Creation */
+export type { GitHubIssuePolicy } from '@dependicus/github-issues';
+
+/** @group Issue Creation */
+export type { GitHubIssueAssignment } from '@dependicus/github-issues';

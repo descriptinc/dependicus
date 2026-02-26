@@ -1,12 +1,17 @@
 // Copyright 2026 Descript, Inc
 import { join, basename, resolve } from 'node:path';
 import { writeFile, mkdir } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { Command } from 'commander';
 import { createDependicus } from '@dependicus/site-builder';
 import { readDependicusJson } from '@dependicus/core';
 import type { DirectDependency, FactStore } from '@dependicus/core';
 import { reconcileTickets } from '@dependicus/linear';
 import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
+import { reconcileGitHubIssues } from '@dependicus/github-issues';
+import type { GitHubIssueSpec } from '@dependicus/github-issues';
+import type { VersionContext as GitHubVersionContext } from '@dependicus/github-issues';
 import type { DependicusPlugin, ResolvedPlugins } from './plugin';
 import { resolvePlugins } from './plugin';
 
@@ -37,6 +42,18 @@ export interface DependicusCliConfig {
         cooldownDays?: number;
         /** Whether to allow new ticket creation. Defaults to `true`. */
         allowNewTickets?: boolean;
+    };
+    /** GitHub Issues integration configuration. */
+    github?: {
+        /** Given information about a package and specific version, return the issue spec or undefined to skip. */
+        getGitHubIssueSpec?: (
+            context: GitHubVersionContext,
+            store: FactStore,
+        ) => GitHubIssueSpec | undefined;
+        /** Number of days to wait before creating a new issue for a newly-published version. */
+        cooldownDays?: number;
+        /** Whether to allow new issue creation. Defaults to `true`. */
+        allowNewIssues?: boolean;
     };
 }
 
@@ -74,6 +91,17 @@ function createDependicusInstance(
         getUsedByGroupKey: resolved.getUsedByGroupKey,
         getSections: resolved.getSections,
     });
+}
+
+const execFileAsync = promisify(execFile);
+
+async function getGhAuthToken(): Promise<string | undefined> {
+    try {
+        const { stdout } = await execFileAsync('gh', ['auth', 'token']);
+        return stdout.trim() || undefined;
+    } catch {
+        return undefined;
+    }
 }
 
 /** @group Core Types */
@@ -208,6 +236,81 @@ export function dependicusCli(config: DependicusCliConfig): {
                                 allowNewTickets: linearConfig.allowNewTickets,
                             },
                             effectiveGetLinearIssueSpec,
+                        );
+                    },
+                );
+
+            const githubConfig = config.github ?? {};
+            program
+                .command('make-github-issues')
+                .description('Create/update GitHub issues for outdated dependencies')
+                .option('--dry-run', 'Preview changes without creating or modifying issues')
+                .option('--json-file <path>', 'Path to dependencies.json file')
+                .option('--github-owner <owner>', 'GitHub repository owner')
+                .option('--github-repo <repo>', 'GitHub repository name')
+                .action(
+                    async (options: {
+                        dryRun?: boolean;
+                        jsonFile?: string;
+                        githubOwner?: string;
+                        githubRepo?: string;
+                    }) => {
+                        const githubToken = process.env.GITHUB_TOKEN || (await getGhAuthToken());
+                        if (!githubToken) {
+                            process.stderr.write(
+                                'Error: GITHUB_TOKEN environment variable is required (or install gh CLI and run `gh auth login`)\n',
+                            );
+                            process.exit(1);
+                        }
+
+                        const { effectiveConfig, resolved, jsonPath } = resolveConfig();
+
+                        // If --github-owner/--github-repo are given, wrap getGitHubIssueSpec to inject them
+                        const ownerOverride = options.githubOwner as string | undefined;
+                        const repoOverride = options.githubRepo as string | undefined;
+                        const baseGetGitHubIssueSpec = resolved.getGitHubIssueSpec;
+                        const effectiveGetGitHubIssueSpec: typeof resolved.getGitHubIssueSpec =
+                            (ownerOverride || repoOverride) && baseGetGitHubIssueSpec
+                                ? (ctx, s) => {
+                                      const spec = baseGetGitHubIssueSpec(ctx, s);
+                                      if (!spec) return undefined;
+                                      return {
+                                          ...spec,
+                                          ...(ownerOverride ? { owner: ownerOverride } : {}),
+                                          ...(repoOverride ? { repo: repoOverride } : {}),
+                                      };
+                                  }
+                                : ownerOverride || repoOverride
+                                  ? () => ({
+                                        owner: ownerOverride ?? '',
+                                        repo: repoOverride ?? '',
+                                    })
+                                  : resolved.getGitHubIssueSpec;
+
+                        const dependicus = await createDependicusInstance(
+                            effectiveConfig,
+                            resolved,
+                        );
+                        const effectivePath = options.jsonFile ?? jsonPath;
+                        const { dependencies: deps, store } = await loadDependencies(
+                            effectivePath,
+                            cliName,
+                        );
+                        if (!options.jsonFile || process.env.DEPENDICUS_REFRESH_FACTS === '1') {
+                            dependicus.refreshLocal(deps, store);
+                        }
+
+                        await reconcileGitHubIssues(
+                            deps,
+                            store,
+                            {
+                                githubToken,
+                                dryRun: options.dryRun,
+                                dependicusBaseUrl: effectiveConfig.dependicusBaseUrl,
+                                cooldownDays: githubConfig.cooldownDays,
+                                allowNewIssues: githubConfig.allowNewIssues,
+                            },
+                            effectiveGetGitHubIssueSpec,
                         );
                     },
                 );

@@ -15,7 +15,7 @@ Dependicus ships with [BasicCompliancePlugin](../api/classes/BasicCompliancePlug
 
 ## Setting ticket data and metadata
 
-To set the team, due date, content, or anything else supported by [LinearIssueSpec](../api/types/LinearIssueSpec.html), implement `getLinearIssueSpec`. The return value is `Partial<LinearIssueSpec>`, so you can only override what you need.
+To set the team, due date, content, or anything else supported by [LinearIssueSpec](../api/types/LinearIssueSpec.html), implement `getLinearIssueSpec`. Similarly, implement `getGitHubIssueSpec` for [GitHubIssueSpec](../api/types/GitHubIssueSpec.html). Both return partials, so you can only override what you need.
 
 For example, Dependicus comes with `BasicCompliancePlugin` for threshold-based compliance tracking. (See [Compliance](./compliance.md) for more on that). But compliance isn’t enough to make a ticket—you also need to put it somewhere. So one thing you could do would be to compose `BasicCompliancePlugin` with your own `OwnershipPlugin`, like this:
 
@@ -70,6 +70,27 @@ void dependicusCli({
         },
     ],
 }).run(process.argv);
+```
+
+### GitHub Issues
+
+Plugins can also provide `getGitHubIssueSpec` to contribute partial GitHub issue specs. The same composability pattern applies: multiple plugins can each return a `Partial<GitHubIssueSpec>`, and they are merged together with `descriptionSections` concatenated. For example, one plugin can set the `owner`/`repo` while another adds labels:
+
+```ts
+const routingPlugin: DependicusPlugin = {
+    name: 'github-routing',
+    getGitHubIssueSpec: () => ({
+        owner: 'myorg',
+        repo: 'myrepo',
+    }),
+};
+
+const labelPlugin: DependicusPlugin = {
+    name: 'github-labels',
+    getGitHubIssueSpec: (context) => ({
+        labels: context.packageName.startsWith('@internal/') ? ['internal'] : ['external'],
+    }),
+};
 ```
 
 ## Adding a custom column to the table

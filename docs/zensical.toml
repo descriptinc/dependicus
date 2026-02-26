@@ -11,6 +11,7 @@ nav = [
         "plugins.md",
         "compliance.md",
         { "Linear Tickets" = "lineartickets.md" },
+        { "GitHub Issues" = "githubissues.md" },
         "ci.md",
         { "Using Coding Agents" = "coding-agents.md" },
         { "Contributing" = "contributing.md" },

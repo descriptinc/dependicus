@@ -44,6 +44,22 @@ Wait at least this many days after a release before creating or updating tickets
 
 You can set this to `false` to disable ticket creation, for example when running CI on pull requests.
 
+## GitHub Issues
+
+Dependicus can also create and manage GitHub Issues for outdated dependencies. Like Linear, there is no default behavior — you must provide a `getGitHubIssueSpec()` function or a plugin.
+
+### `github.getGitHubIssueSpec` (optional): `(context: VersionContext, store: FactStore) => GitHubIssueSpec | undefined`
+
+For a given package version, return a `GitHubIssueSpec` describing what issue to create, or `undefined` to skip. See [GitHub Issues](./githubissues.md) for details.
+
+### `github.cooldownDays` (optional, defaults to `0`)
+
+Wait at least this many days after a release before creating or updating issues to include it.
+
+### `github.allowNewIssues` (optional, defaults to `true`)
+
+You can set this to `false` to disable issue creation, for example when running CI on pull requests.
+
 ## Plugins
 
 To use plugins, pass an array of plugins as the value of the `plugins` parameter.
