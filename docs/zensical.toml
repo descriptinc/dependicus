@@ -12,6 +12,7 @@ nav = [
         "compliance.md",
         { "Linear Tickets" = "lineartickets.md" },
         "ci.md",
+        { "Using Coding Agents" = "coding-agents.md" },
         { "Contributing" = "contributing.md" },
     ] },
     { "Comparisons" = [

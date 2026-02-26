@@ -71,7 +71,7 @@ jobs:
                   path: .dependicus-cache
                   key: dependicus-cache-${{ github.sha }}
                   restore-keys: dependicus-cache-
-            - run: node packages/dependicus/dist/bin.js update --html
+            - run: node packages/dependicus/dist/bin.mjs update --html
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
