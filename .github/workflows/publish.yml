@@ -21,12 +21,12 @@ jobs:
                   NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
               run: |
                   # Tier 1: no workspace deps
-                  pnpm --filter @dependicus/core publish --no-git-checks --provenance --access public
-                  pnpm --filter @dependicus/site-frontend publish --no-git-checks --provenance --access public
+                  pnpm --filter @dependicus/core publish --no-git-checks --provenance --access restricted
+                  pnpm --filter @dependicus/site-frontend publish --no-git-checks --provenance --access restricted
                   sleep 10
                   # Tier 2: depend on tier 1
-                  pnpm --filter @dependicus/linear publish --no-git-checks --provenance --access public
-                  pnpm --filter @dependicus/site-builder publish --no-git-checks --provenance --access public
+                  pnpm --filter @dependicus/linear publish --no-git-checks --provenance --access restricted
+                  pnpm --filter @dependicus/site-builder publish --no-git-checks --provenance --access restricted
                   sleep 10
                   # Tier 3: depends on tier 2
-                  pnpm --filter dependicus publish --no-git-checks --provenance --access public
+                  pnpm --filter @dependicus/internal publish --no-git-checks --provenance --access restricted

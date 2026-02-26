@@ -1,5 +1,5 @@
 {
-    "name": "dependicus",
+    "name": "@dependicus/internal",
     "version": "0.1.0",
     "bin": {
         "dependicus": "dist/bin.mjs"
