@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { WorkspaceSource } from './WorkspaceSource';
 import { FactStore, FactKeys } from './FactStore';
 import type { DirectDependency } from '../types';
-import type { WorkspaceService } from '../services/WorkspaceService';
+import type { DependencyProvider } from '../providers/DependencyProvider';
 
 function makeDep(packageName: string, version: string): DirectDependency {
     return {
@@ -20,27 +20,31 @@ function makeDep(packageName: string, version: string): DirectDependency {
     };
 }
 
-function mockWorkspaceService(overrides: Partial<WorkspaceService> = {}): WorkspaceService {
+function mockProvider(overrides: Partial<DependencyProvider> = {}): DependencyProvider {
     return {
+        name: 'mock',
+        rootDir: '/repo',
+        lockfilePath: '/repo/mock.lock',
+        getPackages: vi.fn().mockResolvedValue([]),
         isPatched: vi.fn(() => false),
         hasPackageInCatalog: vi.fn(() => false),
         isInCatalog: vi.fn(() => false),
         ...overrides,
-    } as unknown as WorkspaceService;
+    } as unknown as DependencyProvider;
 }
 
 describe('WorkspaceSource', () => {
     it('has the correct name and no dependencies', () => {
-        const source = new WorkspaceSource(mockWorkspaceService());
+        const source = new WorkspaceSource([mockProvider()]);
         expect(source.name).toBe('workspace');
         expect(source.dependsOn).toEqual([]);
     });
 
     it('sets IS_PATCHED fact for patched versions', async () => {
-        const service = mockWorkspaceService({
+        const provider = mockProvider({
             isPatched: vi.fn((pkg, ver) => pkg === 'react' && ver === '18.2.0'),
         });
-        const source = new WorkspaceSource(service);
+        const source = new WorkspaceSource([provider]);
         const store = new FactStore();
 
         await source.fetch([makeDep('react', '18.2.0')], store);
@@ -49,7 +53,7 @@ describe('WorkspaceSource', () => {
     });
 
     it('sets IS_PATCHED=false for non-patched versions', async () => {
-        const source = new WorkspaceSource(mockWorkspaceService());
+        const source = new WorkspaceSource([mockProvider()]);
         const store = new FactStore();
 
         await source.fetch([makeDep('react', '18.2.0')], store);
@@ -58,11 +62,11 @@ describe('WorkspaceSource', () => {
     });
 
     it('sets HAS_CATALOG_MISMATCH when package is in catalog but version does not match', async () => {
-        const service = mockWorkspaceService({
+        const provider = mockProvider({
             hasPackageInCatalog: vi.fn(() => true),
             isInCatalog: vi.fn(() => false),
         });
-        const source = new WorkspaceSource(service);
+        const source = new WorkspaceSource([provider]);
         const store = new FactStore();
 
         await source.fetch([makeDep('react', '17.0.0')], store);
@@ -71,11 +75,11 @@ describe('WorkspaceSource', () => {
     });
 
     it('sets HAS_CATALOG_MISMATCH=false when version matches catalog', async () => {
-        const service = mockWorkspaceService({
+        const provider = mockProvider({
             hasPackageInCatalog: vi.fn(() => true),
             isInCatalog: vi.fn(() => true),
         });
-        const source = new WorkspaceSource(service);
+        const source = new WorkspaceSource([provider]);
         const store = new FactStore();
 
         await source.fetch([makeDep('react', '18.2.0')], store);
@@ -84,10 +88,10 @@ describe('WorkspaceSource', () => {
     });
 
     it('sets HAS_CATALOG_MISMATCH=false when package is not in catalog', async () => {
-        const service = mockWorkspaceService({
+        const provider = mockProvider({
             hasPackageInCatalog: vi.fn(() => false),
         });
-        const source = new WorkspaceSource(service);
+        const source = new WorkspaceSource([provider]);
         const store = new FactStore();
 
         await source.fetch([makeDep('react', '18.2.0')], store);
@@ -96,11 +100,11 @@ describe('WorkspaceSource', () => {
     });
 
     it('handles multiple dependencies and versions', async () => {
-        const service = mockWorkspaceService({
+        const provider = mockProvider({
             isPatched: vi.fn((pkg, ver) => pkg === 'react' && ver === '18.2.0'),
             hasPackageInCatalog: vi.fn(() => false),
         });
-        const source = new WorkspaceSource(service);
+        const source = new WorkspaceSource([provider]);
         const store = new FactStore();
 
         await source.fetch([makeDep('react', '18.2.0'), makeDep('vue', '3.0.0')], store);

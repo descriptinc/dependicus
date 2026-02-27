@@ -47,6 +47,12 @@ export { findReleaseForVersion, detectTagFormat } from './utils/releaseUtils';
 export { createCoreServices, readDependicusJson } from './createCoreServices';
 export type { CoreServicesConfig, CoreServices } from './createCoreServices';
 
+// Providers
+export type { DependencyProvider } from './providers/DependencyProvider';
+export { PnpmProvider } from './providers/PnpmProvider';
+export { BunProvider } from './providers/BunProvider';
+export { detectProviders, detectRuntime, createProvidersByName } from './providers';
+
 // Sources module
 export type { DataSource } from './sources/types';
 export { FactStore, FactKeys } from './sources/FactStore';

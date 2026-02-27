@@ -7,6 +7,7 @@ import type {
     GroupingDetailContext,
     GroupingSection,
     DataSource,
+    DependencyProvider,
     FactStore,
     UsedByGroupKeyFn,
 } from '@dependicus/core';
@@ -19,6 +20,8 @@ export interface DependicusConfig {
     repoRoot: string;
     outputDir?: string;
     cacheDir?: string;
+    providers?: DependencyProvider[];
+    providerNames?: string[];
     sources?: DataSource[];
     groupings?: GroupingConfig[];
     siteName?: string;
@@ -48,6 +51,8 @@ export async function createDependicus(config: DependicusConfig): Promise<Depend
     const core = createCoreServices({
         repoRoot,
         cacheDir,
+        providers: config.providers,
+        providerNames: config.providerNames,
         sources,
     });
     const htmlWriter = new HtmlWriter({

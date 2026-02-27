@@ -1,15 +1,13 @@
-import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import type { DirectDependency } from './types';
 import { parseDependicusOutput } from './schema';
 import { CacheService } from './services/CacheService';
-import { PnpmService } from './services/PnpmService';
-import { WorkspaceService } from './services/WorkspaceService';
 import { DeprecationService } from './services/DeprecationService';
 import { RegistryService } from './services/RegistryService';
 import { GitHubService } from './services/GitHubService';
 import { DependencyCollector } from './services/DependencyCollector';
+import type { DependencyProvider } from './providers/DependencyProvider';
+import { detectProviders, createProvidersByName } from './providers';
 import type { DataSource } from './sources/types';
 import { FactStore } from './sources/FactStore';
 import { runSources } from './sources/runSources';
@@ -22,6 +20,10 @@ import { WorkspaceSource } from './sources/WorkspaceSource';
 export interface CoreServicesConfig {
     repoRoot: string;
     cacheDir: string;
+    /** Explicit provider instances (takes precedence over providerNames). */
+    providers?: DependencyProvider[];
+    /** Provider names to use, e.g. ['pnpm'], ['bun'], ['pnpm', 'bun']. Auto-detects if omitted. */
+    providerNames?: string[];
     sources?: DataSource[];
 }
 
@@ -31,16 +33,18 @@ export interface CoreServices {
 
 export function createCoreServices(config: CoreServicesConfig): CoreServices {
     const { repoRoot, cacheDir } = config;
-    const lockfilePath = join(repoRoot, 'pnpm-lock.yaml');
-    const workspacePath = join(repoRoot, 'pnpm-workspace.yaml');
-
     const cacheService = new CacheService(cacheDir);
-    const pnpmService = new PnpmService(cacheService, repoRoot);
-    const workspaceService = new WorkspaceService(
-        existsSync(workspacePath) ? workspacePath : undefined,
-    );
+
+    const providers =
+        config.providers ??
+        (config.providerNames
+            ? createProvidersByName(config.providerNames, cacheService, repoRoot)
+            : detectProviders(cacheService, repoRoot));
+    // Use the first provider's lockfile for cache invalidation of shared services
+    const lockfilePath = providers[0]!.lockfilePath;
+
     const deprecationService = new DeprecationService(cacheService, repoRoot);
-    const registryService = new RegistryService(cacheService, repoRoot, lockfilePath);
+    const registryService = new RegistryService(cacheService, lockfilePath);
     const githubService = new GitHubService(cacheService, lockfilePath);
 
     const builtinSources: DataSource[] = [
@@ -48,11 +52,11 @@ export function createCoreServices(config: CoreServicesConfig): CoreServices {
         new NpmSizeSource(registryService),
         new GitHubSource(githubService),
         new DeprecationSource(deprecationService),
-        new WorkspaceSource(workspaceService),
+        new WorkspaceSource(providers),
     ];
     const allSources = [...builtinSources, ...(config.sources ?? [])];
 
-    const collector = new DependencyCollector(pnpmService, workspaceService, registryService);
+    const collector = new DependencyCollector(providers, registryService);
 
     return {
         async collect(): Promise<{ dependencies: DirectDependency[]; store: FactStore }> {

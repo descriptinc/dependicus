@@ -1,10 +1,6 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import * as semver from 'semver';
 import type { CacheService } from './CacheService';
-import { BUFFER_SIZES, WORKER_COUNT } from '../constants';
-
-const execFileAsync = promisify(execFile);
+import { WORKER_COUNT } from '../constants';
 import { sanitizeCacheKey } from '../utils/formatters';
 import { processInParallel } from '../utils/workerQueue';
 import type { PackageVersionInfo } from '../types';
@@ -33,22 +29,25 @@ export interface PackageMetadata {
     time?: {
         [version: string]: string; // ISO date strings
     };
-    versions?: string[]; // All available versions
-    /** Preserve any other fields returned by `pnpm view`. */
+    versions?: Record<string, unknown> | string[]; // npm registry returns an object; cached data may be an array
+    /** Preserve any other fields returned by the npm registry. */
     [key: string]: unknown;
 }
 
 export class RegistryService {
-    private readonly repoRoot: string;
     private readonly lockfilePath: string;
 
     constructor(
         private cacheService: CacheService,
-        repoRoot: string,
         lockfilePath: string,
     ) {
-        this.repoRoot = repoRoot;
         this.lockfilePath = lockfilePath;
+    }
+
+    private encodePackageName(packageName: string): string {
+        return packageName.startsWith('@')
+            ? `@${encodeURIComponent(packageName.slice(1))}`
+            : encodeURIComponent(packageName);
     }
 
     /**
@@ -63,29 +62,27 @@ export class RegistryService {
     ): Promise<PackageMetadata | undefined> {
         const cacheKey = `pnpm-view-${sanitizeCacheKey(packageName)}-${sanitizeCacheKey(version)}`;
 
-        let output: string;
-
         // Registry metadata for a specific package@version never changes, cache permanently
         if (this.cacheService.hasPermanentCache(cacheKey)) {
-            output = await this.cacheService.readCache(cacheKey);
-        } else {
             try {
-                const result = await execFileAsync(
-                    'pnpm',
-                    ['view', `${packageName}@${version}`, '--json'],
-                    { encoding: 'utf-8', maxBuffer: BUFFER_SIZES.LARGE, cwd: this.repoRoot },
-                );
-                output = result.stdout;
-                await this.cacheService.writePermanentCache(cacheKey, output);
+                const cached = await this.cacheService.readCache(cacheKey);
+                return JSON.parse(cached) as PackageMetadata;
             } catch {
-                // Package might not exist in registry
                 return undefined;
             }
         }
 
         try {
+            const encodedName = this.encodePackageName(packageName);
+            const response = await fetch(`https://registry.npmjs.org/${encodedName}/${version}`);
+            if (!response.ok) {
+                return undefined;
+            }
+            const output = await response.text();
+            await this.cacheService.writePermanentCache(cacheKey, output);
             return JSON.parse(output) as PackageMetadata;
         } catch {
+            // Package might not exist in registry
             return undefined;
         }
     }
@@ -126,25 +123,23 @@ export class RegistryService {
     async getFullPackageMetadata(packageName: string): Promise<PackageMetadata | undefined> {
         const cacheKey = `pnpm-view-full-${sanitizeCacheKey(packageName)}`;
 
-        let output: string;
-
         if (await this.cacheService.isCacheValid(cacheKey, this.lockfilePath)) {
-            output = await this.cacheService.readCache(cacheKey);
-        } else {
             try {
-                const result = await execFileAsync('pnpm', ['view', packageName, '--json'], {
-                    encoding: 'utf-8',
-                    maxBuffer: BUFFER_SIZES.LARGE,
-                    cwd: this.repoRoot,
-                });
-                output = result.stdout;
-                await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
+                const cached = await this.cacheService.readCache(cacheKey);
+                return JSON.parse(cached) as PackageMetadata;
             } catch {
                 return undefined;
             }
         }
 
         try {
+            const encodedName = this.encodePackageName(packageName);
+            const response = await fetch(`https://registry.npmjs.org/${encodedName}`);
+            if (!response.ok) {
+                return undefined;
+            }
+            const output = await response.text();
+            await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
             return JSON.parse(output) as PackageMetadata;
         } catch {
             return undefined;
@@ -169,9 +164,12 @@ export class RegistryService {
         const metadata = await this.getFullPackageMetadata(packageName);
         if (!metadata?.versions || !metadata?.time) return [];
 
+        const versionList = Array.isArray(metadata.versions)
+            ? metadata.versions
+            : Object.keys(metadata.versions);
         const versions: PackageVersionInfo[] = [];
 
-        for (const version of metadata.versions) {
+        for (const version of versionList) {
             // Skip if not a valid semver
             if (!semver.valid(version)) continue;
 
@@ -223,9 +221,7 @@ export class RegistryService {
         }
 
         try {
-            const encodedName = packageName.startsWith('@')
-                ? `@${encodeURIComponent(packageName.slice(1))}`
-                : encodeURIComponent(packageName);
+            const encodedName = this.encodePackageName(packageName);
             const response = await fetch(`https://registry.npmjs.org/${encodedName}`, {
                 headers: { Accept: 'application/vnd.npm.install-v1+json' },
             });

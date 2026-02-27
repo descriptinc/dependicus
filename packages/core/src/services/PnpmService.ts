@@ -1,11 +1,11 @@
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
-import type { PnpmPackageInfo } from '../types';
+import type { PackageInfo } from '../types';
 import type { CacheService } from './CacheService';
 import { BUFFER_SIZES } from '../constants';
 
 export class PnpmService {
-    private cachedPackages: PnpmPackageInfo[] | undefined = undefined;
+    private cachedPackages: PackageInfo[] | undefined = undefined;
     private readonly lockfilePath: string;
 
     constructor(
@@ -19,7 +19,7 @@ export class PnpmService {
      * Get all packages in the monorepo with their direct dependencies.
      * Uses disk cache based on lockfile hash to avoid re-running pnpm.
      */
-    async getPackages(): Promise<PnpmPackageInfo[]> {
+    async getPackages(): Promise<PackageInfo[]> {
         if (this.cachedPackages) {
             return this.cachedPackages;
         }
@@ -39,7 +39,7 @@ export class PnpmService {
             await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
         }
 
-        this.cachedPackages = JSON.parse(output) as PnpmPackageInfo[];
+        this.cachedPackages = JSON.parse(output) as PackageInfo[];
         process.stderr.write(`Found ${this.cachedPackages.length} packages\n`);
 
         return this.cachedPackages;

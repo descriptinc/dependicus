@@ -3,14 +3,14 @@ import "package://github.com/jdx/hk/releases/download/v1.36.0/hk@1.36.0#/Builtin
 
 local linters = new Mapping<String, Step> {
     ["oxlint"] = (Builtins.ox_lint) {
-        check = "pnpm exec oxlint --deny-warnings {{files}}"
-        fix = "pnpm exec oxlint --fix --deny-warnings {{files}}"
+        check = "./node_modules/.bin/oxlint --deny-warnings {{files}}"
+        fix = "./node_modules/.bin/oxlint --fix --deny-warnings {{files}}"
     }
     ["oxfmt"] {
         glob = List("**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json", "**/*.css", "**/*.md", "**/*.yml", "**/*.yaml")
-        exclude = List("pnpm-lock.yaml")
-        check = "pnpm exec oxfmt --check {{files}}"
-        fix = "pnpm exec oxfmt --write {{files}}"
+        exclude = List("pnpm-lock.yaml", "bun.lock")
+        check = "./node_modules/.bin/oxfmt --check {{files}}"
+        fix = "./node_modules/.bin/oxfmt --write {{files}}"
         batch = true
     }
 }

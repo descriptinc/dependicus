@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PnpmService } from './PnpmService';
 import type { CacheService } from './CacheService';
-import type { PnpmPackageInfo } from '../types';
+import type { PackageInfo } from '../types';
 
 vi.mock('node:child_process', () => ({
     execSync: vi.fn(),
@@ -30,7 +30,7 @@ describe('PnpmService', () => {
     let cacheService: CacheService;
     let service: PnpmService;
 
-    const samplePackages: PnpmPackageInfo[] = [
+    const samplePackages: PackageInfo[] = [
         {
             name: '@myapp/web',
             version: '1.0.0',

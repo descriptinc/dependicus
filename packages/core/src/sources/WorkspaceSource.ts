@@ -1,5 +1,5 @@
 import type { DirectDependency } from '../types';
-import type { WorkspaceService } from '../services/WorkspaceService';
+import type { DependencyProvider } from '../providers/DependencyProvider';
 import type { DataSource, FactStore } from './types';
 import { FactKeys } from './FactStore';
 
@@ -10,23 +10,25 @@ export class WorkspaceSource implements DataSource {
     readonly name = 'workspace';
     readonly dependsOn: readonly string[] = [];
 
-    constructor(private workspaceService: WorkspaceService) {}
+    constructor(private providers: DependencyProvider[]) {}
 
     async fetch(dependencies: DirectDependency[], store: FactStore): Promise<void> {
         for (const dep of dependencies) {
             for (const ver of dep.versions) {
-                store.setVersionFact(
-                    dep.packageName,
-                    ver.version,
-                    FactKeys.IS_PATCHED,
-                    this.workspaceService.isPatched(dep.packageName, ver.version),
+                const isPatched = this.providers.some((p) =>
+                    p.isPatched(dep.packageName, ver.version),
+                );
+                store.setVersionFact(dep.packageName, ver.version, FactKeys.IS_PATCHED, isPatched);
+
+                const catalogProvider = this.providers.find((p) =>
+                    p.hasPackageInCatalog(dep.packageName),
                 );
                 store.setVersionFact(
                     dep.packageName,
                     ver.version,
                     FactKeys.HAS_CATALOG_MISMATCH,
-                    this.workspaceService.hasPackageInCatalog(dep.packageName) &&
-                        !this.workspaceService.isInCatalog(dep.packageName, ver.version),
+                    catalogProvider !== undefined &&
+                        !catalogProvider.isInCatalog(dep.packageName, ver.version),
                 );
             }
         }

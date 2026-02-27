@@ -2,16 +2,16 @@ import type { SerializedFacts } from './sources/FactStore';
 import type { FactStore } from './sources/FactStore';
 import { FactKeys } from './sources/FactStore';
 
-export interface PnpmPackageInfo {
+export interface PackageInfo {
     name: string;
     version: string;
     path: string;
     private?: boolean;
-    dependencies?: Record<string, PnpmDependencyInfo>;
-    devDependencies?: Record<string, PnpmDependencyInfo>;
+    dependencies?: Record<string, DependencyInfo>;
+    devDependencies?: Record<string, DependencyInfo>;
 }
 
-export interface PnpmDependencyInfo {
+export interface DependencyInfo {
     from: string;
     version: string;
     resolved: string;

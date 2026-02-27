@@ -1,9 +1,11 @@
 [tools]
+bun = "1.3"
 hk = "1.36.0"
 node = "22"
 pkl = "0.30.2"
 pnpm = "10.27.0"
 uv = "0.6.11"
+
 
 [tasks.docs]
 description = "Build unified docs site (zensical + typedoc + dependicus) into docs-out/"
@@ -18,12 +20,58 @@ run = "uv run zensical build"
 [tasks."docs:typedoc"]
 description = "Build typedoc API reference"
 dir = "{{config_root}}/packages/dependicus"
-run = "pnpm typedoc"
+run = "pnpm run typedoc"
 
 [tasks."docs:dependicus"]
 description = "Run dependicus on itself"
 run = "node packages/dependicus/dist/bin.mjs update --html"
 
-[tasks.test]
-description = "Run all tests in all packages"
-run = "pnpm run test"
+[tasks."pnpm:build"]
+description = "Build all packages with pnpm"
+run = "pnpm -r run build"
+
+[tasks."pnpm:test"]
+description = "Run all tests with pnpm"
+run = "pnpm -r run test"
+
+[tasks."pnpm:typecheck"]
+description = "Typecheck all packages with pnpm"
+depends = ["pnpm:build"]
+run = "pnpm -r run typecheck"
+
+[tasks."pnpm:clean"]
+description = "Clean all packages with pnpm"
+run = "pnpm -r run clean"
+
+[tasks."bun:build"]
+description = "Build all packages with bun"
+run = "bun run --filter '*' build"
+
+[tasks."bun:test"]
+description = "Run all tests with bun"
+run = "bun run --filter '*' test"
+
+[tasks."bun:typecheck"]
+description = "Typecheck all packages with bun"
+depends = ["bun:build"]
+run = "bun run --filter '*' typecheck"
+
+[tasks."bun:clean"]
+description = "Clean all packages with bun"
+run = "bun run --filter '*' clean"
+
+[tasks."switch:pnpm"]
+description = "Delete node_modules and reinstall with pnpm"
+run = "bash scripts/switch-pm.sh pnpm"
+
+[tasks."switch:bun"]
+description = "Delete node_modules and reinstall with bun"
+run = "bash scripts/switch-pm.sh bun"
+
+[tasks.which-pm]
+description = "Show which package manager installed node_modules"
+run = "cat .package-manager 2>/dev/null || echo 'unknown (run switch:pnpm or switch:bun first)'"
+
+[tasks.delete-node-modules]
+description = "Delete all node_modules directories"
+run = "rm -rf node_modules packages/*/node_modules"

@@ -1,21 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DependencyCollector } from './DependencyCollector';
-import type { PnpmService } from './PnpmService';
-import type { WorkspaceService } from './WorkspaceService';
+import type { DependencyProvider } from '../providers/DependencyProvider';
 import type { RegistryService } from './RegistryService';
-import type { PnpmPackageInfo } from '../types';
+import type { PackageInfo } from '../types';
 
-function createMockPnpmService(packages: PnpmPackageInfo[] = []): PnpmService {
+function createMockProvider(packages: PackageInfo[] = []): DependencyProvider {
     return {
+        name: 'mock',
+        rootDir: '/repo',
+        lockfilePath: '/repo/mock.lock',
         getPackages: vi.fn().mockResolvedValue(packages),
-    } as unknown as PnpmService;
-}
-
-function createMockWorkspaceService(): WorkspaceService {
-    return {
         isInCatalog: vi.fn().mockReturnValue(false),
         hasPackageInCatalog: vi.fn().mockReturnValue(false),
-    } as unknown as WorkspaceService;
+        isPatched: vi.fn().mockReturnValue(false),
+    };
 }
 
 function createMockRegistryService(): RegistryService {
@@ -29,17 +27,15 @@ function createMockRegistryService(): RegistryService {
 }
 
 describe('DependencyCollector', () => {
-    let pnpmService: PnpmService;
-    let workspaceService: WorkspaceService;
+    let provider: DependencyProvider;
     let registryService: RegistryService;
     let collector: DependencyCollector;
 
     beforeEach(() => {
         vi.clearAllMocks();
-        pnpmService = createMockPnpmService();
-        workspaceService = createMockWorkspaceService();
+        provider = createMockProvider();
         registryService = createMockRegistryService();
-        collector = new DependencyCollector(pnpmService, workspaceService, registryService);
+        collector = new DependencyCollector([provider], registryService);
     });
 
     describe('collectDirectDependencies', () => {
@@ -50,7 +46,7 @@ describe('DependencyCollector', () => {
         });
 
         it('collects production dependencies', async () => {
-            pnpmService = createMockPnpmService([
+            provider = createMockProvider([
                 {
                     name: '@myapp/web',
                     version: '1.0.0',
@@ -60,7 +56,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(pnpmService, workspaceService, registryService);
+            collector = new DependencyCollector([provider], registryService);
 
             const result = await collector.collectDirectDependencies();
 
@@ -73,7 +69,7 @@ describe('DependencyCollector', () => {
         });
 
         it('collects dev dependencies', async () => {
-            pnpmService = createMockPnpmService([
+            provider = createMockProvider([
                 {
                     name: '@myapp/web',
                     version: '1.0.0',
@@ -83,7 +79,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(pnpmService, workspaceService, registryService);
+            collector = new DependencyCollector([provider], registryService);
 
             const result = await collector.collectDirectDependencies();
 
@@ -92,7 +88,7 @@ describe('DependencyCollector', () => {
         });
 
         it('skips workspace packages (link: prefix)', async () => {
-            pnpmService = createMockPnpmService([
+            provider = createMockProvider([
                 {
                     name: '@myapp/web',
                     version: '1.0.0',
@@ -108,7 +104,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(pnpmService, workspaceService, registryService);
+            collector = new DependencyCollector([provider], registryService);
 
             const result = await collector.collectDirectDependencies();
 
@@ -117,7 +113,7 @@ describe('DependencyCollector', () => {
         });
 
         it('deduplicates same dependency used across multiple packages', async () => {
-            pnpmService = createMockPnpmService([
+            provider = createMockProvider([
                 {
                     name: '@myapp/web',
                     version: '1.0.0',
@@ -135,7 +131,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(pnpmService, workspaceService, registryService);
+            collector = new DependencyCollector([provider], registryService);
 
             const result = await collector.collectDirectDependencies();
 
@@ -145,7 +141,7 @@ describe('DependencyCollector', () => {
         });
 
         it('tracks multiple versions of the same dependency', async () => {
-            pnpmService = createMockPnpmService([
+            provider = createMockProvider([
                 {
                     name: '@myapp/web',
                     version: '1.0.0',
@@ -163,7 +159,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(pnpmService, workspaceService, registryService);
+            collector = new DependencyCollector([provider], registryService);
 
             const result = await collector.collectDirectDependencies();
 
@@ -173,7 +169,7 @@ describe('DependencyCollector', () => {
         });
 
         it('tracks both dev and prod usage of the same dependency version', async () => {
-            pnpmService = createMockPnpmService([
+            provider = createMockProvider([
                 {
                     name: '@myapp/web',
                     version: '1.0.0',
@@ -186,7 +182,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(pnpmService, workspaceService, registryService);
+            collector = new DependencyCollector([provider], registryService);
 
             const result = await collector.collectDirectDependencies();
 
@@ -195,7 +191,7 @@ describe('DependencyCollector', () => {
         });
 
         it('sorts results alphabetically by package name', async () => {
-            pnpmService = createMockPnpmService([
+            provider = createMockProvider([
                 {
                     name: '@myapp/web',
                     version: '1.0.0',
@@ -207,7 +203,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(pnpmService, workspaceService, registryService);
+            collector = new DependencyCollector([provider], registryService);
 
             const result = await collector.collectDirectDependencies();
 
@@ -215,7 +211,7 @@ describe('DependencyCollector', () => {
         });
 
         it('includes catalog status from workspace service', async () => {
-            pnpmService = createMockPnpmService([
+            provider = createMockProvider([
                 {
                     name: '@myapp/web',
                     version: '1.0.0',
@@ -225,8 +221,8 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            vi.mocked(workspaceService.isInCatalog).mockReturnValue(true);
-            collector = new DependencyCollector(pnpmService, workspaceService, registryService);
+            vi.mocked(provider.isInCatalog).mockReturnValue(true);
+            collector = new DependencyCollector([provider], registryService);
 
             const result = await collector.collectDirectDependencies();
 

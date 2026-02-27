@@ -5,3 +5,4 @@ docs-out/
 dependicus-out/
 .dependicus-cache/
 hk.local.pkl
+.package-manager

@@ -29,6 +29,8 @@ export interface DependicusCliConfig {
     dependicusBaseUrl: string;
     /** Plugins that provide data sources, groupings, columns, and ticket callbacks. Defaults to `[]`. */
     plugins?: DependicusPlugin[];
+    /** Provider names to use for dependency analysis (e.g., 'pnpm', 'bun'). Auto-detects if omitted. */
+    providerNames?: string[];
     /** Name shown in the site heading and title tag. Defaults to `'Dependicus for <basename of repoRoot>'`. */
     siteName?: string;
     /** Linear ticket integration configuration. */
@@ -90,6 +92,7 @@ function createDependicusInstance(
         columns: resolved.columns,
         getUsedByGroupKey: resolved.getUsedByGroupKey,
         getSections: resolved.getSections,
+        providerNames: config.providerNames,
     });
 }
 
@@ -116,14 +119,20 @@ export function dependicusCli(config: DependicusCliConfig): {
             program
                 .name(cliName)
                 .description(`Dependency analysis powered by Dependicus`)
-                .option('--repo-root <path>', 'Root directory of the project (default: cwd)');
+                .option('--repo-root <path>', 'Root directory of the project (default: cwd)')
+                .option(
+                    '--provider <name...>',
+                    'Dependency provider(s) to use: pnpm, bun (default: auto-detect)',
+                );
 
             // Resolve config that depends on --repo-root after Commander parses argv.
             function resolveConfig() {
                 const repoRoot = resolve(
                     program.opts<{ repoRoot?: string }>().repoRoot ?? config.repoRoot ?? '.',
                 );
-                const effectiveConfig = { ...config, repoRoot };
+                const providerNames =
+                    program.opts<{ provider?: string[] }>().provider ?? config.providerNames;
+                const effectiveConfig = { ...config, repoRoot, providerNames };
                 const resolved = resolvePlugins(effectiveConfig.plugins ?? [], effectiveConfig);
                 const outputDir = effectiveConfig.outputDir ?? join(repoRoot, 'dependicus-out');
                 const jsonPath = join(outputDir, JSON_FILENAME);
