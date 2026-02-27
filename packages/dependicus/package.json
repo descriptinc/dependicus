@@ -28,14 +28,14 @@
         "@dependicus/github-issues": "workspace:*",
         "@dependicus/linear": "workspace:*",
         "@dependicus/site-builder": "workspace:*",
-        "commander": "catalog:",
-        "rolldown": "catalog:"
+        "commander": "^14.0.3",
+        "rolldown": "^1.0.0-rc.5"
     },
     "devDependencies": {
-        "@types/node": "catalog:",
-        "tsdown": "catalog:",
-        "typedoc": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "@types/node": "^25.3.0",
+        "tsdown": "^0.20.3",
+        "typedoc": "^0.28.17",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18"
     }
 }

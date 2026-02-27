@@ -10,12 +10,14 @@ function init() {
     const data = window.dependicusData;
 
     // Create column definitions
-    const columnDefs = createColumnDefs(data.uniqueNotes, data.customColumns);
+    const columnDefs = createColumnDefs(data.uniqueNotes, data.customColumns, {
+        hasCatalog: data.hasCatalog,
+    });
 
     // Store table instances
     let allDepsTable: TabulatorInstance;
     let multiVersionsTable: TabulatorInstance;
-    let catalogTable: TabulatorInstance;
+    let catalogTable: TabulatorInstance | undefined;
 
     // Create tables with specified responsive setting
     function createTables(responsive: boolean) {
@@ -30,23 +32,30 @@ function init() {
         const multiConfig = getTableConfig(data.multiVersionData, 'multi-versions', columnDefs, {
             groupBy: 'Package Name',
         });
-        const catalogConfig = getTableConfig(data.catalogData, 'catalog', columnDefs);
 
         allConfig.responsiveLayout = responsiveLayout;
         multiConfig.responsiveLayout = responsiveLayout;
-        catalogConfig.responsiveLayout = responsiveLayout;
 
         // When responsive is disabled, remove rowHeader to avoid errors
         if (!responsive) {
             delete allConfig.rowHeader;
             delete multiConfig.rowHeader;
-            delete catalogConfig.rowHeader;
         }
 
         // Create new tables
         allDepsTable = new Tabulator('#all-deps-table', allConfig);
         multiVersionsTable = new Tabulator('#multi-versions-table', multiConfig);
-        catalogTable = new Tabulator('#catalog-table', catalogConfig);
+
+        if (data.hasCatalog) {
+            const catalogConfig = getTableConfig(data.catalogData, 'catalog', columnDefs);
+            catalogConfig.responsiveLayout = responsiveLayout;
+            if (!responsive) {
+                delete catalogConfig.rowHeader;
+            }
+            catalogTable = new Tabulator('#catalog-table', catalogConfig);
+        } else {
+            catalogTable = undefined;
+        }
 
         // Set up event listeners
         setupEventListeners();
@@ -76,9 +85,11 @@ function init() {
             updateTabCount('multi', rows.length, data.multiVersionData.length);
         });
 
-        catalogTable.on('dataFiltered', (_filters: unknown, rows: RowData[]) => {
-            updateTabCount('catalog', rows.length, data.catalogData.length);
-        });
+        if (catalogTable) {
+            catalogTable.on('dataFiltered', (_filters: unknown, rows: RowData[]) => {
+                updateTabCount('catalog', rows.length, data.catalogData.length);
+            });
+        }
     }
 
     // Tab switching logic
@@ -108,11 +119,11 @@ function init() {
                     element.classList.add('active');
                     if (multiVersionsTable) multiVersionsTable.redraw();
                 }
-            } else if (sheet === 'catalog') {
+            } else if (sheet === 'catalog' && catalogTable) {
                 const element = document.getElementById('catalog-table');
                 if (element) {
                     element.classList.add('active');
-                    if (catalogTable) catalogTable.redraw();
+                    catalogTable.redraw();
                 }
             }
         });

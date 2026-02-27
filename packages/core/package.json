@@ -18,17 +18,17 @@
         "typecheck": "tsc --build tsconfig.json"
     },
     "dependencies": {
-        "@octokit/rest": "catalog:",
-        "js-yaml": "catalog:",
-        "semver": "catalog:",
-        "zod": "catalog:"
+        "@octokit/rest": "^22.0.1",
+        "js-yaml": "^4.1.1",
+        "semver": "^7.7.4",
+        "zod": "^4.3.6"
     },
     "devDependencies": {
-        "@types/js-yaml": "catalog:",
-        "@types/node": "catalog:",
-        "@types/semver": "catalog:",
-        "tsdown": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "@types/js-yaml": "^4.0.9",
+        "@types/node": "^25.3.0",
+        "@types/semver": "^7.7.1",
+        "tsdown": "^0.20.3",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18"
     }
 }

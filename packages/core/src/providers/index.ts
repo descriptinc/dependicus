@@ -1,6 +1,7 @@
 export type { DependencyProvider } from './DependencyProvider';
 export { PnpmProvider } from './PnpmProvider';
 export { BunProvider } from './BunProvider';
+export { YarnProvider } from './YarnProvider';
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -8,18 +9,23 @@ import type { CacheService } from '../services/CacheService';
 import type { DependencyProvider } from './DependencyProvider';
 import { PnpmProvider } from './PnpmProvider';
 import { BunProvider } from './BunProvider';
+import { YarnProvider } from './YarnProvider';
 
 /**
  * Detect the active package manager from the runtime environment.
  * - Bun sets `process.versions.bun`
  * - pnpm sets `npm_config_user_agent` starting with "pnpm/"
+ * - yarn sets `npm_config_user_agent` starting with "yarn/"
  */
-export function detectRuntime(): 'bun' | 'pnpm' | undefined {
+export function detectRuntime(): 'bun' | 'pnpm' | 'yarn' | undefined {
     if (process.versions.bun) {
         return 'bun';
     }
     if (process.env.npm_config_user_agent?.startsWith('pnpm/')) {
         return 'pnpm';
+    }
+    if (process.env.npm_config_user_agent?.startsWith('yarn/')) {
+        return 'yarn';
     }
     return undefined;
 }
@@ -42,9 +48,13 @@ export function detectProviders(cacheService: CacheService, rootDir: string): De
     if (existsSync(join(rootDir, 'bun.lock'))) {
         providers.push(new BunProvider(cacheService, rootDir));
     }
+    if (existsSync(join(rootDir, 'yarn.lock'))) {
+        providers.push(new YarnProvider(cacheService, rootDir));
+    }
     if (providers.length === 0) {
         throw new Error(
-            'No supported lockfile found. Expected pnpm-lock.yaml or bun.lock in ' + rootDir,
+            'No supported lockfile found. Expected pnpm-lock.yaml, bun.lock, or yarn.lock in ' +
+                rootDir,
         );
     }
     return providers;
@@ -67,8 +77,11 @@ export function createProvidersByName(
             case 'bun':
                 providers.push(new BunProvider(cacheService, rootDir));
                 break;
+            case 'yarn':
+                providers.push(new YarnProvider(cacheService, rootDir));
+                break;
             default:
-                throw new Error(`Unknown provider: ${name}. Supported: pnpm, bun`);
+                throw new Error(`Unknown provider: ${name}. Supported: pnpm, bun, yarn`);
         }
     }
     return providers;

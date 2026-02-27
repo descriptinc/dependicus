@@ -1,28 +1,5 @@
 packages:
     - 'packages/*'
 
-catalog:
-    '@octokit/rest': '^22.0.1'
-    'js-yaml': '^4.1.1'
-    'semver': '^7.7.4'
-    'zod': '^4.3.6'
-    '@types/js-yaml': '^4.0.9'
-    '@types/semver': '^7.7.1'
-    '@types/node': '^25.3.0'
-    'typescript': '^5.9.3'
-    'vitest': '^4.0.18'
-    '@linear/sdk': '^76.0.0'
-    'handlebars': '^4.7.8'
-    'commander': '^14.0.3'
-    'rolldown': '^1.0.0-rc.5'
-    'marked': '^17.0.3'
-    'open-props': '^1.7.23'
-    'tabulator-tables': '^6.3.1'
-    'typedoc': '^0.28.17'
-    'oxlint': '^1.50.0'
-    'oxfmt': '^0.35.0'
-    'tsdown': '^0.20.3'
-    'tsx': '^4.21.0'
-
 onlyBuiltDependencies:
     - 'rolldown'

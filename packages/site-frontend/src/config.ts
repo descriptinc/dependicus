@@ -17,7 +17,9 @@ import {
 export function createColumnDefs(
     uniqueNotes: string[],
     customColumns: BrowserColumnDef[],
+    options?: { hasCatalog?: boolean },
 ): TabulatorColumn[] {
+    const hasCatalog = options?.hasCatalog ?? true;
     const columns: TabulatorColumn[] = [
         {
             title: 'Package Name',
@@ -90,17 +92,21 @@ export function createColumnDefs(
             },
             responsive: 1, // Collapse second
         },
-        {
-            title: 'Catalog?',
-            field: 'Catalog?',
-            width: 100,
-            minWidth: 100,
-            hozAlign: 'center',
-            formatter: 'tickCross',
-            headerFilter: 'tickCross',
-            headerFilterParams: { tristate: true },
-            responsive: 1, // Collapse second
-        },
+        ...(hasCatalog
+            ? [
+                  {
+                      title: 'Catalog?',
+                      field: 'Catalog?',
+                      width: 100,
+                      minWidth: 100,
+                      hozAlign: 'center',
+                      formatter: 'tickCross',
+                      headerFilter: 'tickCross',
+                      headerFilterParams: { tristate: true },
+                      responsive: 1, // Collapse second
+                  } as TabulatorColumn,
+              ]
+            : []),
         {
             title: 'Published Date',
             field: 'Published Date',

@@ -51,6 +51,7 @@ export type { CoreServicesConfig, CoreServices } from './createCoreServices';
 export type { DependencyProvider } from './providers/DependencyProvider';
 export { PnpmProvider } from './providers/PnpmProvider';
 export { BunProvider } from './providers/BunProvider';
+export { YarnProvider } from './providers/YarnProvider';
 export { detectProviders, detectRuntime, createProvidersByName } from './providers';
 
 // Sources module

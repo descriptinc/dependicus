@@ -20,14 +20,14 @@
     "dependencies": {
         "@dependicus/core": "workspace:*",
         "@dependicus/site-frontend": "workspace:*",
-        "handlebars": "catalog:",
-        "marked": "catalog:",
-        "rolldown": "catalog:"
+        "handlebars": "^4.7.8",
+        "marked": "^17.0.3",
+        "rolldown": "^1.0.0-rc.5"
     },
     "devDependencies": {
-        "@types/node": "catalog:",
-        "tsdown": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "@types/node": "^25.3.0",
+        "tsdown": "^0.20.3",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18"
     }
 }

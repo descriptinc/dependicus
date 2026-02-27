@@ -26,6 +26,7 @@ const dependicusOutputSchema = z.object({
         totalDependencies: z.number(),
         totalPackages: z.number(),
         deprecatedCount: z.number(),
+        hasCatalog: z.boolean().optional().default(true),
     }),
     dependencies: z.array(directDependencySchema),
     facts: serializedFactsSchema,

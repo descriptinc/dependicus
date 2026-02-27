@@ -18,13 +18,13 @@
         "typecheck": "tsc --build tsconfig.json"
     },
     "dependencies": {
-        "open-props": "catalog:",
-        "tabulator-tables": "catalog:"
+        "open-props": "^1.7.23",
+        "tabulator-tables": "^6.3.1"
     },
     "devDependencies": {
-        "@types/node": "catalog:",
-        "tsdown": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "@types/node": "^25.3.0",
+        "tsdown": "^0.20.3",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18"
     }
 }

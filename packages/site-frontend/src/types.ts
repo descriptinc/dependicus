@@ -51,6 +51,7 @@ export interface DependicusData {
     uniqueNotes: string[];
     customColumns: BrowserColumnDef[];
     groupings: GroupingSlug[];
+    hasCatalog: boolean;
 }
 
 /**

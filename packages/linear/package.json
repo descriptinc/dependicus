@@ -19,14 +19,14 @@
     },
     "dependencies": {
         "@dependicus/core": "workspace:*",
-        "@linear/sdk": "catalog:",
-        "handlebars": "catalog:",
-        "zod": "catalog:"
+        "@linear/sdk": "^76.0.0",
+        "handlebars": "^4.7.8",
+        "zod": "^4.3.6"
     },
     "devDependencies": {
-        "@types/node": "catalog:",
-        "tsdown": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+        "@types/node": "^25.3.0",
+        "tsdown": "^0.20.3",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18"
     }
 }

@@ -1,6 +1,6 @@
 # Getting Started
 
-From here on out, the docs will assume you’re installing Dependicus via `package.json` rather than running with `pnpm dlx` or `bunx`. After all, dependency governance is important!
+From here on out, the docs will assume you’re installing Dependicus via `package.json` rather than running with `pnpm dlx`, `bunx`, or `yarn dlx`. After all, dependency governance is important!
 
 ## Installation
 
@@ -10,6 +10,9 @@ pnpm add dependicus
 
 # bun
 bun add dependicus
+
+# yarn
+yarn add dependicus
 ```
 
 ## Environment variables

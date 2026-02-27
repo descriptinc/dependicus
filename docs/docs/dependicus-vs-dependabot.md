@@ -18,7 +18,7 @@ The deep integration with GitHub is a genuine strength. Dependabot alerts surfac
 
 ## What Dependicus does
 
-Dependicus collects data about your JavaScript dependencies from your pnpm or bun lockfile, the npm registry, and GitHub, then produces an interactive dashboard and (optionally) Linear tickets.
+Dependicus collects data about your JavaScript dependencies from your pnpm, bun, or yarn lockfile, the npm registry, and GitHub, then produces an interactive dashboard and (optionally) Linear tickets.
 
 The dashboard shows every direct dependency in your monorepo in a single table: package name, current version, latest version, published date, age, whether it's in your catalog, how many workspace packages use it, which packages those are, and whether any transitive dependencies are deprecated. Each package links through to a detail page with the full upgrade path, changelog links, GitHub release URLs, and size comparisons.
 
@@ -50,7 +50,7 @@ Dependicus was built for this environment. It tracks which workspace packages us
 
 Dependabot's zero-configuration security updates are hard to beat. If you're on GitHub, you get vulnerability alerts and automated patches without lifting a finger. This is a genuinely important capability, and it's free.
 
-The breadth of ecosystem support is another advantage. Dependabot handles npm, pip, Docker, Bundler, Go, Cargo, Maven, Gradle, Terraform, GitHub Actions, and more. Dependicus supports pnpm and bun.
+The breadth of ecosystem support is another advantage. Dependabot handles npm, pip, Docker, Bundler, Go, Cargo, Maven, Gradle, Terraform, GitHub Actions, and more. Dependicus supports pnpm, bun, and yarn.
 
 Dependabot also does the actual work of updating. It creates branches, modifies manifests and lockfiles, and opens PRs you can merge. Dependicus surfaces information and creates tickets, but the update itself is still manual.
 
@@ -81,7 +81,7 @@ For version updates specifically, you might use Dependabot's version updates for
 | Primary output          | Pull requests and security alerts               | Dashboard and tickets                                                          |
 | Security updates        | Automatic, zero-config                          | Not a focus (can surface deprecations)                                         |
 | Automation level        | High (creates branches, updates lockfiles)      | Low (surfaces information, creates tickets)                                    |
-| Ecosystem support       | ~30 package managers                            | pnpm and bun                                                                   |
+| Ecosystem support       | ~30 package managers                            | pnpm, bun, and yarn                                                            |
 | Platform                | GitHub only                                     | Platform-agnostic (reads lockfile locally)                                     |
 | Ticket integration      | GitHub PRs and alerts                           | Linear                                                                         |
 | Compliance/SLO tracking | Not built-in                                    | Built-in (BasicCompliancePlugin)                                               |

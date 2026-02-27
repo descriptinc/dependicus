@@ -286,11 +286,14 @@ export class HtmlWriter {
             hasFilterValue: col.getFilterValue !== undefined,
         }));
 
+        const hasCatalog = catalogRows.length > 0;
+
         // Render content using template
         const content = this.templateService.render('pages/index', {
             allRowsCount: allRows.length,
             multiVersionRowsCount: multiVersionRows.length,
             catalogRowsCount: catalogRows.length,
+            hasCatalog,
             allDataJson: JSON.stringify(allRows, undefined, 2),
             multiVersionDataJson: JSON.stringify(multiVersionRows, undefined, 2),
             catalogDataJson: JSON.stringify(catalogRows, undefined, 2),

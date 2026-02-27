@@ -8,10 +8,12 @@
             Multiple Versions
             <span class="dep-tab-count">{{multiVersionRowsCount}}</span>
         </button>
+        {{#if hasCatalog}}
         <button class="dep-tab" data-sheet="catalog">
             Catalog
             <span class="dep-tab-count">{{catalogRowsCount}}</span>
         </button>
+        {{/if}}
         <label id="responsive-toggle" class="dep-responsive-toggle">
             <input type="checkbox" id="responsive-checkbox">
             <span>Responsive</span>
@@ -20,7 +22,9 @@
     <div id="table-container" class="dep-table-container">
         <div id="all-deps-table" class="dep-table-wrapper active"></div>
         <div id="multi-versions-table" class="dep-multi-versions-table dep-table-wrapper"></div>
+        {{#if hasCatalog}}
         <div id="catalog-table" class="dep-table-wrapper"></div>
+        {{/if}}
     </div>
 </div>
 
@@ -32,6 +36,7 @@
         catalogData: {{{catalogDataJson}}},
         uniqueNotes: {{{uniqueNotesJson}}},
         customColumns: {{{customColumnsJson}}},
-        groupings: {{{groupingsJson}}}
+        groupings: {{{groupingsJson}}},
+        hasCatalog: {{hasCatalog}}
     };
 </script>

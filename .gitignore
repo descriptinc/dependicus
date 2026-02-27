@@ -6,3 +6,4 @@ dependicus-out/
 .dependicus-cache/
 hk.local.pkl
 .package-manager
+.yarn/install-state.gz

@@ -7,8 +7,10 @@ if [ "$pm" = "pnpm" ]; then
     pnpm install
 elif [ "$pm" = "bun" ]; then
     mise exec -- bun install
+elif [ "$pm" = "yarn" ]; then
+    mise exec -- yarn install
 else
-    echo "Usage: switch-pm.sh <pnpm|bun>" >&2
+    echo "Usage: switch-pm.sh <pnpm|bun|yarn>" >&2
     exit 1
 fi
 echo "$pm" > .package-manager

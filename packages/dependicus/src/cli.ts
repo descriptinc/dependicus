@@ -122,7 +122,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                 .option('--repo-root <path>', 'Root directory of the project (default: cwd)')
                 .option(
                     '--provider <name...>',
-                    'Dependency provider(s) to use: pnpm, bun (default: auto-detect)',
+                    'Dependency provider(s) to use: pnpm, bun, yarn (default: auto-detect)',
                 );
 
             // Resolve config that depends on --repo-root after Commander parses argv.
