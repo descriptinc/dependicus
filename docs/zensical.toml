@@ -8,6 +8,7 @@ nav = [
         { "Home" = "index.md" },
         "gettingstarted.md",
         "configuration.md",
+        { "Package Managers" = "package-managers.md" },
         "plugins.md",
         "compliance.md",
         { "Linear Tickets" = "lineartickets.md" },

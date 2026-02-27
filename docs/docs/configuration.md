@@ -6,6 +6,14 @@
 
 Root of your workspace. Defaults to the working directory.
 
+### `providerNames` (optional): `string[]`
+
+Explicitly select which package manager providers to use. Supported values: `'pnpm'`, `'bun'`. When omitted, Dependicus [auto-detects](./package-managers.md) the active package manager.
+
+### `providers` (optional): `DependencyProvider[]`
+
+For advanced use cases, pass fully-constructed provider instances. This takes precedence over `providerNames` and auto-detection. See [Package Managers](./package-managers.md#custom-providers) for details.
+
 ## Output
 
 ### `siteName`

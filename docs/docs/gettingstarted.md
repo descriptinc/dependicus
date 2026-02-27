@@ -1,11 +1,15 @@
 # Getting Started
 
-From here on out, the docs will assume you’re installing Dependicus via `package.json` rather than running with `pnpm dlx`. After all, dependency governance is important!
+From here on out, the docs will assume you’re installing Dependicus via `package.json` rather than running with `pnpm dlx` or `bunx`. After all, dependency governance is important!
 
 ## Installation
 
 ```sh
+# pnpm
 pnpm add dependicus
+
+# bun
+bun add dependicus
 ```
 
 ## Environment variables
@@ -37,6 +41,15 @@ Commands:
   make-linear-tickets [options]  Create/update Linear tickets for outdated dependencies
   help [command]                 display help for command
 ```
+
+The `update` command accepts a `--provider` flag to explicitly select the package manager:
+
+```sh
+pnpm exec dependicus update --provider pnpm
+bun run dependicus update --provider bun
+```
+
+When `--provider` is omitted, Dependicus [auto-detects](./package-managers.md) the active package manager from the runtime environment, falling back to lockfile presence.
 
 ## Customizing Dependicus by wrapping the `dependicusCli()` function
 

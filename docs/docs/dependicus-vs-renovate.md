@@ -16,9 +16,9 @@ Renovate also provides Merge Confidence badges that show adoption rate, age, and
 
 ## What Dependicus does
 
-Dependicus takes a different approach. Rather than opening pull requests, it collects data about your dependencies from multiple sources (your pnpm lockfile, the npm registry, and GitHub), then produces two outputs: an interactive dashboard and (optionally) tickets in Linear.
+Dependicus takes a different approach. Rather than opening pull requests, it collects data about your dependencies from multiple sources (your pnpm or bun lockfile, the npm registry, and GitHub), then produces two outputs: an interactive dashboard and (optionally) tickets in Linear.
 
-The dashboard gives you a single view of every direct dependency in your monorepo: what version you're on, what's latest, how old your version is, who in your codebase uses it, whether it's in your pnpm catalog, and whether any of its transitive dependencies are deprecated. Dependicus enriches each package with changelog links, GitHub release URLs, and size comparisons between your version and the latest.
+The dashboard gives you a single view of every direct dependency in your monorepo: what version you're on, what's latest, how old your version is, who in your codebase uses it, whether it's in your catalog, and whether any of its transitive dependencies are deprecated. Dependicus enriches each package with changelog links, GitHub release URLs, and size comparisons between your version and the latest.
 
 On the ticket side, Dependicus creates or updates Linear tickets based on policies you define. You can set SLOs (e.g., patch updates within 30 days, minor updates within 90), route tickets to the right team, group related updates, and distinguish between advisory notifications and hard deadlines.
 
@@ -42,7 +42,7 @@ This is genuinely useful. Without the Dashboard, Renovate's activity is scattere
 
 But it's still organized around PRs. Each entry is an update that Renovate can open a PR for, and the primary interaction is "check the box to create or retry the PR." The information it surfaces (version numbers, groupings, blocking reasons) serves the goal of helping you manage the PR queue.
 
-Dependicus's dashboard is a static HTML site that shows your entire dependency landscape in a single table. Rather than listing actionable PRs, it shows every direct dependency with rich context: current version, latest version, how long you've been behind, which workspace packages use it, whether it's in your pnpm catalog, whether any of its transitive dependencies are deprecated, and links to changelogs and release notes. You can sort, filter, and drill into per-package detail pages with the full upgrade path and size comparisons.
+Dependicus's dashboard is a static HTML site that shows your entire dependency landscape in a single table. Rather than listing actionable PRs, it shows every direct dependency with rich context: current version, latest version, how long you've been behind, which workspace packages use it, whether it's in your catalog, whether any of its transitive dependencies are deprecated, and links to changelogs and release notes. You can sort, filter, and drill into per-package detail pages with the full upgrade path and size comparisons.
 
 The difference is one of purpose. Renovate's Dashboard answers "what is Renovate doing right now and what should I unblock?" Dependicus's dashboard answers "what does our dependency health look like and where should we focus?" Renovate's is an operational tool for managing an automated process. Dependicus's is an analytical tool for making decisions.
 
@@ -52,7 +52,7 @@ If you run both tools, the two dashboards complement each other. Use Dependicus'
 
 ## Where Renovate has more to offer
 
-Renovate's breadth of ecosystem support is unmatched. It handles npm, pip, Docker, Gradle, Maven, Cargo, Go modules, Helm charts, Terraform, and dozens more. Dependicus currently supports pnpm only.
+Renovate's breadth of ecosystem support is unmatched. It handles npm, pip, Docker, Gradle, Maven, Cargo, Go modules, Helm charts, Terraform, and dozens more. Dependicus supports pnpm and bun.
 
 Renovate also does the actual updating. It creates branches, modifies lockfiles, and opens PRs that you can merge. Dependicus tells you what needs updating and creates tickets, but the actual update is still a manual step.
 
@@ -76,7 +76,7 @@ Dependicus tracks per-package usage across every workspace in the monorepo. If a
 
 Ticket routing follows the same structure. When Dependicus creates a Linear ticket for an outdated dependency, it routes the ticket to the team that owns the packages consuming it. If the dependency crosses team boundaries, the ticket reflects that. Renovate opens a PR and leaves the question of ownership to whoever notices it first.
 
-For monorepos that use pnpm catalogs to enforce version consistency, Dependicus tracks catalog membership directly. The dashboard shows at a glance whether each dependency is in the catalog, which makes it easy to spot packages that have opted out of the shared version (or were never added).
+For monorepos that use catalogs to enforce version consistency, Dependicus tracks catalog membership directly. The dashboard shows at a glance whether each dependency is in the catalog, which makes it easy to spot packages that have opted out of the shared version (or were never added).
 
 ## Using them together
 
@@ -86,16 +86,16 @@ In this model, Renovate handles the routine, low-risk updates automatically, whi
 
 ## Summary
 
-|                         | Renovate                                                | Dependicus                                                                          |
-| ----------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Primary output          | Pull requests                                           | Dashboard and tickets                                                               |
-| Automation level        | High (creates branches, updates lockfiles)              | Low (surfaces information, creates tickets)                                         |
-| Ecosystem support       | 90+ package managers                                    | pnpm                                                                                |
-| Platform support        | GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo | Platform-agnostic (reads lockfile locally)                                          |
-| Dashboard               | GitHub issue listing pending PRs and update status      | Static site showing full dependency landscape with rich context                     |
-| Ticket integration      | GitHub/GitLab issues                                    | Linear                                                                              |
-| Compliance/SLO tracking | Not built-in                                            | Built-in (BasicCompliancePlugin)                                                    |
-| Plugin system           | Presets and custom managers                             | JavaScript API for data sources, columns, groupings, ticket policies                |
-| Monorepo awareness      | Groups monorepo packages in PRs                         | Per-package usage tracking, version dispersion, team routing, pnpm catalog tracking |
-| Configuration           | JSON/JSON5 config file with presets                     | JavaScript function call                                                            |
-| Best for                | Automating the mechanics of dependency updates          | Making informed decisions about dependencies at organizational scale                |
+|                         | Renovate                                                | Dependicus                                                                     |
+| ----------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Primary output          | Pull requests                                           | Dashboard and tickets                                                          |
+| Automation level        | High (creates branches, updates lockfiles)              | Low (surfaces information, creates tickets)                                    |
+| Ecosystem support       | 90+ package managers                                    | pnpm and bun                                                                   |
+| Platform support        | GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo | Platform-agnostic (reads lockfile locally)                                     |
+| Dashboard               | GitHub issue listing pending PRs and update status      | Static site showing full dependency landscape with rich context                |
+| Ticket integration      | GitHub/GitLab issues                                    | Linear                                                                         |
+| Compliance/SLO tracking | Not built-in                                            | Built-in (BasicCompliancePlugin)                                               |
+| Plugin system           | Presets and custom managers                             | JavaScript API for data sources, columns, groupings, ticket policies           |
+| Monorepo awareness      | Groups monorepo packages in PRs                         | Per-package usage tracking, version dispersion, team routing, catalog tracking |
+| Configuration           | JSON/JSON5 config file with presets                     | JavaScript function call                                                       |
+| Best for                | Automating the mechanics of dependency updates          | Making informed decisions about dependencies at organizational scale           |

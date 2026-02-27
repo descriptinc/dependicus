@@ -89,7 +89,42 @@ jobs:
                   LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
 ```
 
-Replace `your-dependicus-script.js` with whatever script calls `dependicusCli()`. Adjust `dependicus-out` and `.dependicus-cache` if you've overridden `outputDir` or `cacheDir`.
+Replace `your-dependicus-script.js` with whatever script calls `dependicusCli()`. Adjust `dependicus-out` and `.dependicus-cache` if you’ve overridden `outputDir` or `cacheDir`.
+
+### Provider detection in CI
+
+When your script is launched by pnpm or bun, Dependicus auto-detects the provider from the runtime. If you invoke your script with bare `node`, auto-detection falls back to lockfile presence. To be explicit, pass `--provider`:
+
+```sh
+node your-dependicus-script.js update --provider pnpm
+```
+
+### Bun variant
+
+If your project uses bun, the workflow looks the same with minor differences in setup:
+
+```yaml
+dependicus-update:
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v4
+
+        # Set up Node and bun however you normally do
+
+        - name: Cache Dependicus
+          uses: actions/cache@v4
+          with:
+              path: .dependicus-cache
+              key: dependicus
+              restore-keys: dependicus
+
+        - name: Collect dependency data
+          run: bun run your-dependicus-script.js update
+          env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+The rest of the jobs (HTML generation, ticket creation) are the same since they only read `dependencies.json`.
 
 On pull requests, you probably want to skip the Linear tickets job or set `allowNewTickets: false` in your config.
 
