@@ -27,7 +27,7 @@ This field is required in order to use the Linear ticket creation feature of Dep
 
 ## The Dependicus CLI
 
-Dependicus ships with a CLI that uses bare-bones defaults. This may be enough for people who don’t use Linear and don’t need to add additional data with plugins.
+Dependicus ships with a CLI that uses bare-bones defaults. This may be enough for people who don’t use Linear or GitHub Issues and don’t need to add additional data with plugins.
 
 ```sh
 > pnpm exec dependicus -h
@@ -42,6 +42,7 @@ Commands:
   update [options]               Collect and enrich dependency data (requires network)
   html [options]                 Generate HTML site from enriched data (offline)
   make-linear-tickets [options]  Create/update Linear tickets for outdated dependencies
+  make-github-issues [options]   Create/update GitHub issues for outdated dependencies
   help [command]                 display help for command
 ```
 

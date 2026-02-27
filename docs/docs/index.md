@@ -1,6 +1,6 @@
 # Dependicus
 
-Dependicus is a dependency governance tool for JavaScript monorepos. It pulls data from your pnpm, bun, or yarn lockfile, the npm registry, and GitHub, then produces an interactive dashboard and Linear tickets so you can make informed decisions about your dependency graph at an organizational scale.
+Dependicus is a dependency governance tool for JavaScript monorepos. It pulls data from your pnpm, bun, or yarn lockfile, the npm registry, and GitHub, then produces an interactive dashboard, Linear tickets, and GitHub Issues so you can make informed decisions about your dependency graph at an organizational scale.
 
 If you maintain a monorepo with multiple teams, dozens of workspace packages, and hundreds of dependencies, Dependicus gives you the visibility that automated-PR tools don’t: which packages are behind, by how much, who owns them, and where teams have drifted to different versions of the same dependency. You can see our [own dashboard](../dependencies/index.html) for a sense of what it looks like in practice.
 
@@ -13,9 +13,11 @@ graph LR
     npmjs.org --> dependicus-update
     dependicus-update --> dependicus-html["<tt>dependicus html</tt>"]
     dependicus-update --> dependicus-make-linear-tickets["<tt>dependicus make-linear-tickets</tt>"]
+    dependicus-update --> dependicus-make-github-issues["<tt>dependicus make-github-issues</tt>"]
 
     dependicus-html --> static-site["Static site"]
     dependicus-make-linear-tickets --> linear-tickets["Linear tickets"]
+    dependicus-make-github-issues --> github-issues["GitHub Issues"]
 ```
 
 Dependicus supports pnpm, bun, and yarn, with auto-detection of the active package manager. See [Package Managers](./package-managers.md) for details.

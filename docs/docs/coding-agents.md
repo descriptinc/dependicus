@@ -6,7 +6,7 @@ Coding agents like [Claude Code](https://docs.anthropic.com/en/docs/claude-code/
 
 ## Tickets as the unit of work
 
-Dependabot and Renovate maintain their own PR queue on their own schedule, separate from whatever project management tool your team actually uses. Dependicus takes a different approach: it creates tickets in Linear with context about the update, including how far behind you are, which workspace packages are affected, and links to changelogs and release notes.
+Dependabot and Renovate maintain their own PR queue on their own schedule, separate from whatever project management tool your team actually uses. Dependicus takes a different approach: it creates tickets in Linear or GitHub Issues with context about the update, including how far behind you are, which workspace packages are affected, and links to changelogs and release notes.
 
 Those tickets flow through the same system as the rest of your work. They show up in sprint planning, they're tracked against SLOs, and they're routed to the team that owns the affected packages.
 

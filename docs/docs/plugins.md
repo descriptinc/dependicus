@@ -5,7 +5,7 @@ Dependicus plugins can:
 - Collect and cache data from external sources in the `update` stage
 - Add columns to HTML output in the `html` stage
 - Create rollup pages in the `html` stage
-- Add some or all Linear ticket data and metadata in the `make-linear-tickets` stage
+- Add some or all Linear ticket data in the `make-linear-tickets` stage, or GitHub issue data in the `make-github-issues` stage
 
 Plugin output is combined. A plugin can do a small subset of these things, or all of them.
 
@@ -127,7 +127,7 @@ Columns can also define `filter: 'input'` for free-text search, or `filter: 'lis
 
 The `update` stage is the right time to fetch information and add it to `FactStore` for later use by HTML and Linear output. Fetching information is done by `DataSource` objects.
 
-This example fetches CVE count from an imaginary source and stores it in `FactStore`, then uses the new fact to show a table column in the HTML and a section in the Linear ticket.
+This example fetches CVE count from an imaginary source and stores it in `FactStore`, then uses the new fact to show a table column in the HTML and a section in the Linear ticket (or GitHub issue).
 
 ```ts
 import type { DependicusPlugin, DataSource, DirectDependency, CustomColumn } from 'dependicus';

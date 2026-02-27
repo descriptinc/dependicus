@@ -22,7 +22,7 @@ Dependicus collects data about your JavaScript dependencies from your pnpm, bun,
 
 The dashboard shows every direct dependency in your monorepo in a single table: package name, current version, latest version, published date, age, whether it's in your catalog, how many workspace packages use it, which packages those are, and whether any transitive dependencies are deprecated. Each package links through to a detail page with the full upgrade path, changelog links, GitHub release URLs, and size comparisons.
 
-On the ticket side, Dependicus creates Linear tickets based on configurable policies. You define SLOs (patch within 30 days, minor within 90), route tickets to the owning team, and distinguish between advisory notifications and enforced deadlines. Tickets are grouped, deduplicated, and updated automatically as new versions appear.
+On the ticket side, Dependicus creates Linear tickets or GitHub Issues based on configurable policies. You define SLOs (patch within 30 days, minor within 90), route tickets to the owning team, and distinguish between advisory notifications and enforced deadlines. Tickets are grouped, deduplicated, and updated automatically as new versions appear.
 
 ## Different shapes of the same concern
 
@@ -83,7 +83,7 @@ For version updates specifically, you might use Dependabot's version updates for
 | Automation level        | High (creates branches, updates lockfiles)      | Low (surfaces information, creates tickets)                                    |
 | Ecosystem support       | ~30 package managers                            | pnpm, bun, and yarn                                                            |
 | Platform                | GitHub only                                     | Platform-agnostic (reads lockfile locally)                                     |
-| Ticket integration      | GitHub PRs and alerts                           | Linear                                                                         |
+| Ticket integration      | GitHub PRs and alerts                           | Linear and GitHub Issues                                                       |
 | Compliance/SLO tracking | Not built-in                                    | Built-in (BasicCompliancePlugin)                                               |
 | Plugin system           | None                                            | JavaScript API for data sources, columns, groupings, ticket policies           |
 | Configuration           | YAML file                                       | JavaScript function call                                                       |

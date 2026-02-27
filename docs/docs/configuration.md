@@ -26,7 +26,7 @@ Where HTML and JSON output will be created. Defaults to `${repoRoot}/dependicus-
 
 ### `dependicusBaseUrl`
 
-Base URL of where Dependicus will be deployed. Used for linking from Linear tickets.
+Base URL of where Dependicus will be deployed. Used for linking from Linear tickets and GitHub Issues.
 
 ### `cacheDir`
 

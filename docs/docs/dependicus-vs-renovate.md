@@ -16,11 +16,11 @@ Renovate also provides Merge Confidence badges that show adoption rate, age, and
 
 ## What Dependicus does
 
-Dependicus takes a different approach. Rather than opening pull requests, it collects data about your dependencies from multiple sources (your pnpm, bun, or yarn lockfile, the npm registry, and GitHub), then produces two outputs: an interactive dashboard and (optionally) tickets in Linear.
+Dependicus takes a different approach. Rather than opening pull requests, it collects data about your dependencies from multiple sources (your pnpm, bun, or yarn lockfile, the npm registry, and GitHub), then produces two outputs: an interactive dashboard and (optionally) tickets in Linear or GitHub Issues.
 
 The dashboard gives you a single view of every direct dependency in your monorepo: what version you're on, what's latest, how old your version is, who in your codebase uses it, whether it's in your catalog, and whether any of its transitive dependencies are deprecated. Dependicus enriches each package with changelog links, GitHub release URLs, and size comparisons between your version and the latest.
 
-On the ticket side, Dependicus creates or updates Linear tickets based on policies you define. You can set SLOs (e.g., patch updates within 30 days, minor updates within 90), route tickets to the right team, group related updates, and distinguish between advisory notifications and hard deadlines.
+On the ticket side, Dependicus creates or updates Linear tickets or GitHub Issues based on policies you define. You can set SLOs (e.g., patch updates within 30 days, minor updates within 90), route tickets to the right team, group related updates, and distinguish between advisory notifications and hard deadlines.
 
 ## Different tools for different problems
 
@@ -56,7 +56,7 @@ Renovate's breadth of ecosystem support is unmatched. It handles npm, pip, Docke
 
 Renovate also does the actual updating. It creates branches, modifies lockfiles, and opens PRs that you can merge. Dependicus tells you what needs updating and creates tickets, but the actual update is still a manual step.
 
-If you work across multiple platforms (say, GitHub for some repos and GitLab for others), Renovate handles that natively. Dependicus is platform-agnostic in the sense that it reads your lockfile locally, but its ticket integration is currently Linear-only.
+If you work across multiple platforms (say, GitHub for some repos and GitLab for others), Renovate handles that natively. Dependicus is platform-agnostic in the sense that it reads your lockfile locally, but its ticket integration supports Linear and GitHub Issues.
 
 Renovate's preset system and community configurations are a significant advantage for getting started. You can adopt `config:recommended` and have sensible defaults immediately. The ecosystem of shared presets means you benefit from collective wisdom about how to group and schedule updates.
 
@@ -74,7 +74,7 @@ Renovate is monorepo-aware in the sense that it can group packages from the same
 
 Dependicus tracks per-package usage across every workspace in the monorepo. If a dependency is used by 15 packages across 4 teams, the dashboard shows that, and it's different from a dependency used by a single internal tool. You can sort by breadth of usage to prioritize the updates that affect the most people. You can see version dispersion: where teams have diverged on a shared dependency and whether that's intentional or accidental.
 
-Ticket routing follows the same structure. When Dependicus creates a Linear ticket for an outdated dependency, it routes the ticket to the team that owns the packages consuming it. If the dependency crosses team boundaries, the ticket reflects that. Renovate opens a PR and leaves the question of ownership to whoever notices it first.
+Ticket routing follows the same structure. When Dependicus creates a ticket or issue for an outdated dependency, it routes it to the team that owns the packages consuming it. If the dependency crosses team boundaries, the ticket reflects that. Renovate opens a PR and leaves the question of ownership to whoever notices it first.
 
 For monorepos that use catalogs to enforce version consistency, Dependicus tracks catalog membership directly. The dashboard shows at a glance whether each dependency is in the catalog, which makes it easy to spot packages that have opted out of the shared version (or were never added).
 
@@ -93,7 +93,7 @@ In this model, Renovate handles the routine, low-risk updates automatically, whi
 | Ecosystem support       | 90+ package managers                                    | pnpm, bun, and yarn                                                            |
 | Platform support        | GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo | Platform-agnostic (reads lockfile locally)                                     |
 | Dashboard               | GitHub issue listing pending PRs and update status      | Static site showing full dependency landscape with rich context                |
-| Ticket integration      | GitHub/GitLab issues                                    | Linear                                                                         |
+| Ticket integration      | GitHub/GitLab issues                                    | Linear and GitHub Issues                                                       |
 | Compliance/SLO tracking | Not built-in                                            | Built-in (BasicCompliancePlugin)                                               |
 | Plugin system           | Presets and custom managers                             | JavaScript API for data sources, columns, groupings, ticket policies           |
 | Monorepo awareness      | Groups monorepo packages in PRs                         | Per-package usage tracking, version dispersion, team routing, catalog tracking |

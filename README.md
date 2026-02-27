@@ -11,12 +11,14 @@ graph LR
     npmjs.org --> dependicus-update
     dependicus-update --> dependicus-html["<tt>dependicus html</tt>"]
     dependicus-update --> dependicus-make-linear-tickets["<tt>dependicus make-linear-tickets</tt>"]
+    dependicus-update --> dependicus-make-github-issues["<tt>dependicus make-github-issues</tt>"]
 
     dependicus-html --> static-site["Static site"]
     dependicus-make-linear-tickets --> linear-tickets["Linear tickets"]
+    dependicus-make-github-issues --> github-issues["GitHub Issues"]
 ```
 
-Today, Dependicus only supports pnpm, but the discussion is open for adding additional package managers.
+Dependicus supports pnpm, bun, and yarn, with auto-detection of the active package manager.
 
 ## Quickstart
 
@@ -34,6 +36,15 @@ If you’re a Linear shop, you can reuse the same data to create tickets when up
 export LINEAR_API_KEY=<a Linear API key>
 pnpm dlx dependicus@latest make-linear-tickets \
     --linear-team-id=<uuid of a Linear team> \
+    --dry-run
+```
+
+If you use GitHub Issues instead, the equivalent is:
+
+```sh
+pnpm dlx dependicus@latest make-github-issues \
+    --github-owner=<owner> \
+    --github-repo=<repo> \
     --dry-run
 ```
 
