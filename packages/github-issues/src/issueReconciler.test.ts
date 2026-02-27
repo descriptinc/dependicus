@@ -161,14 +161,14 @@ describe('reconcileGitHubIssues', () => {
         expect(mockOctokit.issues.create).not.toHaveBeenCalled();
     });
 
-    it('skips packages with noTicket policy', async () => {
+    it('skips packages with skip policy', async () => {
         setupMocks();
 
         const deps: DirectDependency[] = [{ packageName: 'test-pkg', versions: [makeVersion()] }];
         const store = makeStore();
 
         const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
-            makeSpec({ policy: { type: 'noTicket' } }),
+            makeSpec({ policy: { type: 'skip' } }),
         );
 
         expect(result.created).toBe(0);

@@ -41,7 +41,7 @@ Options:
 Commands:
   update [options]               Collect and enrich dependency data (requires network)
   html [options]                 Generate HTML site from enriched data (offline)
-  make-linear-tickets [options]  Create/update Linear tickets for outdated dependencies
+  make-linear-issues [options]  Create/update Linear tickets for outdated dependencies
   make-github-issues [options]   Create/update GitHub issues for outdated dependencies
   help [command]                 display help for command
 ```

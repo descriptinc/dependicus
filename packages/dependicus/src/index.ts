@@ -64,7 +64,7 @@ export type { LinearIssueSpec } from '@dependicus/linear';
 export type { LinearPolicy } from '@dependicus/linear';
 
 /** @group Ticket Creation */
-export type { TicketAssignment } from '@dependicus/linear';
+export type { IssueAssignment } from '@dependicus/linear';
 
 /** @group Ticket Creation */
 export { getUpdateType } from '@dependicus/core';

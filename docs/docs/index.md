@@ -12,11 +12,11 @@ graph LR
     GitHub --> dependicus-update
     npmjs.org --> dependicus-update
     dependicus-update --> dependicus-html["<tt>dependicus html</tt>"]
-    dependicus-update --> dependicus-make-linear-tickets["<tt>dependicus make-linear-tickets</tt>"]
+    dependicus-update --> dependicus-make-linear-issues["<tt>dependicus make-linear-issues</tt>"]
     dependicus-update --> dependicus-make-github-issues["<tt>dependicus make-github-issues</tt>"]
 
     dependicus-html --> static-site["Static site"]
-    dependicus-make-linear-tickets --> linear-tickets["Linear tickets"]
+    dependicus-make-linear-issues --> linear-tickets["Linear tickets"]
     dependicus-make-github-issues --> github-issues["GitHub Issues"]
 ```
 
@@ -47,17 +47,17 @@ If you’re a Linear shop, you can reuse the same data to create tickets when up
 export LINEAR_API_KEY=<a Linear API key>
 
 # pnpm
-pnpm dlx dependicus@latest make-linear-tickets \
+pnpm dlx dependicus@latest make-linear-issues \
     --linear-team-id=<uuid of a Linear team> \
     --dry-run
 
 # bun
-bunx dependicus@latest make-linear-tickets \
+bunx dependicus@latest make-linear-issues \
     --linear-team-id=<uuid of a Linear team> \
     --dry-run
 
 # yarn
-yarn dlx dependicus@latest make-linear-tickets \
+yarn dlx dependicus@latest make-linear-issues \
     --linear-team-id=<uuid of a Linear team> \
     --dry-run
 ```

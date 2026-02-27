@@ -30,14 +30,14 @@ function loadTemplate(name: string): HandlebarsTemplateDelegate {
     return hbs.compile(content);
 }
 
-const ticketDescriptionTemplate = loadTemplate('ticket-description');
+const issueDescriptionTemplate = loadTemplate('issue-description');
 const groupDescriptionTemplate = loadTemplate('group-description');
 const newVersionsCommentTemplate = loadTemplate('new-versions-comment');
 
 /**
- * Build the description for a single-package Linear ticket.
+ * Build the description for a single-package Linear issue.
  */
-export function buildTicketDescription(
+export function buildIssueDescription(
     pkg: OutdatedPackage,
     store: FactStore,
     minVersion: string,
@@ -155,13 +155,13 @@ export function buildTicketDescription(
         deprecatedTransitiveDeps,
     };
 
-    return ticketDescriptionTemplate(context).trim();
+    return issueDescriptionTemplate(context).trim();
 }
 
 /**
- * Build the description for a grouped Linear ticket.
+ * Build the description for a grouped Linear issue.
  */
-export function buildGroupTicketDescription(
+export function buildGroupIssueDescription(
     group: OutdatedGroup,
     store: FactStore,
     dependicusBaseUrl: string,

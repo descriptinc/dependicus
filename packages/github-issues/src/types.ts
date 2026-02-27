@@ -8,16 +8,16 @@ export type { DependicusIssue, CreateIssueParams } from './GitHubIssueService';
 /**
  * Policy controlling how the reconciler handles a package.
  *
- * - `noTicket` — skip this package entirely
+ * - `skip` — skip this package entirely
  * - `fyi` — notification issue, no due date
  * - `dueDate` — mandatory issue with SLA-derived due date
  *
- * All variants except `noTicket` support an optional `rateLimitDays` to
+ * All variants except `skip` support an optional `rateLimitDays` to
  * throttle how frequently issues are created or updated.
  * @group Issue Creation
  */
 export const gitHubIssuePolicySchema = z.discriminatedUnion('type', [
-    z.object({ type: z.literal('noTicket') }),
+    z.object({ type: z.literal('skip') }),
     z.object({ type: z.literal('fyi'), rateLimitDays: z.number().optional() }),
     z.object({ type: z.literal('dueDate'), rateLimitDays: z.number().optional() }),
 ]);

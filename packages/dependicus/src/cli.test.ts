@@ -17,7 +17,7 @@ vi.mock('@dependicus/core', async () => {
 });
 
 vi.mock('@dependicus/linear', () => ({
-    reconcileTickets: vi.fn(),
+    reconcileIssues: vi.fn(),
 }));
 
 vi.mock('node:fs/promises', () => ({
@@ -27,12 +27,12 @@ vi.mock('node:fs/promises', () => ({
 
 // Import mocked modules
 import { createDependicus } from '@dependicus/site-builder';
-import { reconcileTickets } from '@dependicus/linear';
+import { reconcileIssues } from '@dependicus/linear';
 import { writeFile, mkdir } from 'node:fs/promises';
 
 const mockCreateDependicus = vi.mocked(createDependicus);
 const mockReadDependicusJson = vi.mocked(readDependicusJson);
-const mockReconcileTickets = vi.mocked(reconcileTickets);
+const mockReconcileIssues = vi.mocked(reconcileIssues);
 const mockWriteFile = vi.mocked(writeFile);
 const mockMkdir = vi.mocked(mkdir);
 
@@ -195,23 +195,23 @@ describe('dependicusCli', () => {
         });
     });
 
-    describe('make-linear-tickets command', () => {
+    describe('make-linear-issues command', () => {
         const linearConfig = {
             ...baseConfig,
             dependicusBaseUrl: 'https://example.com',
             linear: {
                 cooldownDays: 7,
-                allowNewTickets: true,
+                allowNewIssues: true,
             },
         };
 
-        it('calls reconcileTickets with correct args', async () => {
+        it('calls reconcileIssues with correct args', async () => {
             setEnv('LINEAR_API_KEY', 'test-key');
             const deps = [makeDep('react')];
             const providers = [makeProvider(deps)];
             const store = makeStore();
             mockReadDependicusJson.mockResolvedValue({ providers, store });
-            mockReconcileTickets.mockResolvedValue({
+            mockReconcileIssues.mockResolvedValue({
                 created: 0,
                 updated: 0,
                 closed: 0,
@@ -225,9 +225,9 @@ describe('dependicusCli', () => {
             mockCreateDependicus.mockResolvedValue(mockInstance);
 
             const cli = dependicusCli(linearConfig);
-            await cli.run(argv('make-linear-tickets'));
+            await cli.run(argv('make-linear-issues'));
 
-            expect(mockReconcileTickets).toHaveBeenCalledWith(
+            expect(mockReconcileIssues).toHaveBeenCalledWith(
                 deps,
                 store,
                 {
@@ -235,7 +235,7 @@ describe('dependicusCli', () => {
                     dryRun: undefined,
                     dependicusBaseUrl: 'https://example.com',
                     cooldownDays: 7,
-                    allowNewTickets: true,
+                    allowNewIssues: true,
                 },
                 undefined,
             );
@@ -246,7 +246,7 @@ describe('dependicusCli', () => {
             const providers = [makeProvider([])];
             const store = makeStore();
             mockReadDependicusJson.mockResolvedValue({ providers, store });
-            mockReconcileTickets.mockResolvedValue({
+            mockReconcileIssues.mockResolvedValue({
                 created: 0,
                 updated: 0,
                 closed: 0,
@@ -260,10 +260,10 @@ describe('dependicusCli', () => {
             mockCreateDependicus.mockResolvedValue(mockInstance);
 
             const cli = dependicusCli(linearConfig);
-            await cli.run(argv('make-linear-tickets', '--dry-run'));
+            await cli.run(argv('make-linear-issues', '--dry-run'));
 
-            expect(mockReconcileTickets).toHaveBeenCalled();
-            const config = mockReconcileTickets.mock.calls[0]![2];
+            expect(mockReconcileIssues).toHaveBeenCalled();
+            const config = mockReconcileIssues.mock.calls[0]![2];
             expect(config).toHaveProperty('dryRun', true);
         });
 
@@ -276,7 +276,7 @@ describe('dependicusCli', () => {
             });
 
             try {
-                await cli.run(argv('make-linear-tickets'));
+                await cli.run(argv('make-linear-issues'));
             } catch {
                 // expected
             }

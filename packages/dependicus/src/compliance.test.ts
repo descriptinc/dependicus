@@ -265,7 +265,7 @@ describe('getLinearIssueSpec', () => {
         expect(result!.policy).toEqual({ type: 'fyi', rateLimitDays: 30 });
     });
 
-    it('returns noTicket policy when no thresholds and not notifications-only', () => {
+    it('returns skip policy when no thresholds and not notifications-only', () => {
         const config: BasicComplianceConfig = {
             policies,
             getPolicy: () => 'none',
@@ -275,7 +275,7 @@ describe('getLinearIssueSpec', () => {
 
         const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result).toBeDefined();
-        expect(result!.policy).toEqual({ type: 'noTicket' });
+        expect(result!.policy).toEqual({ type: 'skip' });
     });
 
     it('includes daysOverdue and thresholdDays for non-compliant packages', () => {

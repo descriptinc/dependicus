@@ -54,7 +54,7 @@ export interface CompliancePolicy {
  *
  * The plugin is intentionally agnostic about how you assign policies to
  * packages. You bring the policy definitions and a lookup function; the
- * plugin handles columns, sections, and ticket spec generation.
+ * plugin handles columns, sections, and issue spec generation.
  *
  * @group Compliance
  */
@@ -187,7 +187,7 @@ function formatThreshold(days: number): string {
  * Threshold-based compliance plugin.
  *
  * You provide policy definitions and a function that maps packages to policy
- * IDs; the plugin handles columns, sections, and ticket spec generation.
+ * IDs; the plugin handles columns, sections, and issue spec generation.
  * It composes with ownership plugins — each plugin contributes its own
  * fields to the merged `LinearIssueSpec`.
  *
@@ -265,15 +265,15 @@ export class BasicCompliancePlugin implements DependicusPlugin {
     };
 
     /**
-     * Produce compliance-related fields for a Linear ticket.
+     * Produce compliance-related fields for a Linear issue.
      *
      * Target version selection:
      *   If the policy has a `major` threshold, target is the absolute latest.
      *   If only `minor`, target is the latest within the current major.
      *   If only `patch`, target is the latest within the current minor.
-     * This prevents the ticket from asking teams to jump to a new major when
+     * This prevents the issue from asking teams to jump to a new major when
      * their policy only covers minor/patch updates. When a newer major exists
-     * beyond the target, `availableMajorVersion` is set so the ticket can
+     * beyond the target, `availableMajorVersion` is set so the issue can
      * mention it informatively.
      *
      * Returns a partial LinearIssueSpec (no teamId/assignment/group/ownerLabel —
@@ -343,7 +343,7 @@ export class BasicCompliancePlugin implements DependicusPlugin {
                 ? { type: 'fyi', rateLimitDays: policy.notificationRateLimitDays }
                 : thresholds
                   ? { type: 'dueDate' }
-                  : { type: 'noTicket' },
+                  : { type: 'skip' },
             daysOverdue,
             thresholdDays: thresholdDaysValue,
             targetVersion,

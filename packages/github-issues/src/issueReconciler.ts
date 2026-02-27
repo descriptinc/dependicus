@@ -88,7 +88,7 @@ function hasMajorVersionPublishedSince(
 
 /** Extract rate limit days from a policy. */
 function policyRateLimitDays(policy: GitHubIssuePolicy): number | undefined {
-    return policy.type === 'noTicket' ? undefined : policy.rateLimitDays;
+    return policy.type === 'skip' ? undefined : policy.rateLimitDays;
 }
 
 /** Whether a policy represents a notifications-only / FYI package. */
@@ -239,7 +239,7 @@ export async function reconcileGitHubIssues(
             const policy = ctx.policy ?? DEFAULT_POLICY;
             const assignment = ctx.assignment ?? DEFAULT_ASSIGNMENT;
 
-            if (policy.type === 'noTicket') continue;
+            if (policy.type === 'skip') continue;
 
             const isNotificationsOnly = isFyiPolicy(policy);
 

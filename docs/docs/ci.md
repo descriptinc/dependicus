@@ -9,7 +9,7 @@ The update step is the only one that requires network access, and it's the slowe
 | Variable         | Required by                    | Description                                                           |
 | ---------------- | ------------------------------ | --------------------------------------------------------------------- |
 | `GITHUB_TOKEN`   | `update`, `make-github-issues` | Strongly recommended for `update`. Required for `make-github-issues`. |
-| `LINEAR_API_KEY` | `make-linear-tickets`          | Required. Must have write access to the teams you route tickets to.   |
+| `LINEAR_API_KEY` | `make-linear-issues`           | Required. Must have write access to the teams you route tickets to.   |
 
 ## GitHub Actions
 
@@ -84,7 +84,7 @@ jobs:
                   path: dependicus-out/
 
             - name: Create/update Linear tickets
-              run: node your-dependicus-script.js make-linear-tickets
+              run: node your-dependicus-script.js make-linear-issues
               env:
                   LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
 
@@ -172,6 +172,6 @@ dependicus-update:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-On pull requests, you probably want to skip the Linear tickets and GitHub Issues jobs, or set `allowNewTickets: false` / `allowNewIssues: false` in your config.
+On pull requests, you probably want to skip the Linear tickets and GitHub Issues jobs, or set `allowNewIssues: false` / `allowNewIssues: false` in your config.
 
 For deploying the static site, you’ll have to decide what works best for your project. GitHub Pages is an easy option and can even be a good solution for companies, due to the ability to gate it behind a GitHub login and org authorization.

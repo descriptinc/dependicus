@@ -63,8 +63,8 @@ describe('LinearService', () => {
         });
     });
 
-    describe('searchDependicusTickets', () => {
-        it('fetches and parses tickets with pagination', async () => {
+    describe('searchDependicusIssues', () => {
+        it('fetches and parses issues with pagination', async () => {
             mockClient.issueLabels.mockResolvedValue({
                 nodes: [{ id: 'label-123', name: 'Dependicus' }],
             });
@@ -84,9 +84,9 @@ describe('LinearService', () => {
                 pageInfo: { hasNextPage: false, endCursor: undefined },
             });
 
-            const tickets = await service.searchDependicusTickets();
-            expect(tickets).toHaveLength(1);
-            expect(tickets[0]).toEqual({
+            const issues = await service.searchDependicusIssues();
+            expect(issues).toHaveLength(1);
+            expect(issues[0]).toEqual({
                 id: 'issue-1',
                 identifier: 'CORE-100',
                 title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
@@ -109,13 +109,13 @@ describe('LinearService', () => {
             });
 
             const onProgress = vi.fn();
-            await service.searchDependicusTickets(onProgress);
+            await service.searchDependicusIssues(onProgress);
             expect(onProgress).toHaveBeenCalledWith(0, 1);
         });
     });
 
-    describe('createTicket', () => {
-        it('creates a ticket with correct params', async () => {
+    describe('createIssue', () => {
+        it('creates an issue with correct params', async () => {
             mockClient.issueLabels.mockResolvedValue({
                 nodes: [{ id: 'label-123', name: 'Dependicus' }],
             });
@@ -123,7 +123,7 @@ describe('LinearService', () => {
                 issue: Promise.resolve({ identifier: 'CORE-200' }),
             });
 
-            const identifier = await service.createTicket({
+            const identifier = await service.createIssue({
                 packageName: 'react',
                 title: 'Update react from 18.2.0 to 19.0.0',
                 teamId: 'team-1',
@@ -142,9 +142,9 @@ describe('LinearService', () => {
         });
     });
 
-    describe('updateTicket', () => {
+    describe('updateIssue', () => {
         it('updates title, description, and due date', async () => {
-            await service.updateTicket('issue-1', {
+            await service.updateIssue('issue-1', {
                 title: 'Update react from 18.2.0 to 19.1.0',
                 description: 'Updated description',
                 dueDate: new Date('2025-07-01'),
@@ -158,7 +158,7 @@ describe('LinearService', () => {
         });
 
         it('sets dueDate to null when not provided', async () => {
-            await service.updateTicket('issue-1', {
+            await service.updateIssue('issue-1', {
                 title: 'Update react',
                 description: 'desc',
             });
@@ -171,8 +171,8 @@ describe('LinearService', () => {
         });
     });
 
-    describe('closeTicket', () => {
-        it('closes a ticket by finding completed state', async () => {
+    describe('closeIssue', () => {
+        it('closes an issue by finding completed state', async () => {
             mockClient.issue.mockResolvedValue({
                 team: Promise.resolve({
                     states: () =>
@@ -185,7 +185,7 @@ describe('LinearService', () => {
                 }),
             });
 
-            await service.closeTicket('issue-1');
+            await service.closeIssue('issue-1');
 
             expect(mockClient.updateIssue).toHaveBeenCalledWith('issue-1', {
                 stateId: 'state-1',
@@ -202,14 +202,12 @@ describe('LinearService', () => {
                 }),
             });
 
-            await expect(service.closeTicket('issue-1')).rejects.toThrow(
-                'no completed state found',
-            );
+            await expect(service.closeIssue('issue-1')).rejects.toThrow('no completed state found');
         });
     });
 
     describe('createComment', () => {
-        it('creates a comment on a ticket', async () => {
+        it('creates a comment on an issue', async () => {
             await service.createComment('issue-1', 'New version available');
 
             expect(mockClient.createComment).toHaveBeenCalledWith({
@@ -219,9 +217,9 @@ describe('LinearService', () => {
         });
     });
 
-    describe('updateTicketDueDate', () => {
-        it('updates the due date on a ticket', async () => {
-            await service.updateTicketDueDate('issue-1', new Date('2025-09-15'));
+    describe('updateIssueDueDate', () => {
+        it('updates the due date on an issue', async () => {
+            await service.updateIssueDueDate('issue-1', new Date('2025-09-15'));
 
             expect(mockClient.updateIssue).toHaveBeenCalledWith('issue-1', {
                 dueDate: '2025-09-15',
@@ -242,7 +240,7 @@ describe('LinearService', () => {
         });
     });
 
-    describe('createTicket edge cases', () => {
+    describe('createIssue edge cases', () => {
         it('throws when issue creation fails', async () => {
             mockClient.issueLabels.mockResolvedValue({
                 nodes: [{ id: 'label-123', name: 'Dependicus' }],
@@ -252,13 +250,13 @@ describe('LinearService', () => {
             });
 
             await expect(
-                service.createTicket({
+                service.createIssue({
                     packageName: 'react',
                     title: 'Update react',
                     teamId: 'team-1',
                     description: 'desc',
                 }),
-            ).rejects.toThrow('Failed to create ticket for react');
+            ).rejects.toThrow('Failed to create issue for react');
         });
 
         it('includes projectId when provided', async () => {
@@ -269,7 +267,7 @@ describe('LinearService', () => {
                 issue: Promise.resolve({ identifier: 'CORE-300' }),
             });
 
-            await service.createTicket({
+            await service.createIssue({
                 packageName: 'react',
                 title: 'Update react',
                 teamId: 'team-1',
@@ -293,7 +291,7 @@ describe('LinearService', () => {
                 issue: Promise.resolve({ identifier: 'CORE-300' }),
             });
 
-            await service.createTicket({
+            await service.createIssue({
                 packageName: 'react',
                 title: 'Update react',
                 teamId: 'team-1',
@@ -309,13 +307,13 @@ describe('LinearService', () => {
         });
     });
 
-    describe('closeTicket edge cases', () => {
+    describe('closeIssue edge cases', () => {
         it('throws when no team found', async () => {
             mockClient.issue.mockResolvedValue({
                 team: Promise.resolve(undefined),
             });
 
-            await expect(service.closeTicket('issue-1')).rejects.toThrow('no team found');
+            await expect(service.closeIssue('issue-1')).rejects.toThrow('no team found');
         });
     });
 
@@ -326,8 +324,8 @@ describe('LinearService', () => {
             dryRunService = new LinearService('test-api-key', { dryRun: true });
         });
 
-        it('createTicket returns DRY-RUN without calling API', async () => {
-            const identifier = await dryRunService.createTicket({
+        it('createIssue returns DRY-RUN without calling API', async () => {
+            const identifier = await dryRunService.createIssue({
                 packageName: 'react',
                 title: 'Update react',
                 teamId: 'team-1',
@@ -338,8 +336,8 @@ describe('LinearService', () => {
             expect(mockClient.createIssue).not.toHaveBeenCalled();
         });
 
-        it('updateTicket does not call API', async () => {
-            await dryRunService.updateTicket('issue-1', {
+        it('updateIssue does not call API', async () => {
+            await dryRunService.updateIssue('issue-1', {
                 title: 'Update react',
                 description: 'desc',
             });
@@ -347,8 +345,8 @@ describe('LinearService', () => {
             expect(mockClient.updateIssue).not.toHaveBeenCalled();
         });
 
-        it('closeTicket does not call API', async () => {
-            await dryRunService.closeTicket('issue-1');
+        it('closeIssue does not call API', async () => {
+            await dryRunService.closeIssue('issue-1');
 
             expect(mockClient.issue).not.toHaveBeenCalled();
             expect(mockClient.updateIssue).not.toHaveBeenCalled();

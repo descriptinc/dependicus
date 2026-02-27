@@ -1,15 +1,15 @@
 export { LinearService } from './LinearService';
-export type { DependicusTicket, CreateTicketParams } from './LinearService';
-export type { OutdatedPackage, OutdatedGroup, LinearPolicy, TicketAssignment } from './types';
+export type { DependicusIssue, CreateIssueParams } from './LinearService';
+export type { OutdatedPackage, OutdatedGroup, LinearPolicy, IssueAssignment } from './types';
 export type { LinearIssueSpec, VersionContext, DescriptionSection } from './types';
 export {
     linearPolicySchema,
-    ticketAssignmentSchema,
+    issueAssignmentSchema,
     descriptionSectionSchema,
     linearIssueSpecSchema,
 } from './types';
 export {
-    reconcileTickets,
-    type TicketReconcilerConfig,
+    reconcileIssues,
+    type IssueReconcilerConfig,
     type ReconciliationResult,
-} from './ticketReconciler';
+} from './issueReconciler';

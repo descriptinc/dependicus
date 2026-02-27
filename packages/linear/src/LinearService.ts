@@ -6,21 +6,21 @@ type IssueCreateInput = LinearDocument.IssueCreateInput;
 const DEPENDICUS_LABEL_NAME = 'Dependicus';
 const TITLE_PREFIX = '[Dependicus]';
 
-export interface DependicusTicket {
+export interface DependicusIssue {
     id: string;
     identifier: string; // e.g., "CORE-123"
     title: string;
     /**
-     * For single-package tickets: the package name (e.g., "react")
-     * For group tickets: the group name (e.g., "sentry")
+     * For single-package issues: the package name (e.g., "react")
+     * For group issues: the group name (e.g., "sentry")
      */
     packageName: string;
     /**
-     * True if this ticket is for a group of packages rather than a single package.
+     * True if this issue is for a group of packages rather than a single package.
      */
     isGroup: boolean;
     dueDate: string | undefined;
-    /** ISO date string when the ticket was last updated */
+    /** ISO date string when the issue was last updated */
     updatedAt: string;
     state: {
         type: string; // 'backlog' | 'unstarted' | 'started' | 'completed' | 'canceled'
@@ -28,11 +28,11 @@ export interface DependicusTicket {
     };
 }
 
-export interface CreateTicketParams {
+export interface CreateIssueParams {
     packageName: string;
     title: string;
     teamId: string;
-    /** Optional - if omitted, ticket is created without a project (just team + label) */
+    /** Optional - if omitted, issue is created without a project (just team + label) */
     projectId?: string;
     /** Optional - notifications-only packages don't have due dates */
     dueDate?: Date;
@@ -92,25 +92,25 @@ export class LinearService {
     }
 
     /**
-     * Search for all open Dependicus tickets across all teams.
-     * Finds tickets by the Dependicus label (no project filter).
-     * Handles pagination to ensure ALL tickets are fetched.
+     * Search for all open Dependicus issues across all teams.
+     * Finds issues by the Dependicus label (no project filter).
+     * Handles pagination to ensure ALL issues are fetched.
      *
      * @param onProgress - Optional callback to report progress during pagination
      */
-    async searchDependicusTickets(
+    async searchDependicusIssues(
         onProgress?: (fetched: number, page: number) => void,
-    ): Promise<DependicusTicket[]> {
+    ): Promise<DependicusIssue[]> {
         const labelId = await this.ensureLabel();
 
-        const tickets: DependicusTicket[] = [];
+        const existingIssues: DependicusIssue[] = [];
         let hasNextPage = true;
         let afterCursor: string | undefined;
         let pageNumber = 0;
 
         // Paginate through all issues with the Dependicus label
-        // Include tickets in all non-closed states (including PR/Verify) to avoid creating
-        // duplicates when tickets are in progress
+        // Include issues in all non-closed states (including PR/Verify) to avoid creating
+        // duplicates when issues are in progress
         while (hasNextPage) {
             pageNumber++;
             const issues = await this.client.issues({
@@ -132,7 +132,7 @@ export class LinearService {
 
                 const state = await issue.state;
 
-                tickets.push({
+                existingIssues.push({
                     id: issue.id,
                     identifier: issue.identifier,
                     title: issue.title,
@@ -149,27 +149,27 @@ export class LinearService {
 
             // Report progress if callback provided
             if (onProgress) {
-                onProgress(tickets.length, pageNumber);
+                onProgress(existingIssues.length, pageNumber);
             }
 
             hasNextPage = issues.pageInfo.hasNextPage;
             afterCursor = issues.pageInfo.endCursor ?? undefined;
         }
 
-        return tickets;
+        return existingIssues;
     }
 
     /**
-     * Create a new Dependicus ticket.
+     * Create a new Dependicus issue.
      * Returns the issue identifier (e.g., "BIX-1234") or "DRY-RUN" in dry-run mode.
      */
-    async createTicket(params: CreateTicketParams): Promise<string> {
+    async createIssue(params: CreateIssueParams): Promise<string> {
         const { packageName, title, teamId, projectId, dueDate, description, delegateId } = params;
 
         if (this.dryRun) {
             process.stderr.write('\n');
             process.stderr.write('='.repeat(80) + '\n');
-            process.stderr.write(`[DRY RUN] Would CREATE ticket for ${packageName}\n`);
+            process.stderr.write(`[DRY RUN] Would CREATE issue for ${packageName}\n`);
             process.stderr.write('='.repeat(80) + '\n');
             process.stderr.write(`\nTitle: ${TITLE_PREFIX} ${title}\n\n`);
             process.stderr.write(`Description:\n${description}\n`);
@@ -201,34 +201,34 @@ export class LinearService {
         const issue = await result.issue;
 
         if (!issue) {
-            throw new Error(`Failed to create ticket for ${packageName}`);
+            throw new Error(`Failed to create issue for ${packageName}`);
         }
 
         return issue.identifier;
     }
 
     /**
-     * Update an existing ticket's due date.
+     * Update an existing issue's due date.
      */
-    async updateTicketDueDate(issueId: string, dueDate: Date): Promise<void> {
+    async updateIssueDueDate(issueId: string, dueDate: Date): Promise<void> {
         await this.client.updateIssue(issueId, {
             dueDate: dueDate.toISOString().split('T')[0],
         });
     }
 
     /**
-     * Update an existing ticket's title, description, and optionally due date.
+     * Update an existing issue's title, description, and optionally due date.
      */
-    async updateTicket(
+    async updateIssue(
         issueId: string,
         params: { title: string; description: string; dueDate?: Date },
         identifier?: string,
     ): Promise<void> {
         if (this.dryRun) {
-            const ticketLabel = identifier || issueId;
+            const issueLabel = identifier || issueId;
             process.stderr.write('\n');
             process.stderr.write('='.repeat(80) + '\n');
-            process.stderr.write(`[DRY RUN] Would UPDATE ticket ${ticketLabel}\n`);
+            process.stderr.write(`[DRY RUN] Would UPDATE issue ${issueLabel}\n`);
             process.stderr.write('='.repeat(80) + '\n');
             process.stderr.write(`\nTitle: ${TITLE_PREFIX} ${params.title}\n\n`);
             process.stderr.write(`Description:\n${params.description}\n`);
@@ -250,12 +250,12 @@ export class LinearService {
     }
 
     /**
-     * Create a comment on a ticket.
+     * Create a comment on an issue.
      */
     async createComment(issueId: string, body: string, identifier?: string): Promise<void> {
         if (this.dryRun) {
-            const ticketLabel = identifier || issueId;
-            process.stderr.write(`\n[DRY RUN] Would add comment to ${ticketLabel}:\n${body}\n`);
+            const issueLabel = identifier || issueId;
+            process.stderr.write(`\n[DRY RUN] Would add comment to ${issueLabel}:\n${body}\n`);
             return;
         }
 
@@ -266,12 +266,12 @@ export class LinearService {
     }
 
     /**
-     * Close a ticket by setting its state to "Done".
+     * Close an issue by setting its state to "Done".
      */
-    async closeTicket(issueId: string, identifier?: string): Promise<void> {
+    async closeIssue(issueId: string, identifier?: string): Promise<void> {
         if (this.dryRun) {
-            const ticketLabel = identifier || issueId;
-            process.stderr.write(`[DRY RUN] Would close ticket ${ticketLabel}\n`);
+            const issueLabel = identifier || issueId;
+            process.stderr.write(`[DRY RUN] Would close issue ${issueLabel}\n`);
             return;
         }
 
@@ -279,7 +279,7 @@ export class LinearService {
         const team = await issue.team;
 
         if (!team) {
-            throw new Error(`Cannot close ticket ${issueId}: no team found`);
+            throw new Error(`Cannot close issue ${issueId}: no team found`);
         }
 
         const states = await team.states();
@@ -288,7 +288,7 @@ export class LinearService {
         );
 
         if (!doneState) {
-            throw new Error(`Cannot close ticket ${issueId}: no completed state found`);
+            throw new Error(`Cannot close issue ${issueId}: no completed state found`);
         }
 
         await this.client.updateIssue(issueId, {

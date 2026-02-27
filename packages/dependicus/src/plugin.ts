@@ -62,7 +62,7 @@ function mergeLinearIssueSpecs(
         const result = linearIssueSpecSchema.safeParse(merged);
         if (!result.success) {
             process.stderr.write(
-                `Warning: merged ticket spec failed validation: ${result.error.message}\n`,
+                `Warning: merged issue spec failed validation: ${result.error.message}\n`,
             );
             return undefined;
         }
@@ -112,7 +112,7 @@ export function resolvePlugins(
             ? (ctx: GroupingDetailContext): GroupingSection[] => sectionFns.flatMap((fn) => fn(ctx))
             : undefined;
 
-    // Merge plugin ticket specs; direct config override bypasses merging
+    // Merge plugin issue specs; direct config override bypasses merging
     const pluginLinearIssueSpecFns = plugins
         .map((p) => p.getLinearIssueSpec)
         .filter(

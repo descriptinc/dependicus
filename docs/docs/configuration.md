@@ -38,7 +38,7 @@ Dependicus assumes you want fine-grained control over how tickets are created. T
 
 ### `linear.getLinearIssueSpec` (optional): `(context: VersionContext, store: FactStore) => LinearIssueSpec | undefined`
 
-For a given package version, return a `LinearIssueSpec` describing what ticket to create, or `undefined` to skip. See [Linear tickets](./lineartickets.md) for details on the `LinearIssueSpec` fields.
+For a given package version, return a `LinearIssueSpec` describing what ticket to create, or `undefined` to skip. See [Linear tickets](./linearissues.md) for details on the `LinearIssueSpec` fields.
 
 This field is optional because [plugins](./plugins.md) can provide the same functionality. Depending on how complex your setup is, you might choose to write a plugin instead of providing a function for this parameter.
 
@@ -48,7 +48,7 @@ If you do not write a plugin or pass a `getLinearIssueSpec()` function, then Dep
 
 Wait at least this many days after a release before creating or updating tickets to include it.
 
-### `linear.allowNewTickets` (optional, defaults to `true`)
+### `linear.allowNewIssues` (optional, defaults to `true`)
 
 You can set this to `false` to disable ticket creation, for example when running CI on pull requests.
 

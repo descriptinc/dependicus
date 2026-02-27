@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { DirectDependency, DependencyVersion, PackageVersionInfo } from '@dependicus/core';
 import { FactStore, FactKeys, getUpdateType } from '@dependicus/core';
-import { reconcileTickets, type TicketReconcilerConfig } from './ticketReconciler';
+import { reconcileIssues, type IssueReconcilerConfig } from './issueReconciler';
 import type { VersionContext, LinearIssueSpec } from './types';
 
 const mockClient = {
@@ -135,22 +135,22 @@ function populateFacts(
     }
 }
 
-const defaultConfig: TicketReconcilerConfig = {
+const defaultConfig: IssueReconcilerConfig = {
     linearApiKey: 'test-key',
     dryRun: true,
     dependicusBaseUrl: 'https://example.com/dependicus',
     cooldownDays: 7,
-    allowNewTickets: true,
+    allowNewIssues: true,
 };
 
-describe('reconcileTickets', () => {
+describe('reconcileIssues', () => {
     let store: FactStore;
 
     beforeEach(() => {
         vi.clearAllMocks();
         store = new FactStore();
 
-        // Default mock: label exists, no existing tickets
+        // Default mock: label exists, no existing issues
         mockClient.issueLabels.mockResolvedValue({
             nodes: [{ id: 'label-123', name: 'Dependicus' }],
         });
@@ -163,12 +163,12 @@ describe('reconcileTickets', () => {
         });
     });
 
-    it('creates tickets for outdated packages', async () => {
+    it('creates issues for outdated packages', async () => {
         const v = makeVersion();
         populateFacts(store, 'test-pkg', v);
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.created).toBe(1);
         expect(result.updated).toBe(0);
         expect(result.closed).toBe(0);
@@ -179,7 +179,7 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'up-to-date-pkg', v, { versionsBetween: [] });
         const deps: DirectDependency[] = [makeDep('up-to-date-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.created).toBe(0);
     });
 
@@ -194,25 +194,25 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'unknown-team-pkg', v, { meta });
         const deps: DirectDependency[] = [makeDep('unknown-team-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.created).toBe(0);
     });
 
-    it('does not create tickets when allowNewTickets is false', async () => {
+    it('does not create issues when allowNewIssues is false', async () => {
         const v = makeVersion();
         populateFacts(store, 'test-pkg', v);
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const result = await reconcileTickets(
+        const result = await reconcileIssues(
             deps,
             store,
-            { ...defaultConfig, allowNewTickets: false },
+            { ...defaultConfig, allowNewIssues: false },
             testGetLinearIssueSpec,
         );
         expect(result.created).toBe(0);
     });
 
-    it('updates existing tickets when package is still outdated', async () => {
+    it('updates existing issues when package is still outdated', async () => {
         const mockState = { type: 'unstarted', name: 'Todo' };
         mockClient.issues.mockResolvedValue({
             nodes: [
@@ -232,12 +232,12 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'test-pkg', v);
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.updated).toBe(1);
         expect(result.created).toBe(0);
     });
 
-    it('closes tickets for packages that are now compliant', async () => {
+    it('closes issues for packages that are now compliant', async () => {
         const mockState = { type: 'unstarted', name: 'Todo' };
         mockClient.issues.mockResolvedValue({
             nodes: [
@@ -253,7 +253,7 @@ describe('reconcileTickets', () => {
             pageInfo: { hasNextPage: false, endCursor: undefined },
         });
 
-        // Close ticket mock
+        // Close issue mock
         mockClient.issue.mockResolvedValue({
             team: Promise.resolve({
                 states: () =>
@@ -263,14 +263,14 @@ describe('reconcileTickets', () => {
             }),
         });
 
-        // No outdated packages - the existing ticket should be closed
+        // No outdated packages - the existing issue should be closed
         const deps: DirectDependency[] = [];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.closed).toBe(1);
     });
 
-    it('skips updating tickets in PR state', async () => {
+    it('skips updating issues in PR state', async () => {
         const mockState = { type: 'started', name: 'PR' };
         mockClient.issues.mockResolvedValue({
             nodes: [
@@ -290,12 +290,12 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'test-pkg', v);
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.updated).toBe(0);
         expect(result.closed).toBe(0);
     });
 
-    it('closes duplicate tickets', async () => {
+    it('closes duplicate issues', async () => {
         const mockState = { type: 'unstarted', name: 'Todo' };
         mockClient.issues.mockResolvedValue({
             nodes: [
@@ -319,7 +319,7 @@ describe('reconcileTickets', () => {
             pageInfo: { hasNextPage: false, endCursor: undefined },
         });
 
-        // Close ticket mock
+        // Close issue mock
         mockClient.issue.mockResolvedValue({
             team: Promise.resolve({
                 states: () =>
@@ -333,7 +333,7 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'test-pkg', v);
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.closedDuplicates).toBe(1);
     });
 
@@ -348,7 +348,7 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'notify-pkg', v, { meta });
         const deps: DirectDependency[] = [makeDep('notify-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.created).toBe(1);
     });
 
@@ -370,12 +370,12 @@ describe('reconcileTickets', () => {
             makeDep('group-pkg-b', [vB]),
         ];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
-        // Should create 1 ticket for the group, not 2 individual ones
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
+        // Should create 1 issue for the group, not 2 individual ones
         expect(result.created).toBe(1);
     });
 
-    it('skips updating tickets in Verify state', async () => {
+    it('skips updating issues in Verify state', async () => {
         const mockState = { type: 'started', name: 'Verify' };
         mockClient.issues.mockResolvedValue({
             nodes: [
@@ -395,15 +395,15 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'test-pkg', v);
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.updated).toBe(0);
-        // Should not close either — ticket is in progress
+        // Should not close either — issue is in progress
         expect(result.closed).toBe(0);
     });
 
-    it('adds comment when existing ticket has older version in title', async () => {
+    it('adds comment when existing issue has older version in title', async () => {
         const mockState = { type: 'unstarted', name: 'Todo' };
-        // Existing ticket tracks up to version 1.5.0
+        // Existing issue tracks up to version 1.5.0
         mockClient.issues.mockResolvedValue({
             nodes: [
                 {
@@ -447,7 +447,7 @@ describe('reconcileTickets', () => {
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
         const config = { ...defaultConfig, dryRun: false };
-        const result = await reconcileTickets(deps, store, config, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, config, testGetLinearIssueSpec);
         expect(result.updated).toBe(1);
         expect(mockClient.createComment).toHaveBeenCalled();
     });
@@ -472,7 +472,7 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'test-pkg', v);
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.updated).toBe(1);
         expect(mockClient.createComment).not.toHaveBeenCalled();
     });
@@ -493,12 +493,12 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'test-pkg', v, { versionsBetween: vb });
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const config: TicketReconcilerConfig = {
+        const config: IssueReconcilerConfig = {
             ...defaultConfig,
             dryRun: false,
         };
 
-        await reconcileTickets(deps, store, config, testGetLinearIssueSpec);
+        await reconcileIssues(deps, store, config, testGetLinearIssueSpec);
         expect(mockClient.createIssue).toHaveBeenCalled();
         const createArg = mockClient.createIssue.mock.calls[0]![0];
         expect(createArg.delegateId).toBe('agent-123');
@@ -537,12 +537,12 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'test-pkg', v);
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const config: TicketReconcilerConfig = {
+        const config: IssueReconcilerConfig = {
             ...defaultConfig,
             dryRun: false,
         };
 
-        await reconcileTickets(deps, store, config, conditionalGetLinearIssueSpec);
+        await reconcileIssues(deps, store, config, conditionalGetLinearIssueSpec);
         expect(mockClient.createIssue).toHaveBeenCalled();
         const createArg = mockClient.createIssue.mock.calls[0]![0];
         expect(createArg.delegateId).toBeUndefined();
@@ -581,12 +581,12 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'test-pkg', v, { versionsBetween: vb });
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const config: TicketReconcilerConfig = {
+        const config: IssueReconcilerConfig = {
             ...defaultConfig,
             dryRun: false,
         };
 
-        await reconcileTickets(deps, store, config, noDelegateGetLinearIssueSpec);
+        await reconcileIssues(deps, store, config, noDelegateGetLinearIssueSpec);
         expect(mockClient.createIssue).toHaveBeenCalled();
         const createArg = mockClient.createIssue.mock.calls[0]![0];
         expect(createArg.delegateId).toBeUndefined();
@@ -628,12 +628,12 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'test-pkg', v2);
         const deps: DirectDependency[] = [makeDep('test-pkg', [v1, v2])];
 
-        const config: TicketReconcilerConfig = {
+        const config: IssueReconcilerConfig = {
             ...defaultConfig,
             dryRun: false,
         };
 
-        await reconcileTickets(deps, store, config, mixedGetLinearIssueSpec);
+        await reconcileIssues(deps, store, config, mixedGetLinearIssueSpec);
         expect(mockClient.createIssue).toHaveBeenCalled();
         const createArg = mockClient.createIssue.mock.calls[0]![0];
         // Any unassigned should win
@@ -662,13 +662,13 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'notify-pkg', v, { meta, versionsBetween: vb });
         const deps: DirectDependency[] = [makeDep('notify-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.created).toBe(0);
     });
 
-    it('skips update when fyi ticket is within rate limit', async () => {
+    it('skips update when fyi issue is within rate limit', async () => {
         const mockState = { type: 'unstarted', name: 'Todo' };
-        // Ticket was updated very recently
+        // Issue was updated very recently
         mockClient.issues.mockResolvedValue({
             nodes: [
                 {
@@ -710,7 +710,7 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'notify-pkg', v, { meta, versionsBetween: vb });
         const deps: DirectDependency[] = [makeDep('notify-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.updated).toBe(0);
         // Should not close — still needs an update, just rate limited
         expect(result.closed).toBe(0);
@@ -718,13 +718,13 @@ describe('reconcileTickets', () => {
 
     it('skips duplicate title on creation', async () => {
         const mockState = { type: 'unstarted', name: 'Todo' };
-        // An existing ticket has the same title as what we'd create
+        // An existing issue has the same title as what we'd create
         mockClient.issues.mockResolvedValue({
             nodes: [
                 {
                     id: 'issue-1',
                     identifier: 'TEST-50',
-                    // This ticket has a different packageName extraction but same title
+                    // This issue has a different packageName extraction but same title
                     title: '[Dependicus] Update other-pkg from 1.0.0 to 2.0.0',
                     dueDate: '2025-06-01',
                     updatedAt: new Date('2024-01-01'),
@@ -738,13 +738,13 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'other-pkg', v);
         const deps: DirectDependency[] = [makeDep('other-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
-        // Should update the existing ticket, not create a new one
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
+        // Should update the existing issue, not create a new one
         expect(result.updated).toBe(1);
         expect(result.created).toBe(0);
     });
 
-    it('skips when ticket spec returns undefined', async () => {
+    it('skips when issue spec returns undefined', async () => {
         const meta: TestMeta = {
             surfaceId: 'Surf',
             teamName: 'TestTeam',
@@ -755,7 +755,7 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'opted-out-pkg', v, { meta });
         const deps: DirectDependency[] = [makeDep('opted-out-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.created).toBe(0);
     });
 
@@ -789,7 +789,7 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'cool-pkg', v, { versionsBetween: vb });
         const deps: DirectDependency[] = [makeDep('cool-pkg', [v])];
 
-        const result = await reconcileTickets(
+        const result = await reconcileIssues(
             deps,
             store,
             defaultConfig,
@@ -821,7 +821,7 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'notify-major-pkg', v, { meta, versionsBetween: vb });
         const deps: DirectDependency[] = [makeDep('notify-major-pkg', [v])];
 
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         // fyi packages bypass the cooldown
         expect(result.created).toBe(1);
     });
@@ -831,13 +831,13 @@ describe('reconcileTickets', () => {
         populateFacts(store, 'test-pkg', v);
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const config: TicketReconcilerConfig = {
+        const config: IssueReconcilerConfig = {
             ...defaultConfig,
             dryRun: false,
         };
 
         // Minimal getLinearIssueSpec — only teamId, everything else defaults (fyi, unassigned)
-        const result = await reconcileTickets(deps, store, config, () => ({
+        const result = await reconcileIssues(deps, store, config, () => ({
             teamId: 'linear-team-123',
         }));
         expect(result.created).toBe(1);
@@ -865,7 +865,7 @@ describe('reconcileTickets', () => {
             };
         }
 
-        it('skips updating group ticket in PR state', async () => {
+        it('skips updating group issue in PR state', async () => {
             const mockState = { type: 'started', name: 'PR' };
             mockClient.issues.mockResolvedValue({
                 nodes: [
@@ -890,7 +890,7 @@ describe('reconcileTickets', () => {
                 makeDep('group-b', [gB.version]),
             ];
 
-            const result = await reconcileTickets(
+            const result = await reconcileIssues(
                 deps,
                 store,
                 defaultConfig,
@@ -900,7 +900,7 @@ describe('reconcileTickets', () => {
             expect(result.closed).toBe(0);
         });
 
-        it('updates existing group ticket', async () => {
+        it('updates existing group issue', async () => {
             const mockState = { type: 'unstarted', name: 'Todo' };
             mockClient.issues.mockResolvedValue({
                 nodes: [
@@ -925,7 +925,7 @@ describe('reconcileTickets', () => {
                 makeDep('group-b', [gB.version]),
             ];
 
-            const result = await reconcileTickets(
+            const result = await reconcileIssues(
                 deps,
                 store,
                 defaultConfig,
@@ -935,7 +935,7 @@ describe('reconcileTickets', () => {
             expect(result.created).toBe(0);
         });
 
-        it('closes group ticket when all packages are compliant', async () => {
+        it('closes group issue when all packages are compliant', async () => {
             const mockState = { type: 'unstarted', name: 'Todo' };
             mockClient.issues.mockResolvedValue({
                 nodes: [
@@ -963,7 +963,7 @@ describe('reconcileTickets', () => {
             // No packages in the group are outdated
             const deps: DirectDependency[] = [];
 
-            const result = await reconcileTickets(
+            const result = await reconcileIssues(
                 deps,
                 store,
                 defaultConfig,
@@ -972,7 +972,7 @@ describe('reconcileTickets', () => {
             expect(result.closed).toBe(1);
         });
 
-        it('does not create group ticket when allowNewTickets is false', async () => {
+        it('does not create group issue when allowNewIssues is false', async () => {
             const gA = makeGroupVersion('my-group');
             const gB = makeGroupVersion('my-group');
             populateFacts(store, 'group-a', gA.version, { meta: gA.meta });
@@ -982,10 +982,10 @@ describe('reconcileTickets', () => {
                 makeDep('group-b', [gB.version]),
             ];
 
-            const result = await reconcileTickets(
+            const result = await reconcileIssues(
                 deps,
                 store,
-                { ...defaultConfig, allowNewTickets: false },
+                { ...defaultConfig, allowNewIssues: false },
                 testGetLinearIssueSpec,
             );
             expect(result.created).toBe(0);
@@ -1044,19 +1044,19 @@ describe('reconcileTickets', () => {
             };
 
             const config = { ...defaultConfig, dryRun: false };
-            const result = await reconcileTickets(
+            const result = await reconcileIssues(
                 deps,
                 store,
                 config,
                 partialSlaGetLinearIssueSpec,
             );
             expect(result.created).toBe(1);
-            // The ticket title should target the latest within current major (1.2.0), not 2.0.0
+            // The issue title should target the latest within current major (1.2.0), not 2.0.0
             const createCall = mockClient.createIssue.mock.calls[0]![0];
             expect(createCall.title).toContain('1.2.0');
         });
 
-        it('creates FYI ticket when only major update available and no minor/patch within major', async () => {
+        it('creates FYI issue when only major update available and no minor/patch within major', async () => {
             const v = makeVersion({
                 version: '1.0.0',
                 latestVersion: '2.0.0',
@@ -1089,9 +1089,9 @@ describe('reconcileTickets', () => {
             };
 
             const config = { ...defaultConfig, dryRun: false };
-            const result = await reconcileTickets(deps, store, config, majorOnlyGetLinearIssueSpec);
+            const result = await reconcileIssues(deps, store, config, majorOnlyGetLinearIssueSpec);
             expect(result.created).toBe(1);
-            // FYI ticket should not have a due date
+            // FYI issue should not have a due date
             const createCall = mockClient.createIssue.mock.calls[0]![0];
             expect(createCall.dueDate).toBeUndefined();
         });
@@ -1099,7 +1099,7 @@ describe('reconcileTickets', () => {
 
     it('handles empty dependencies list', async () => {
         const deps: DirectDependency[] = [];
-        const result = await reconcileTickets(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.created).toBe(0);
         expect(result.updated).toBe(0);
         expect(result.closed).toBe(0);
@@ -1139,7 +1139,7 @@ describe('reconcileTickets', () => {
 
         const config = { ...defaultConfig, dryRun: false };
         // Should not throw — failure to close duplicate is logged but non-fatal
-        const result = await reconcileTickets(deps, store, config, testGetLinearIssueSpec);
+        const result = await reconcileIssues(deps, store, config, testGetLinearIssueSpec);
         // closedDuplicates should be 0 since the close failed
         expect(result.closedDuplicates).toBe(0);
     });

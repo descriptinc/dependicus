@@ -5,7 +5,7 @@ Dependicus plugins can:
 - Collect and cache data from external sources in the `update` stage
 - Add columns to HTML output in the `html` stage
 - Create rollup pages in the `html` stage
-- Add some or all Linear ticket data in the `make-linear-tickets` stage, or GitHub issue data in the `make-github-issues` stage
+- Add some or all Linear ticket data in the `make-linear-issues` stage, or GitHub issue data in the `make-github-issues` stage
 
 Plugin output is combined. A plugin can do a small subset of these things, or all of them.
 

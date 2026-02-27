@@ -162,7 +162,7 @@ export function extractGroupNameFromTitle(title: string): string | undefined {
 }
 
 /**
- * Build the title for a grouped Linear ticket.
+ * Build the title for a grouped ticket.
  * Format: "Update <group> group (N packages)" or "FYI: <group> group updates available (N packages)"
  */
 export function buildGroupTicketTitle(
@@ -180,7 +180,7 @@ export function buildGroupTicketTitle(
 }
 
 /**
- * Build the title for a Linear ticket.
+ * Build the title for a ticket.
  * Format: "Update <package> from X to Y" or "Update <package> from X to at least Y (latest: Z)"
  *
  * For notifications-only packages, uses FYI-style title since no action is required.

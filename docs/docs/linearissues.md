@@ -1,10 +1,10 @@
-[](){ #linear-tickets }
+[](){ #linear-issues }
 
-# Creating and Updating Linear Tickets
+# Creating and Updating Linear Issues
 
-Linear tickets are defined by `getLinearIssueSpec` functions, which take a [VersionContext](../api/interfaces/VersionContext.html) and a [FactStore](../api/classes/FactStore.html), and return a [LinearIssueSpec](../api/types/LinearIssueSpec.html).
+Linear issues are defined by `getLinearIssueSpec` functions, which take a [VersionContext](../api/interfaces/VersionContext.html) and a [FactStore](../api/classes/FactStore.html), and return a [LinearIssueSpec](../api/types/LinearIssueSpec.html).
 
-Here's an example that covers the basics: skipping packages, routing to different teams, choosing between notification-only and SLA-enforced tickets, delegating simple updates, and reading from the `FactStore`.
+Here's an example that covers the basics: skipping packages, routing to different teams, choosing between notification-only and SLA-enforced issues, delegating simple updates, and reading from the `FactStore`.
 
 ```ts
 import { dependicusCli, getUpdateType, FactKeys } from 'dependicus';
@@ -17,7 +17,7 @@ void dependicusCli({
             const { packageName, currentVersion, latestVersion } = context;
             const updateType = getUpdateType(currentVersion, latestVersion);
 
-            // Skip packages you don't want tickets for
+            // Skip packages you don't want issues for
             if (packageName === 'webpack') return undefined;
 
             // Route different packages to different teams
@@ -25,13 +25,13 @@ void dependicusCli({
                 ? 'team-uuid-platform'
                 : 'team-uuid-frontend';
 
-            // Notification-only tickets for major updates (no due date)
+            // Notification-only issues for major updates (no due date)
             if (updateType === 'major') {
                 return { teamId, policy: { type: 'fyi' } };
             }
 
             // Read facts from the store — skip deprecated packages
-            // rather than filing tickets to update them
+            // rather than filing issues to update them
             const isDeprecated = store.getVersionFact<boolean>(
                 packageName,
                 latestVersion,
@@ -39,7 +39,7 @@ void dependicusCli({
             );
             if (isDeprecated) return undefined;
 
-            // SLA-enforced tickets for minor/patch.
+            // SLA-enforced issues for minor/patch.
             // Auto-assign patch releases to a bot — but not if the
             // package has local patches (pnpm patch), since those
             // need human attention when updating.

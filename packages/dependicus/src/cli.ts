@@ -7,7 +7,7 @@ import { Command } from 'commander';
 import { createDependicus } from '@dependicus/site-builder';
 import { readDependicusJson, mergeProviderDependencies } from '@dependicus/core';
 import type { FactStore, ProviderOutput } from '@dependicus/core';
-import { reconcileTickets } from '@dependicus/linear';
+import { reconcileIssues } from '@dependicus/linear';
 import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
 import { reconcileGitHubIssues } from '@dependicus/github-issues';
 import type { GitHubIssueSpec } from '@dependicus/github-issues';
@@ -25,25 +25,25 @@ export interface DependicusCliConfig {
     outputDir?: string;
     /** Directory to store cached data from API calls. Defaults to `<repoRoot>/.dependicus-cache`. */
     cacheDir?: string;
-    /** Base URL where the Dependicus site is published (used in Linear ticket links, etc.). */
+    /** Base URL where the Dependicus site is published (used in Linear issue links, etc.). */
     dependicusBaseUrl: string;
-    /** Plugins that provide data sources, groupings, columns, and ticket callbacks. Defaults to `[]`. */
+    /** Plugins that provide data sources, groupings, columns, and issue callbacks. Defaults to `[]`. */
     plugins?: DependicusPlugin[];
     /** Provider names to use for dependency analysis (e.g., 'pnpm', 'bun'). Auto-detects if omitted. */
     providerNames?: string[];
     /** Name shown in the site heading and title tag. Defaults to `'Dependicus for <basename of repoRoot>'`. */
     siteName?: string;
-    /** Linear ticket integration configuration. */
+    /** Linear issue integration configuration. */
     linear?: {
-        /** Given information about a package and specific version, return the ticket spec (policy, assignment, etc.) or undefined to skip. */
+        /** Given information about a package and specific version, return the issue spec (policy, assignment, etc.) or undefined to skip. */
         getLinearIssueSpec?: (
             context: VersionContext,
             store: FactStore,
         ) => LinearIssueSpec | undefined;
-        /** Number of days to wait before creating a new ticket for a newly-published version. */
+        /** Number of days to wait before creating a new issue for a newly-published version. */
         cooldownDays?: number;
-        /** Whether to allow new ticket creation. Defaults to `true`. */
-        allowNewTickets?: boolean;
+        /** Whether to allow new issue creation. Defaults to `true`. */
+        allowNewIssues?: boolean;
     };
     /** GitHub Issues integration configuration. */
     github?: {
@@ -192,11 +192,11 @@ export function dependicusCli(config: DependicusCliConfig): {
 
             const linearConfig = config.linear ?? {};
             program
-                .command('make-linear-tickets')
-                .description('Create/update Linear tickets for outdated dependencies')
-                .option('--dry-run', 'Preview changes without creating or modifying tickets')
+                .command('make-linear-issues')
+                .description('Create/update Linear issues for outdated dependencies')
+                .option('--dry-run', 'Preview changes without creating or modifying issues')
                 .option('--json-file <path>', 'Path to dependencies.json file')
-                .option('--linear-team-id <id>', 'Assign all tickets to this Linear team')
+                .option('--linear-team-id <id>', 'Assign all issues to this Linear team')
                 .action(
                     async (options: {
                         dryRun?: boolean;
@@ -238,7 +238,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                             dependicus.refreshLocal(deps, store);
                         }
 
-                        await reconcileTickets(
+                        await reconcileIssues(
                             deps,
                             store,
                             {
@@ -246,7 +246,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                                 dryRun: options.dryRun,
                                 dependicusBaseUrl: effectiveConfig.dependicusBaseUrl,
                                 cooldownDays: linearConfig.cooldownDays,
-                                allowNewTickets: linearConfig.allowNewTickets,
+                                allowNewIssues: linearConfig.allowNewIssues,
                             },
                             effectiveGetLinearIssueSpec,
                         );

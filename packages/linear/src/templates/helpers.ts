@@ -1,5 +1,5 @@
 /**
- * Custom Handlebars helpers for ticket description templates.
+ * Custom Handlebars helpers for issue description templates.
  *
  * Note: helpers that share a name with a template context property would shadow
  * the property (Handlebars resolves helpers first). Values like `detailUrl` are

@@ -14,30 +14,30 @@ import {
     isWithinNotificationRateLimit,
     hasMajorVersionSinceLastUpdate,
 } from '@dependicus/core';
-import { LinearService, DependicusTicket } from './LinearService';
+import { LinearService, DependicusIssue } from './LinearService';
 import type {
     OutdatedPackage,
     OutdatedGroup,
     LinearPolicy,
-    TicketAssignment,
+    IssueAssignment,
     VersionContext,
     LinearIssueSpec,
 } from './types';
 import {
-    buildTicketDescription,
-    buildGroupTicketDescription,
+    buildIssueDescription,
+    buildGroupIssueDescription,
     buildNewVersionsComment,
-} from './ticketDescriptions';
+} from './issueDescriptions';
 
-export interface TicketReconcilerConfig {
+export interface IssueReconcilerConfig {
     linearApiKey: string;
     dryRun?: boolean;
-    /** Base URL for Dependicus HTML pages (for links in ticket descriptions) */
+    /** Base URL for Dependicus HTML pages (for links in issue descriptions) */
     dependicusBaseUrl: string;
-    /** Cooldown days before creating tickets for newly-published versions */
+    /** Cooldown days before creating issues for newly-published versions */
     cooldownDays?: number;
-    /** Whether to restrict new ticket creation (e.g., only on main branch) */
-    allowNewTickets?: boolean;
+    /** Whether to restrict new issue creation (e.g., only on main branch) */
+    allowNewIssues?: boolean;
 }
 
 export interface ReconciliationResult {
@@ -49,7 +49,7 @@ export interface ReconciliationResult {
 
 /**
  * Check if any package in the list has had a major version published since the given date.
- * Used for groups where we can't compare version numbers from the ticket title.
+ * Used for groups where we can't compare version numbers from the issue title.
  *
  * Checks ALL major versions in versionsBetween, not just the first one, because
  * there may be multiple major version jumps (e.g., 18.0.0 and 19.0.0) and only
@@ -93,7 +93,7 @@ function hasMajorVersionPublishedSince(
 
 /** Extract rate limit days from a policy. */
 function policyRateLimitDays(policy: LinearPolicy): number | undefined {
-    return policy.type === 'noTicket' ? undefined : policy.rateLimitDays;
+    return policy.type === 'skip' ? undefined : policy.rateLimitDays;
 }
 
 /** Whether a policy represents a notifications-only / FYI package. */
@@ -102,12 +102,12 @@ function isFyiPolicy(policy: LinearPolicy): boolean {
 }
 
 /**
- * Check if a ticket update should be skipped due to rate limiting.
+ * Check if an issue update should be skipped due to rate limiting.
  * Returns the rate limit days if should skip, undefined if should proceed.
  */
 function shouldSkipUpdateDueToRateLimit(
     policy: LinearPolicy,
-    ticketUpdatedAt: string,
+    issueUpdatedAt: string,
     hasMajorRelease: boolean,
 ): number | undefined {
     const rateLimitDays = policyRateLimitDays(policy);
@@ -115,7 +115,7 @@ function shouldSkipUpdateDueToRateLimit(
         return undefined;
     }
 
-    const withinRateLimit = isWithinNotificationRateLimit(ticketUpdatedAt, rateLimitDays);
+    const withinRateLimit = isWithinNotificationRateLimit(issueUpdatedAt, rateLimitDays);
 
     if (withinRateLimit && !hasMajorRelease) {
         return rateLimitDays;
@@ -125,7 +125,7 @@ function shouldSkipUpdateDueToRateLimit(
 }
 
 /**
- * Check if ticket creation should be skipped due to rate limiting.
+ * Check if issue creation should be skipped due to rate limiting.
  * Returns the rate limit days if should skip, undefined if should proceed.
  *
  * For single packages: checks if the first version of the update type was published within rate limit.
@@ -172,11 +172,11 @@ function shouldSkipCreateDueToRateLimit(
     return undefined;
 }
 
-/** Default policy when the ticket spec doesn't specify one. */
+/** Default policy when the issue spec doesn't specify one. */
 const DEFAULT_POLICY: LinearPolicy = { type: 'fyi' };
 
-/** Default assignment when the ticket spec doesn't specify one. */
-const DEFAULT_ASSIGNMENT: TicketAssignment = { type: 'unassigned' };
+/** Default assignment when the issue spec doesn't specify one. */
+const DEFAULT_ASSIGNMENT: IssueAssignment = { type: 'unassigned' };
 
 /**
  * Aggregate assignment from multiple versions of the same package.
@@ -184,9 +184,9 @@ const DEFAULT_ASSIGNMENT: TicketAssignment = { type: 'unassigned' };
  * Only if all versions delegate to the same assignee does the package get delegated.
  */
 function aggregateAssignment(
-    existing: TicketAssignment,
-    incoming: TicketAssignment,
-): TicketAssignment {
+    existing: IssueAssignment,
+    incoming: IssueAssignment,
+): IssueAssignment {
     if (existing.type === 'unassigned' || incoming.type === 'unassigned') {
         return { type: 'unassigned' };
     }
@@ -207,14 +207,14 @@ function aggregatePolicy(existing: LinearPolicy, incoming: LinearPolicy): Linear
     return existing;
 }
 
-export async function reconcileTickets(
+export async function reconcileIssues(
     dependencies: DirectDependency[],
     store: FactStore,
-    config: TicketReconcilerConfig,
+    config: IssueReconcilerConfig,
     getLinearIssueSpec?: (context: VersionContext, store: FactStore) => LinearIssueSpec | undefined,
 ): Promise<ReconciliationResult> {
     const dryRun = config.dryRun ?? false;
-    const allowNewTickets = config.allowNewTickets ?? true;
+    const allowNewIssues = config.allowNewIssues ?? true;
     const dependicusBaseUrl = config.dependicusBaseUrl;
 
     const linearService = new LinearService(config.linearApiKey, { dryRun });
@@ -249,8 +249,8 @@ export async function reconcileTickets(
             const policy = ctx.policy ?? DEFAULT_POLICY;
             const assignment = ctx.assignment ?? DEFAULT_ASSIGNMENT;
 
-            // noTicket policy — skip entirely
-            if (policy.type === 'noTicket') continue;
+            // skip policy — skip entirely
+            if (policy.type === 'skip') continue;
 
             const isNotificationsOnly = isFyiPolicy(policy);
 
@@ -390,37 +390,37 @@ export async function reconcileTickets(
         `  Ungrouped: ${ungroupedPackages.size}, Groups: ${outdatedGroups.size} (${packagesByGroup.size > 0 ? [...packagesByGroup.values()].reduce((sum, pkgs) => sum + pkgs.length, 0) : 0} packages)\n`,
     );
 
-    // Search for existing tickets (by Dependicus label across all teams)
-    process.stderr.write('Searching for existing Dependicus tickets...\n');
-    const existingTickets = await linearService.searchDependicusTickets((fetched, page) => {
-        process.stderr.write(`  Fetched ${fetched} tickets (page ${page})...\n`);
+    // Search for existing issues (by Dependicus label across all teams)
+    process.stderr.write('Searching for existing Dependicus issues...\n');
+    const existingIssues = await linearService.searchDependicusIssues((fetched, page) => {
+        process.stderr.write(`  Fetched ${fetched} issues (page ${page})...\n`);
     });
-    process.stderr.write(`Found ${existingTickets.length} existing tickets\n`);
+    process.stderr.write(`Found ${existingIssues.length} existing issues\n`);
 
     // Build maps for deduplication
-    const existingTicketsByPackage = new Map<string, DependicusTicket>();
-    const existingTicketsByTitle = new Set<string>();
-    const duplicateTickets: DependicusTicket[] = [];
+    const existingIssuesByPackage = new Map<string, DependicusIssue>();
+    const existingIssuesByTitle = new Set<string>();
+    const duplicateIssues: DependicusIssue[] = [];
 
-    for (const ticket of existingTickets) {
-        if (!existingTicketsByPackage.has(ticket.packageName)) {
-            existingTicketsByPackage.set(ticket.packageName, ticket);
+    for (const issue of existingIssues) {
+        if (!existingIssuesByPackage.has(issue.packageName)) {
+            existingIssuesByPackage.set(issue.packageName, issue);
         } else {
-            duplicateTickets.push(ticket);
+            duplicateIssues.push(issue);
         }
-        existingTicketsByTitle.add(ticket.title);
+        existingIssuesByTitle.add(issue.title);
     }
 
-    // Close duplicate tickets proactively
+    // Close duplicate issues proactively
     let closedDuplicates = 0;
-    if (duplicateTickets.length > 0) {
-        process.stderr.write(`Found ${duplicateTickets.length} duplicate tickets to close...\n`);
-        for (const duplicate of duplicateTickets) {
+    if (duplicateIssues.length > 0) {
+        process.stderr.write(`Found ${duplicateIssues.length} duplicate issues to close...\n`);
+        for (const duplicate of duplicateIssues) {
             try {
-                await linearService.closeTicket(duplicate.id, duplicate.identifier);
+                await linearService.closeIssue(duplicate.id, duplicate.identifier);
                 if (!dryRun) {
                     process.stderr.write(
-                        `Closed duplicate ticket for ${duplicate.packageName} (${duplicate.identifier})\n`,
+                        `Closed duplicate issue for ${duplicate.packageName} (${duplicate.identifier})\n`,
                     );
                 }
                 closedDuplicates++;
@@ -438,7 +438,7 @@ export async function reconcileTickets(
 
     // Process ungrouped packages
     for (const pkg of ungroupedPackages.values()) {
-        const existingTicket = existingTicketsByPackage.get(pkg.packageName);
+        const existingIssue = existingIssuesByPackage.get(pkg.packageName);
         const version = pkg.versions[0];
         if (!version) {
             throw new Error(`No versions found for package ${pkg.packageName}`);
@@ -482,7 +482,7 @@ export async function reconcileTickets(
             effectiveLatestVersion,
             { notificationsOnly },
         );
-        const description = buildTicketDescription(
+        const description = buildIssueDescription(
             pkg,
             store,
             minVersion,
@@ -490,38 +490,38 @@ export async function reconcileTickets(
             dependicusBaseUrl,
         );
 
-        if (existingTicket) {
-            // Ticket exists - check if it's in a state where we should skip updating
-            const ticketStateName = existingTicket.state.name?.toLowerCase();
-            const skipUpdate = ticketStateName === 'pr' || ticketStateName === 'verify';
+        if (existingIssue) {
+            // Issue exists - check if it's in a state where we should skip updating
+            const issueStateName = existingIssue.state.name?.toLowerCase();
+            const skipUpdate = issueStateName === 'pr' || issueStateName === 'verify';
 
             if (skipUpdate) {
                 if (!dryRun) {
                     process.stderr.write(
-                        `Skipping ${pkg.packageName} (${existingTicket.identifier}) - ticket in ${existingTicket.state.name} state\n`,
+                        `Skipping ${pkg.packageName} (${existingIssue.identifier}) - issue in ${existingIssue.state.name} state\n`,
                     );
                 }
-                existingTicketsByPackage.delete(pkg.packageName);
+                existingIssuesByPackage.delete(pkg.packageName);
                 continue;
             }
 
             // Check if new versions were released since last update
-            const oldLatestVersion = extractLatestVersionFromTitle(existingTicket.title);
+            const oldLatestVersion = extractLatestVersionFromTitle(existingIssue.title);
             const hasNewVersions = oldLatestVersion && oldLatestVersion !== effectiveLatestVersion;
 
             // For fyi packages with rate limits, check if we should skip
             const skipRateLimitDays = shouldSkipUpdateDueToRateLimit(
                 pkg.policy,
-                existingTicket.updatedAt,
+                existingIssue.updatedAt,
                 hasMajorVersionSinceLastUpdate(oldLatestVersion, effectiveLatestVersion),
             );
             if (skipRateLimitDays !== undefined) {
                 if (!dryRun) {
                     process.stderr.write(
-                        `Skipping ${pkg.packageName} (${existingTicket.identifier}) - within ${skipRateLimitDays}-day rate limit\n`,
+                        `Skipping ${pkg.packageName} (${existingIssue.identifier}) - within ${skipRateLimitDays}-day rate limit\n`,
                     );
                 }
-                existingTicketsByPackage.delete(pkg.packageName);
+                existingIssuesByPackage.delete(pkg.packageName);
                 continue;
             }
 
@@ -547,38 +547,38 @@ export async function reconcileTickets(
                 }
             }
 
-            // Update ticket
-            await linearService.updateTicket(
-                existingTicket.id,
+            // Update issue
+            await linearService.updateIssue(
+                existingIssue.id,
                 {
                     title,
                     description,
                     dueDate,
                 },
-                existingTicket.identifier,
+                existingIssue.identifier,
             );
             if (comment) {
                 await linearService.createComment(
-                    existingTicket.id,
+                    existingIssue.id,
                     comment,
-                    existingTicket.identifier,
+                    existingIssue.identifier,
                 );
                 if (!dryRun) {
                     process.stderr.write(
-                        `Updated ${pkg.packageName} (${existingTicket.identifier}) + comment (${newVersions.length} new versions)\n`,
+                        `Updated ${pkg.packageName} (${existingIssue.identifier}) + comment (${newVersions.length} new versions)\n`,
                     );
                 }
             } else if (!dryRun) {
-                process.stderr.write(`Updated ${pkg.packageName} (${existingTicket.identifier})\n`);
+                process.stderr.write(`Updated ${pkg.packageName} (${existingIssue.identifier})\n`);
             }
             updated++;
 
-            existingTicketsByPackage.delete(pkg.packageName);
+            existingIssuesByPackage.delete(pkg.packageName);
         } else {
-            // No ticket exists - only create if allowed
-            if (!allowNewTickets) {
+            // No issue exists - only create if allowed
+            if (!allowNewIssues) {
                 process.stderr.write(
-                    `Skipping ticket creation for ${pkg.packageName} (new ticket creation disabled)\n`,
+                    `Skipping issue creation for ${pkg.packageName} (new issue creation disabled)\n`,
                 );
                 continue;
             }
@@ -587,16 +587,16 @@ export async function reconcileTickets(
             const skipRateLimitDays = shouldSkipCreateDueToRateLimit(pkg.policy, [pkg], store);
             if (skipRateLimitDays !== undefined) {
                 process.stderr.write(
-                    `Skipping ${pkg.packageName} - within ${skipRateLimitDays}-day rate limit (no existing ticket)\n`,
+                    `Skipping ${pkg.packageName} - within ${skipRateLimitDays}-day rate limit (no existing issue)\n`,
                 );
                 continue;
             }
 
-            // Double-check: skip if a ticket with this exact title already exists
+            // Double-check: skip if an issue with this exact title already exists
             const fullTitle = `[Dependicus] ${title}`;
-            if (existingTicketsByTitle.has(fullTitle)) {
+            if (existingIssuesByTitle.has(fullTitle)) {
                 process.stderr.write(
-                    `Skipping ${pkg.packageName} - ticket with same title already exists\n`,
+                    `Skipping ${pkg.packageName} - issue with same title already exists\n`,
                 );
                 continue;
             }
@@ -605,8 +605,8 @@ export async function reconcileTickets(
             const delegateId =
                 pkg.assignment.type === 'delegate' ? pkg.assignment.assigneeId : undefined;
 
-            // Create ticket
-            const identifier = await linearService.createTicket({
+            // Create issue
+            const identifier = await linearService.createIssue({
                 packageName: pkg.packageName,
                 title,
                 teamId: pkg.teamId,
@@ -615,12 +615,12 @@ export async function reconcileTickets(
                 delegateId,
             });
 
-            existingTicketsByTitle.add(fullTitle);
+            existingIssuesByTitle.add(fullTitle);
 
             if (!dryRun) {
                 const delegateNote = delegateId ? ' [delegated]' : '';
                 process.stderr.write(
-                    `Created ticket for ${pkg.packageName} (${identifier})${delegateNote}\n`,
+                    `Created issue for ${pkg.packageName} (${identifier})${delegateNote}\n`,
                 );
             }
             created++;
@@ -629,7 +629,7 @@ export async function reconcileTickets(
 
     // Process grouped packages
     for (const group of outdatedGroups.values()) {
-        const existingTicket = existingTicketsByPackage.get(group.groupName);
+        const existingIssue = existingIssuesByPackage.get(group.groupName);
         const groupNotificationsOnly = isFyiPolicy(group.policy);
 
         // Calculate due date based on worst compliance in the group
@@ -662,66 +662,66 @@ export async function reconcileTickets(
         const title = buildGroupTicketTitle(group.groupName, group.packages.length, {
             notificationsOnly: groupNotificationsOnly,
         });
-        const description = buildGroupTicketDescription(group, store, dependicusBaseUrl);
+        const description = buildGroupIssueDescription(group, store, dependicusBaseUrl);
 
-        if (existingTicket) {
-            const ticketStateName = existingTicket.state.name?.toLowerCase();
-            const skipUpdate = ticketStateName === 'pr' || ticketStateName === 'verify';
+        if (existingIssue) {
+            const issueStateName = existingIssue.state.name?.toLowerCase();
+            const skipUpdate = issueStateName === 'pr' || issueStateName === 'verify';
 
             if (skipUpdate) {
                 if (!dryRun) {
                     process.stderr.write(
-                        `Skipping ${group.groupName} group (${existingTicket.identifier}) - ticket in ${existingTicket.state.name} state\n`,
+                        `Skipping ${group.groupName} group (${existingIssue.identifier}) - issue in ${existingIssue.state.name} state\n`,
                     );
                 }
-                existingTicketsByPackage.delete(group.groupName);
+                existingIssuesByPackage.delete(group.groupName);
                 continue;
             }
 
             // For fyi groups with rate limits, check if we should skip
             const hasMajorRelease = hasMajorVersionPublishedSince(
                 group.packages,
-                existingTicket.updatedAt,
+                existingIssue.updatedAt,
                 store,
             );
             const skipRateLimitDays = shouldSkipUpdateDueToRateLimit(
                 group.policy,
-                existingTicket.updatedAt,
+                existingIssue.updatedAt,
                 hasMajorRelease,
             );
             if (skipRateLimitDays !== undefined) {
                 if (!dryRun) {
                     process.stderr.write(
-                        `Skipping ${group.groupName} group (${existingTicket.identifier}) - within ${skipRateLimitDays}-day rate limit\n`,
+                        `Skipping ${group.groupName} group (${existingIssue.identifier}) - within ${skipRateLimitDays}-day rate limit\n`,
                     );
                 }
-                existingTicketsByPackage.delete(group.groupName);
+                existingIssuesByPackage.delete(group.groupName);
                 continue;
             }
 
-            // Update ticket
-            await linearService.updateTicket(
-                existingTicket.id,
+            // Update issue
+            await linearService.updateIssue(
+                existingIssue.id,
                 {
                     title,
                     description,
                     dueDate: earliestDueDate,
                 },
-                existingTicket.identifier,
+                existingIssue.identifier,
             );
             if (!dryRun) {
                 process.stderr.write(
-                    `Updated ${group.groupName} group (${existingTicket.identifier}) - ${group.packages.length} packages\n`,
+                    `Updated ${group.groupName} group (${existingIssue.identifier}) - ${group.packages.length} packages\n`,
                 );
             }
             updated++;
 
-            existingTicketsByPackage.delete(group.groupName);
+            existingIssuesByPackage.delete(group.groupName);
         } else {
-            // No ticket exists - only create if allowed
-            if (!allowNewTickets) {
+            // No issue exists - only create if allowed
+            if (!allowNewIssues) {
                 process.stderr.write(
-                    `Skipping ticket creation for ${group.groupName} group (new ticket creation disabled)\n`,
+                    `Skipping issue creation for ${group.groupName} group (new issue creation disabled)\n`,
                 );
                 continue;
             }
@@ -734,22 +734,22 @@ export async function reconcileTickets(
             );
             if (skipRateLimitDays !== undefined) {
                 process.stderr.write(
-                    `Skipping ${group.groupName} group - within ${skipRateLimitDays}-day rate limit (no existing ticket)\n`,
+                    `Skipping ${group.groupName} group - within ${skipRateLimitDays}-day rate limit (no existing issue)\n`,
                 );
                 continue;
             }
 
-            // Double-check: skip if a ticket with this exact title already exists
+            // Double-check: skip if an issue with this exact title already exists
             const fullTitle = `[Dependicus] ${title}`;
-            if (existingTicketsByTitle.has(fullTitle)) {
+            if (existingIssuesByTitle.has(fullTitle)) {
                 process.stderr.write(
-                    `Skipping ${group.groupName} group - ticket with same title already exists\n`,
+                    `Skipping ${group.groupName} group - issue with same title already exists\n`,
                 );
                 continue;
             }
 
-            // Create ticket for the group (don't auto-delegate groups - they're more complex)
-            const identifier = await linearService.createTicket({
+            // Create issue for the group (don't auto-delegate groups - they're more complex)
+            const identifier = await linearService.createIssue({
                 packageName: group.groupName,
                 title,
                 teamId: group.teamId,
@@ -757,24 +757,24 @@ export async function reconcileTickets(
                 description,
             });
 
-            existingTicketsByTitle.add(fullTitle);
+            existingIssuesByTitle.add(fullTitle);
 
             if (!dryRun) {
                 process.stderr.write(
-                    `Created ticket for ${group.groupName} group (${identifier}) - ${group.packages.length} packages\n`,
+                    `Created issue for ${group.groupName} group (${identifier}) - ${group.packages.length} packages\n`,
                 );
             }
             created++;
         }
     }
 
-    // Close tickets for packages that are now compliant
+    // Close issues for packages that are now compliant
     let closed = 0;
-    for (const ticket of existingTicketsByPackage.values()) {
-        await linearService.closeTicket(ticket.id, ticket.identifier);
+    for (const issue of existingIssuesByPackage.values()) {
+        await linearService.closeIssue(issue.id, issue.identifier);
         if (!dryRun) {
             process.stderr.write(
-                `Closed ticket for ${ticket.packageName} (${ticket.identifier}) - now compliant\n`,
+                `Closed issue for ${issue.packageName} (${issue.identifier}) - now compliant\n`,
             );
         }
         closed++;
