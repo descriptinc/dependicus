@@ -43,7 +43,7 @@ describe('DependencyCollector', () => {
         it('returns empty array for empty monorepo', async () => {
             const result = await collector.collectDirectDependencies();
 
-            expect(result).toEqual([]);
+            expect(result[0]!.dependencies).toEqual([]);
         });
 
         it('collects production dependencies', async () => {
@@ -61,12 +61,12 @@ describe('DependencyCollector', () => {
 
             const result = await collector.collectDirectDependencies();
 
-            expect(result).toHaveLength(1);
-            expect(result[0]!.packageName).toBe('react');
-            expect(result[0]!.versions).toHaveLength(1);
-            expect(result[0]!.versions[0]!.version).toBe('18.2.0');
-            expect(result[0]!.versions[0]!.usedBy).toEqual(['@myapp/web']);
-            expect(result[0]!.versions[0]!.dependencyTypes).toEqual(['prod']);
+            expect(result[0]!.dependencies).toHaveLength(1);
+            expect(result[0]!.dependencies[0]!.packageName).toBe('react');
+            expect(result[0]!.dependencies[0]!.versions).toHaveLength(1);
+            expect(result[0]!.dependencies[0]!.versions[0]!.version).toBe('18.2.0');
+            expect(result[0]!.dependencies[0]!.versions[0]!.usedBy).toEqual(['@myapp/web']);
+            expect(result[0]!.dependencies[0]!.versions[0]!.dependencyTypes).toEqual(['prod']);
         });
 
         it('collects dev dependencies', async () => {
@@ -84,8 +84,8 @@ describe('DependencyCollector', () => {
 
             const result = await collector.collectDirectDependencies();
 
-            expect(result).toHaveLength(1);
-            expect(result[0]!.versions[0]!.dependencyTypes).toEqual(['dev']);
+            expect(result[0]!.dependencies).toHaveLength(1);
+            expect(result[0]!.dependencies[0]!.versions[0]!.dependencyTypes).toEqual(['dev']);
         });
 
         it('skips workspace packages (link: prefix)', async () => {
@@ -109,8 +109,8 @@ describe('DependencyCollector', () => {
 
             const result = await collector.collectDirectDependencies();
 
-            expect(result).toHaveLength(1);
-            expect(result[0]!.packageName).toBe('react');
+            expect(result[0]!.dependencies).toHaveLength(1);
+            expect(result[0]!.dependencies[0]!.packageName).toBe('react');
         });
 
         it('deduplicates same dependency used across multiple packages', async () => {
@@ -136,9 +136,12 @@ describe('DependencyCollector', () => {
 
             const result = await collector.collectDirectDependencies();
 
-            expect(result).toHaveLength(1);
-            expect(result[0]!.versions).toHaveLength(1);
-            expect(result[0]!.versions[0]!.usedBy).toEqual(['@myapp/mobile', '@myapp/web']);
+            expect(result[0]!.dependencies).toHaveLength(1);
+            expect(result[0]!.dependencies[0]!.versions).toHaveLength(1);
+            expect(result[0]!.dependencies[0]!.versions[0]!.usedBy).toEqual([
+                '@myapp/mobile',
+                '@myapp/web',
+            ]);
         });
 
         it('tracks multiple versions of the same dependency', async () => {
@@ -164,9 +167,9 @@ describe('DependencyCollector', () => {
 
             const result = await collector.collectDirectDependencies();
 
-            expect(result).toHaveLength(1);
-            expect(result[0]!.packageName).toBe('lodash');
-            expect(result[0]!.versions).toHaveLength(2);
+            expect(result[0]!.dependencies).toHaveLength(1);
+            expect(result[0]!.dependencies[0]!.packageName).toBe('lodash');
+            expect(result[0]!.dependencies[0]!.versions).toHaveLength(2);
         });
 
         it('tracks both dev and prod usage of the same dependency version', async () => {
@@ -187,8 +190,11 @@ describe('DependencyCollector', () => {
 
             const result = await collector.collectDirectDependencies();
 
-            expect(result).toHaveLength(1);
-            expect(result[0]!.versions[0]!.dependencyTypes).toEqual(['dev', 'prod']);
+            expect(result[0]!.dependencies).toHaveLength(1);
+            expect(result[0]!.dependencies[0]!.versions[0]!.dependencyTypes).toEqual([
+                'dev',
+                'prod',
+            ]);
         });
 
         it('sorts results alphabetically by package name', async () => {
@@ -208,7 +214,11 @@ describe('DependencyCollector', () => {
 
             const result = await collector.collectDirectDependencies();
 
-            expect(result.map((d) => d.packageName)).toEqual(['axios', 'moment', 'zod']);
+            expect(result[0]!.dependencies.map((d) => d.packageName)).toEqual([
+                'axios',
+                'moment',
+                'zod',
+            ]);
         });
 
         it('includes catalog status from workspace service', async () => {
@@ -227,7 +237,7 @@ describe('DependencyCollector', () => {
 
             const result = await collector.collectDirectDependencies();
 
-            expect(result[0]!.versions[0]!.inCatalog).toBe(true);
+            expect(result[0]!.dependencies[0]!.versions[0]!.inCatalog).toBe(true);
         });
     });
 });

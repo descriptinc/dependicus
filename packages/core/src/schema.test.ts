@@ -5,21 +5,24 @@ describe('schema', () => {
     const validInput = {
         metadata: {
             generatedAt: '2025-01-01T00:00:00.000Z',
-            totalDependencies: 1,
-            totalPackages: 1,
-            deprecatedCount: 0,
         },
-        dependencies: [
+        providers: [
             {
-                packageName: 'react',
-                versions: [
+                name: 'pnpm',
+                supportsCatalog: true,
+                dependencies: [
                     {
-                        version: '18.2.0',
-                        latestVersion: '19.0.0',
-                        usedBy: ['@my/app'],
-                        dependencyTypes: ['prod'],
-                        publishDate: '2024-01-01T00:00:00.000Z',
-                        inCatalog: true,
+                        packageName: 'react',
+                        versions: [
+                            {
+                                version: '18.2.0',
+                                latestVersion: '19.0.0',
+                                usedBy: ['@my/app'],
+                                dependencyTypes: ['prod'],
+                                publishDate: '2024-01-01T00:00:00.000Z',
+                                inCatalog: true,
+                            },
+                        ],
                     },
                 ],
             },
@@ -43,9 +46,9 @@ describe('schema', () => {
     describe('parseDependicusOutput', () => {
         it('accepts valid input', () => {
             const result = parseDependicusOutput(validInput);
-            expect(result.metadata.totalPackages).toBe(1);
-            expect(result.dependencies).toHaveLength(1);
-            expect(result.dependencies[0]?.packageName).toBe('react');
+            expect(result.metadata.generatedAt).toBe('2025-01-01T00:00:00.000Z');
+            expect(result.providers).toHaveLength(1);
+            expect(result.providers[0]?.name).toBe('pnpm');
             expect(result.facts.package.react).toBeDefined();
         });
 
@@ -53,37 +56,31 @@ describe('schema', () => {
             const minimal = {
                 metadata: {
                     generatedAt: '2025-01-01T00:00:00.000Z',
-                    totalDependencies: 0,
-                    totalPackages: 0,
-                    deprecatedCount: 0,
                 },
-                dependencies: [],
+                providers: [],
                 facts: {
                     package: {},
                     version: {},
                 },
             };
             const result = parseDependicusOutput(minimal);
-            expect(result.dependencies).toHaveLength(0);
+            expect(result.providers).toHaveLength(0);
         });
 
         it('rejects missing metadata', () => {
             expect(() =>
                 parseDependicusOutput({
-                    dependencies: [],
+                    providers: [],
                     facts: { package: {}, version: {} },
                 }),
             ).toThrow();
         });
 
-        it('rejects missing dependencies', () => {
+        it('rejects missing providers', () => {
             expect(() =>
                 parseDependicusOutput({
                     metadata: {
                         generatedAt: '2025-01-01',
-                        totalDependencies: 0,
-                        totalPackages: 0,
-                        deprecatedCount: 0,
                     },
                     facts: { package: {}, version: {} },
                 }),
@@ -95,11 +92,8 @@ describe('schema', () => {
                 parseDependicusOutput({
                     metadata: {
                         generatedAt: '2025-01-01',
-                        totalDependencies: 0,
-                        totalPackages: 0,
-                        deprecatedCount: 0,
                     },
-                    dependencies: [],
+                    providers: [],
                 }),
             ).toThrow();
         });
@@ -107,17 +101,23 @@ describe('schema', () => {
         it('rejects invalid dependency type', () => {
             const invalid = {
                 ...validInput,
-                dependencies: [
+                providers: [
                     {
-                        packageName: 'react',
-                        versions: [
+                        name: 'pnpm',
+                        supportsCatalog: true,
+                        dependencies: [
                             {
-                                version: '18.2.0',
-                                latestVersion: '19.0.0',
-                                usedBy: ['@my/app'],
-                                dependencyTypes: ['invalid'],
-                                publishDate: '2024-01-01',
-                                inCatalog: true,
+                                packageName: 'react',
+                                versions: [
+                                    {
+                                        version: '18.2.0',
+                                        latestVersion: '19.0.0',
+                                        usedBy: ['@my/app'],
+                                        dependencyTypes: ['invalid'],
+                                        publishDate: '2024-01-01',
+                                        inCatalog: true,
+                                    },
+                                ],
                             },
                         ],
                     },

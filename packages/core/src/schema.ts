@@ -15,6 +15,12 @@ const directDependencySchema = z.object({
     versions: z.array(dependencyVersionSchema),
 });
 
+const providerOutputSchema = z.object({
+    name: z.string(),
+    supportsCatalog: z.boolean(),
+    dependencies: z.array(directDependencySchema),
+});
+
 const serializedFactsSchema = z.object({
     package: z.record(z.string(), z.record(z.string(), z.unknown())),
     version: z.record(z.string(), z.record(z.string(), z.record(z.string(), z.unknown()))),
@@ -23,18 +29,15 @@ const serializedFactsSchema = z.object({
 const dependicusOutputSchema = z.object({
     metadata: z.object({
         generatedAt: z.string(),
-        totalDependencies: z.number(),
-        totalPackages: z.number(),
-        deprecatedCount: z.number(),
-        hasCatalog: z.boolean().optional().default(true),
     }),
-    dependencies: z.array(directDependencySchema),
+    providers: z.array(providerOutputSchema),
     facts: serializedFactsSchema,
 });
 
 export {
     dependencyVersionSchema,
     directDependencySchema,
+    providerOutputSchema,
     serializedFactsSchema,
     dependicusOutputSchema,
 };

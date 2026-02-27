@@ -9,62 +9,51 @@ import { createColumnDefs, getTableConfig } from './config';
 function init() {
     const data = window.dependicusData;
 
-    // Create column definitions
-    const columnDefs = createColumnDefs(data.uniqueNotes, data.customColumns, {
-        hasCatalog: data.hasCatalog,
-    });
+    // Store table instances keyed by tab id
+    const tables = new Map<string, TabulatorInstance>();
 
-    // Store table instances
-    let allDepsTable: TabulatorInstance;
-    let multiVersionsTable: TabulatorInstance;
-    let catalogTable: TabulatorInstance | undefined;
+    // Create column definitions per tab (supportsCatalog varies across providers)
+    const columnDefsPerTab = new Map<string, ReturnType<typeof createColumnDefs>>();
+    for (const tab of data.tabs) {
+        columnDefsPerTab.set(
+            tab.id,
+            createColumnDefs(data.uniqueNotes, data.customColumns, {
+                hasCatalog: tab.supportsCatalog,
+            }),
+        );
+    }
 
     // Create tables with specified responsive setting
     function createTables(responsive: boolean) {
-        // Destroy existing tables if they exist
-        if (allDepsTable) allDepsTable.destroy();
-        if (multiVersionsTable) multiVersionsTable.destroy();
-        if (catalogTable) catalogTable.destroy();
+        // Destroy existing tables
+        for (const table of tables.values()) {
+            table.destroy();
+        }
+        tables.clear();
 
-        // Update configs with responsive setting
         const responsiveLayout: 'collapse' | false = responsive ? 'collapse' : false;
-        const allConfig = getTableConfig(data.allData, 'all-deps', columnDefs);
-        const multiConfig = getTableConfig(data.multiVersionData, 'multi-versions', columnDefs, {
-            groupBy: 'Package Name',
-        });
 
-        allConfig.responsiveLayout = responsiveLayout;
-        multiConfig.responsiveLayout = responsiveLayout;
+        for (const tab of data.tabs) {
+            const columnDefs = columnDefsPerTab.get(tab.id)!;
+            const config = getTableConfig(tab.data, tab.id, columnDefs, {
+                groupBy: tab.groupBy,
+            });
 
-        // When responsive is disabled, remove rowHeader to avoid errors
-        if (!responsive) {
-            delete allConfig.rowHeader;
-            delete multiConfig.rowHeader;
-        }
-
-        // Create new tables
-        allDepsTable = new Tabulator('#all-deps-table', allConfig);
-        multiVersionsTable = new Tabulator('#multi-versions-table', multiConfig);
-
-        if (data.hasCatalog) {
-            const catalogConfig = getTableConfig(data.catalogData, 'catalog', columnDefs);
-            catalogConfig.responsiveLayout = responsiveLayout;
+            config.responsiveLayout = responsiveLayout;
             if (!responsive) {
-                delete catalogConfig.rowHeader;
+                delete config.rowHeader;
             }
-            catalogTable = new Tabulator('#catalog-table', catalogConfig);
-        } else {
-            catalogTable = undefined;
+
+            const table = new Tabulator(`#table-${tab.id}`, config);
+            tables.set(tab.id, table);
         }
 
-        // Set up event listeners
         setupEventListeners();
     }
 
     function setupEventListeners() {
-        // Update tab counts when data is filtered
-        function updateTabCount(sheet: string, filteredCount: number, totalCount: number) {
-            const tab = document.querySelector(`.dep-tab[data-sheet="${sheet}"]`);
+        function updateTabCount(tabId: string, filteredCount: number, totalCount: number) {
+            const tab = document.querySelector(`.dep-tab[data-tab="${tabId}"]`);
             if (!tab) return;
 
             const countBadge = tab.querySelector('.dep-tab-count');
@@ -77,54 +66,37 @@ function init() {
             }
         }
 
-        allDepsTable.on('dataFiltered', (_filters: unknown, rows: RowData[]) => {
-            updateTabCount('all', rows.length, data.allData.length);
-        });
+        for (const tab of data.tabs) {
+            const table = tables.get(tab.id);
+            if (!table) continue;
 
-        multiVersionsTable.on('dataFiltered', (_filters: unknown, rows: RowData[]) => {
-            updateTabCount('multi', rows.length, data.multiVersionData.length);
-        });
-
-        if (catalogTable) {
-            catalogTable.on('dataFiltered', (_filters: unknown, rows: RowData[]) => {
-                updateTabCount('catalog', rows.length, data.catalogData.length);
+            table.on('dataFiltered', (_filters: unknown, rows: RowData[]) => {
+                updateTabCount(tab.id, rows.length, tab.data.length);
             });
         }
     }
 
     // Tab switching logic
-    const tabs = document.querySelectorAll('.dep-tab');
+    const tabElements = document.querySelectorAll('.dep-tab');
     const wrappers = document.querySelectorAll('.dep-table-wrapper');
 
-    tabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
-            const buttonElement = tab as HTMLButtonElement;
-            const sheet = buttonElement.dataset.sheet;
+    tabElements.forEach((tabEl) => {
+        tabEl.addEventListener('click', () => {
+            const buttonElement = tabEl as HTMLButtonElement;
+            const tabId = buttonElement.dataset.tab;
+            if (!tabId) return;
 
             // Update active tab
-            tabs.forEach((t) => t.classList.remove('active'));
-            tab.classList.add('active');
+            tabElements.forEach((t) => t.classList.remove('active'));
+            tabEl.classList.add('active');
 
-            // Update visible table
+            // Update visible table wrapper
             wrappers.forEach((w) => w.classList.remove('active'));
-            if (sheet === 'all') {
-                const element = document.getElementById('all-deps-table');
-                if (element) {
-                    element.classList.add('active');
-                    if (allDepsTable) allDepsTable.redraw();
-                }
-            } else if (sheet === 'multi') {
-                const element = document.getElementById('multi-versions-table');
-                if (element) {
-                    element.classList.add('active');
-                    if (multiVersionsTable) multiVersionsTable.redraw();
-                }
-            } else if (sheet === 'catalog' && catalogTable) {
-                const element = document.getElementById('catalog-table');
-                if (element) {
-                    element.classList.add('active');
-                    catalogTable.redraw();
-                }
+            const wrapper = document.getElementById(`table-${tabId}`);
+            if (wrapper) {
+                wrapper.classList.add('active');
+                const table = tables.get(tabId);
+                if (table) table.redraw();
             }
         });
     });
@@ -137,7 +109,6 @@ function init() {
 
     if (responsiveCheckbox) {
         responsiveCheckbox.addEventListener('change', () => {
-            // Recreate tables with new responsive setting
             createTables(responsiveCheckbox.checked);
         });
     }

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import type { DirectDependency } from './types';
+import type { ProviderOutput } from './types';
+import { mergeProviderDependencies } from './types';
 import { parseDependicusOutput } from './schema';
 import { CacheService } from './services/CacheService';
 import { DeprecationService } from './services/DeprecationService';
@@ -28,8 +29,7 @@ export interface CoreServicesConfig {
 }
 
 export interface CoreServices {
-    readonly supportsCatalog: boolean;
-    collect(): Promise<{ dependencies: DirectDependency[]; store: FactStore }>;
+    collect(): Promise<{ providers: ProviderOutput[]; store: FactStore }>;
 }
 
 export function createCoreServices(config: CoreServicesConfig): CoreServices {
@@ -59,26 +59,25 @@ export function createCoreServices(config: CoreServicesConfig): CoreServices {
 
     const collector = new DependencyCollector(providers, registryService);
 
-    const supportsCatalog = providers.some((p) => p.supportsCatalog);
-
     return {
-        supportsCatalog,
-        async collect(): Promise<{ dependencies: DirectDependency[]; store: FactStore }> {
-            const dependencies = await collector.collectDirectDependencies();
+        async collect(): Promise<{ providers: ProviderOutput[]; store: FactStore }> {
+            const providerOutputs = await collector.collectDirectDependencies();
             const store = new FactStore();
-            await runSources(allSources, dependencies, store);
-            return { dependencies, store };
+            // Sources operate on a merged view of all providers
+            const mergedDeps = mergeProviderDependencies(providerOutputs);
+            await runSources(allSources, mergedDeps, store);
+            return { providers: providerOutputs, store };
         },
     };
 }
 
 export async function readDependicusJson(
     path: string,
-): Promise<{ dependencies: DirectDependency[]; store: FactStore }> {
+): Promise<{ providers: ProviderOutput[]; store: FactStore }> {
     const content = await readFile(path, 'utf-8');
     const parsed = parseDependicusOutput(JSON.parse(content));
     return {
-        dependencies: parsed.dependencies,
+        providers: parsed.providers,
         store: FactStore.fromJSON(parsed.facts),
     };
 }

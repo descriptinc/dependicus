@@ -5,8 +5,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { Command } from 'commander';
 import { createDependicus } from '@dependicus/site-builder';
-import { readDependicusJson } from '@dependicus/core';
-import type { DirectDependency, FactStore } from '@dependicus/core';
+import { readDependicusJson, mergeProviderDependencies } from '@dependicus/core';
+import type { FactStore, ProviderOutput } from '@dependicus/core';
 import { reconcileTickets } from '@dependicus/linear';
 import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
 import { reconcileGitHubIssues } from '@dependicus/github-issues';
@@ -64,7 +64,7 @@ const JSON_FILENAME = 'dependencies.json';
 async function loadDependencies(
     jsonPath: string,
     cliName: string,
-): Promise<{ dependencies: DirectDependency[]; store: FactStore }> {
+): Promise<{ providers: ProviderOutput[]; store: FactStore }> {
     return await readDependicusJson(jsonPath).catch((error: unknown) => {
         if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
             process.stderr.write(
@@ -107,6 +107,10 @@ async function getGhAuthToken(): Promise<string | undefined> {
     }
 }
 
+function collect(value: string, previous: string[]) {
+    return previous.concat([value]);
+}
+
 /** @group Core Types */
 export function dependicusCli(config: DependicusCliConfig): {
     run(argv: string[]): Promise<void>;
@@ -121,8 +125,10 @@ export function dependicusCli(config: DependicusCliConfig): {
                 .description(`Dependency analysis powered by Dependicus`)
                 .option('--repo-root <path>', 'Root directory of the project (default: cwd)')
                 .option(
-                    '--provider <name...>',
-                    'Dependency provider(s) to use: pnpm, bun, yarn (default: auto-detect)',
+                    '--provider <name>',
+                    'Dependency provider to use (repeatable): pnpm, bun, yarn (default: auto-detect)',
+                    collect,
+                    [] as string[],
                 );
 
             // Resolve config that depends on --repo-root after Commander parses argv.
@@ -130,8 +136,8 @@ export function dependicusCli(config: DependicusCliConfig): {
                 const repoRoot = resolve(
                     program.opts<{ repoRoot?: string }>().repoRoot ?? config.repoRoot ?? '.',
                 );
-                const providerNames =
-                    program.opts<{ provider?: string[] }>().provider ?? config.providerNames;
+                const providerOpts = program.opts<{ provider: string[] }>().provider;
+                const providerNames = providerOpts.length > 0 ? providerOpts : config.providerNames;
                 const effectiveConfig = { ...config, repoRoot, providerNames };
                 const resolved = resolvePlugins(effectiveConfig.plugins ?? [], effectiveConfig);
                 const outputDir = effectiveConfig.outputDir ?? join(repoRoot, 'dependicus-out');
@@ -153,12 +159,14 @@ export function dependicusCli(config: DependicusCliConfig): {
                     await mkdir(outputDir, { recursive: true });
                     await writeFile(jsonPath, JSON.stringify(output, undefined, 2), 'utf-8');
 
-                    process.stderr.write(
-                        `Wrote ${output.dependencies.length} packages to ${jsonPath}\n`,
+                    const totalPackages = output.providers.reduce(
+                        (sum, p) => sum + p.dependencies.length,
+                        0,
                     );
+                    process.stderr.write(`Wrote ${totalPackages} packages to ${jsonPath}\n`);
 
                     if (options.html) {
-                        await dependicus.generateSite(output.dependencies, store);
+                        await dependicus.generateSite(output.providers, store);
                         process.stderr.write(`Generated site in ${outputDir}\n`);
                     }
                 });
@@ -172,15 +180,13 @@ export function dependicusCli(config: DependicusCliConfig): {
                     const dependicus = await createDependicusInstance(effectiveConfig, resolved);
                     const effectivePath = options.jsonFile ?? jsonPath;
 
-                    const { dependencies: deps, store } = await loadDependencies(
-                        effectivePath,
-                        cliName,
-                    );
+                    const { providers, store } = await loadDependencies(effectivePath, cliName);
+                    const merged = mergeProviderDependencies(providers);
                     if (!options.jsonFile || process.env.DEPENDICUS_REFRESH_FACTS === '1') {
-                        dependicus.refreshLocal(deps, store);
+                        dependicus.refreshLocal(merged, store);
                     }
 
-                    await dependicus.generateSite(deps, store);
+                    await dependicus.generateSite(providers, store);
                     process.stderr.write(`Generated site in ${outputDir}\n`);
                 });
 
@@ -226,10 +232,8 @@ export function dependicusCli(config: DependicusCliConfig): {
                             resolved,
                         );
                         const effectivePath = options.jsonFile ?? jsonPath;
-                        const { dependencies: deps, store } = await loadDependencies(
-                            effectivePath,
-                            cliName,
-                        );
+                        const { providers, store } = await loadDependencies(effectivePath, cliName);
+                        const deps = mergeProviderDependencies(providers);
                         if (!options.jsonFile || process.env.DEPENDICUS_REFRESH_FACTS === '1') {
                             dependicus.refreshLocal(deps, store);
                         }
@@ -301,10 +305,8 @@ export function dependicusCli(config: DependicusCliConfig): {
                             resolved,
                         );
                         const effectivePath = options.jsonFile ?? jsonPath;
-                        const { dependencies: deps, store } = await loadDependencies(
-                            effectivePath,
-                            cliName,
-                        );
+                        const { providers, store } = await loadDependencies(effectivePath, cliName);
+                        const deps = mergeProviderDependencies(providers);
                         if (!options.jsonFile || process.env.DEPENDICUS_REFRESH_FACTS === '1') {
                             dependicus.refreshLocal(deps, store);
                         }

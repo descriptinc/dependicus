@@ -1,42 +1,28 @@
 <div id="container" class="dep-container">
     <div id="tabs" class="dep-tabs">
-        <button class="dep-tab active" data-sheet="all">
-            All
-            <span class="dep-tab-count">{{allRowsCount}}</span>
+        {{#each tabs}}
+        <button class="dep-tab {{#if @first}}active{{/if}}" data-tab="{{id}}">
+            {{label}}
+            <span class="dep-tab-count">{{rowCount}}</span>
         </button>
-        <button class="dep-tab" data-sheet="multi">
-            Multiple Versions
-            <span class="dep-tab-count">{{multiVersionRowsCount}}</span>
-        </button>
-        {{#if hasCatalog}}
-        <button class="dep-tab" data-sheet="catalog">
-            Catalog
-            <span class="dep-tab-count">{{catalogRowsCount}}</span>
-        </button>
-        {{/if}}
+        {{/each}}
         <label id="responsive-toggle" class="dep-responsive-toggle">
             <input type="checkbox" id="responsive-checkbox">
             <span>Responsive</span>
         </label>
     </div>
     <div id="table-container" class="dep-table-container">
-        <div id="all-deps-table" class="dep-table-wrapper active"></div>
-        <div id="multi-versions-table" class="dep-multi-versions-table dep-table-wrapper"></div>
-        {{#if hasCatalog}}
-        <div id="catalog-table" class="dep-table-wrapper"></div>
-        {{/if}}
+        {{#each tabs}}
+        <div id="table-{{id}}" class="dep-table-wrapper {{#if grouped}}dep-multi-versions-table{{/if}} {{#if @first}}active{{/if}}"></div>
+        {{/each}}
     </div>
 </div>
 
 <script>
-    // Data passed to browser code via global variable
     window.dependicusData = {
-        allData: {{{allDataJson}}},
-        multiVersionData: {{{multiVersionDataJson}}},
-        catalogData: {{{catalogDataJson}}},
+        tabs: {{{tabsJson}}},
         uniqueNotes: {{{uniqueNotesJson}}},
         customColumns: {{{customColumnsJson}}},
-        groupings: {{{groupingsJson}}},
-        hasCatalog: {{hasCatalog}}
+        groupings: {{{groupingsJson}}}
     };
 </script>

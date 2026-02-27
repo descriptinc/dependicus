@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { dependicusCli } from './cli';
-import type { DirectDependency } from '@dependicus/core';
+import type { DirectDependency, ProviderOutput } from '@dependicus/core';
 import { FactStore, readDependicusJson } from '@dependicus/core';
 
 // Mock external dependencies
@@ -52,6 +52,14 @@ function makeDep(packageName: string): DirectDependency {
     };
 }
 
+function makeProvider(deps: DirectDependency[]): ProviderOutput {
+    return {
+        name: 'pnpm',
+        supportsCatalog: false,
+        dependencies: deps,
+    };
+}
+
 function makeStore(): FactStore {
     return new FactStore();
 }
@@ -95,11 +103,12 @@ describe('dependicusCli', () => {
     describe('update command', () => {
         it('calls collectData and writes JSON', async () => {
             const deps = [makeDep('react')];
+            const providers = [makeProvider(deps)];
             const store = makeStore();
             const mockInstance = {
                 collectData: vi.fn().mockResolvedValue({
-                    metadata: {},
-                    dependencies: deps,
+                    metadata: { generatedAt: '2025-01-01' },
+                    providers,
                     facts: {},
                     store,
                 }),
@@ -126,11 +135,12 @@ describe('dependicusCli', () => {
 
         it('also generates site when --html is passed', async () => {
             const deps = [makeDep('react')];
+            const providers = [makeProvider(deps)];
             const store = makeStore();
             const mockInstance = {
                 collectData: vi.fn().mockResolvedValue({
-                    metadata: {},
-                    dependencies: deps,
+                    metadata: { generatedAt: '2025-01-01' },
+                    providers,
                     facts: {},
                     store,
                 }),
@@ -142,15 +152,16 @@ describe('dependicusCli', () => {
             const cli = dependicusCli(baseConfig);
             await cli.run(argv('update', '--html'));
 
-            expect(mockInstance.generateSite).toHaveBeenCalledWith(deps, store);
+            expect(mockInstance.generateSite).toHaveBeenCalledWith(providers, store);
         });
     });
 
     describe('html command', () => {
         it('loads JSON and generates site', async () => {
             const deps = [makeDep('react')];
+            const providers = [makeProvider(deps)];
             const store = makeStore();
-            mockReadDependicusJson.mockResolvedValue({ dependencies: deps, store });
+            mockReadDependicusJson.mockResolvedValue({ providers, store });
             const mockInstance = {
                 collectData: vi.fn(),
                 generateSite: vi.fn(),
@@ -162,13 +173,14 @@ describe('dependicusCli', () => {
             await cli.run(argv('html'));
 
             expect(mockReadDependicusJson).toHaveBeenCalledWith('/repo/out/dependencies.json');
-            expect(mockInstance.generateSite).toHaveBeenCalledWith(deps, store);
+            expect(mockInstance.generateSite).toHaveBeenCalledWith(providers, store);
         });
 
         it('uses custom JSON path with --json-file', async () => {
             const deps = [makeDep('react')];
+            const providers = [makeProvider(deps)];
             const store = makeStore();
-            mockReadDependicusJson.mockResolvedValue({ dependencies: deps, store });
+            mockReadDependicusJson.mockResolvedValue({ providers, store });
             const mockInstance = {
                 collectData: vi.fn(),
                 generateSite: vi.fn(),
@@ -196,8 +208,9 @@ describe('dependicusCli', () => {
         it('calls reconcileTickets with correct args', async () => {
             setEnv('LINEAR_API_KEY', 'test-key');
             const deps = [makeDep('react')];
+            const providers = [makeProvider(deps)];
             const store = makeStore();
-            mockReadDependicusJson.mockResolvedValue({ dependencies: deps, store });
+            mockReadDependicusJson.mockResolvedValue({ providers, store });
             mockReconcileTickets.mockResolvedValue({
                 created: 0,
                 updated: 0,
@@ -230,8 +243,9 @@ describe('dependicusCli', () => {
 
         it('passes --dry-run flag', async () => {
             setEnv('LINEAR_API_KEY', 'test-key');
+            const providers = [makeProvider([])];
             const store = makeStore();
-            mockReadDependicusJson.mockResolvedValue({ dependencies: [], store });
+            mockReadDependicusJson.mockResolvedValue({ providers, store });
             mockReconcileTickets.mockResolvedValue({
                 created: 0,
                 updated: 0,
@@ -275,8 +289,9 @@ describe('dependicusCli', () => {
     describe('refreshLocal', () => {
         it('calls refreshLocal by default when no --json-file', async () => {
             const deps = [makeDep('react')];
+            const providers = [makeProvider(deps)];
             const store = makeStore();
-            mockReadDependicusJson.mockResolvedValue({ dependencies: deps, store });
+            mockReadDependicusJson.mockResolvedValue({ providers, store });
             const mockInstance = {
                 collectData: vi.fn(),
                 generateSite: vi.fn(),
@@ -287,13 +302,15 @@ describe('dependicusCli', () => {
             const cli = dependicusCli(baseConfig);
             await cli.run(argv('html'));
 
+            // refreshLocal receives merged deps (same as input since single provider)
             expect(mockInstance.refreshLocal).toHaveBeenCalledWith(deps, store);
         });
 
         it('skips refreshLocal with --json-file unless DEPENDICUS_REFRESH_FACTS=1', async () => {
             const deps = [makeDep('react')];
+            const providers = [makeProvider(deps)];
             const store = makeStore();
-            mockReadDependicusJson.mockResolvedValue({ dependencies: deps, store });
+            mockReadDependicusJson.mockResolvedValue({ providers, store });
             const mockInstance = {
                 collectData: vi.fn(),
                 generateSite: vi.fn(),
@@ -311,8 +328,9 @@ describe('dependicusCli', () => {
 
         it('calls refreshLocal with --json-file when DEPENDICUS_REFRESH_FACTS=1', async () => {
             const deps = [makeDep('react')];
+            const providers = [makeProvider(deps)];
             const store = makeStore();
-            mockReadDependicusJson.mockResolvedValue({ dependencies: deps, store });
+            mockReadDependicusJson.mockResolvedValue({ providers, store });
             const mockInstance = {
                 collectData: vi.fn(),
                 generateSite: vi.fn(),
@@ -332,11 +350,12 @@ describe('dependicusCli', () => {
     describe('defaults', () => {
         it('uses dependicus-out as default outputDir', async () => {
             const deps = [makeDep('react')];
+            const providers = [makeProvider(deps)];
             const store = makeStore();
             const mockInstance = {
                 collectData: vi.fn().mockResolvedValue({
-                    metadata: {},
-                    dependencies: deps,
+                    metadata: { generatedAt: '2025-01-01' },
+                    providers,
                     facts: {},
                     store,
                 }),

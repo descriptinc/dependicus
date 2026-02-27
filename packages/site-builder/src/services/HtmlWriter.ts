@@ -11,9 +11,11 @@ import type {
     GroupingConfig,
     GroupingDetailContext,
     GroupingSection,
+    ProviderOutput,
     UsedByGroupKeyFn,
     FactStore,
 } from '@dependicus/core';
+import { mergeProviderDependencies } from '@dependicus/core';
 import {
     FactKeys,
     formatDate,
@@ -200,143 +202,18 @@ export class HtmlWriter {
     }
 
     /**
-     * Generate a standalone HTML page with embedded data and enhanced Tabulator viewer.
+     * Build row data from a list of dependencies.
+     * Each row corresponds to a single package@version entry.
      */
-    async toHtml(
-        dependencies: DirectDependency[],
+    private buildRows(
+        deps: DirectDependency[],
         store: FactStore,
-        hasCatalog = false,
-    ): Promise<string> {
-        // Flatten data into rows (similar to CSV structure)
-        const allRows: Array<
-            Record<string, string | number | boolean | Record<string, string[]> | null>
-        > = [];
-        for (const dep of dependencies) {
-            for (const versionInfo of dep.versions) {
-                const detailFilename = HtmlWriter.getDetailFilename(
-                    dep.packageName,
-                    versionInfo.version,
-                );
-                const deprecatedTransitiveDeps =
-                    store.getPackageFact<string[]>(
-                        dep.packageName,
-                        FactKeys.DEPRECATED_TRANSITIVE_DEPS,
-                    ) ?? [];
-                const notes = this.composeNotes(dep.packageName, versionInfo.version, store);
-                allRows.push({
-                    'Package Name': dep.packageName,
-                    Type: versionInfo.dependencyTypes.join(', '),
-                    Version: versionInfo.version,
-                    'Latest Version': versionInfo.latestVersion,
-                    'Versions Behind': getVersionsBehind(
-                        versionInfo.version,
-                        versionInfo.latestVersion,
-                    ),
-                    'Catalog?': versionInfo.inCatalog,
-                    'Published Date': formatDate(versionInfo.publishDate),
-                    Age: getAgeDays(versionInfo.publishDate),
-                    Notes: notes,
-                    ...this.buildCustomColumnData(dep.packageName, versionInfo, store),
-                    'Used By Count': versionInfo.usedBy.length,
-                    'Used By Packages': versionInfo.usedBy.join('; '),
-                    'Used By Grouped': this.groupPackagesByMeta(
-                        versionInfo.usedBy,
-                        dep.packageName,
-                        versionInfo,
-                        store,
-                    ),
-                    'Deprecated Transitive Dependencies': deprecatedTransitiveDeps.join('; '),
-                    'Detail Link': `details/${detailFilename}`,
-                });
-            }
-        }
-
-        // Create separate dataset for packages with multiple versions
-        const multiVersionRows = this.getMultiVersionRows(dependencies, store);
-
-        // Create separate dataset for catalog dependencies
-        const catalogRows = allRows.filter((row) => row['Catalog?'] === true);
-
-        // Get unique values for dropdown filters
-        const uniqueNotes = [
-            ...new Set(
-                allRows
-                    .map((r) => r.Notes as string)
-                    .filter(Boolean)
-                    .flatMap((notes) => notes.split(', ')),
-            ),
-        ];
-
-        // Ensure standard note values are always available in the filter
-        const standardNotes = ['Patched', 'Forked', 'Catalog Mismatch', 'Deprecated'];
-        for (const note of standardNotes) {
-            if (!uniqueNotes.includes(note)) {
-                uniqueNotes.push(note);
-            }
-        }
-
-        // Bundle browser code and load CSS
-        const bundledJs = await this.bundleBrowserCode();
-        const cssContent = await this.readCssFile();
-
-        // Prepare custom column definitions for browser
-        const browserColumns: BrowserColumnDef[] = this.columns.map((col) => ({
-            key: col.key,
-            header: col.header,
-            width: col.width,
-            filter: col.filter,
-            filterValues: col.filterValues,
-            hasTooltip: col.getTooltip !== undefined,
-            hasFilterValue: col.getFilterValue !== undefined,
-        }));
-
-        // Render content using template
-        const content = this.templateService.render('pages/index', {
-            allRowsCount: allRows.length,
-            multiVersionRowsCount: multiVersionRows.length,
-            catalogRowsCount: catalogRows.length,
-            hasCatalog,
-            allDataJson: JSON.stringify(allRows, undefined, 2),
-            multiVersionDataJson: JSON.stringify(multiVersionRows, undefined, 2),
-            catalogDataJson: JSON.stringify(catalogRows, undefined, 2),
-            uniqueNotesJson: JSON.stringify(uniqueNotes),
-            customColumnsJson: JSON.stringify(browserColumns),
-            groupingsJson: JSON.stringify(
-                this.groupings.map((g) => ({
-                    key: g.key,
-                    slug: g.slugPrefix ?? g.key,
-                })),
-            ),
-        });
-
-        // Render full page with layout
-        return this.templateService.render('layouts/index', {
-            title: 'Dependency Report',
-            siteName: this.siteName,
-            cssContent,
-            bundledJs,
-            content,
-            timestamp: new Date().toLocaleString(),
-            groupings: this.groupings.map((g) => ({
-                label: g.label,
-                slug: g.slugPrefix ?? g.key,
-            })),
-        });
-    }
-
-    /**
-     * Get rows for packages that have multiple versions installed.
-     */
-    private getMultiVersionRows(
-        dependencies: DirectDependency[],
-        store: FactStore,
+        detailPrefix: string,
     ): Array<Record<string, string | number | boolean | Record<string, string[]> | null>> {
-        const multiVersionDeps = dependencies.filter((dep) => dep.versions.length > 1);
         const rows: Array<
             Record<string, string | number | boolean | Record<string, string[]> | null>
         > = [];
-
-        for (const dep of multiVersionDeps) {
+        for (const dep of deps) {
             for (const versionInfo of dep.versions) {
                 const detailFilename = HtmlWriter.getDetailFilename(
                     dep.packageName,
@@ -371,41 +248,166 @@ export class HtmlWriter {
                         store,
                     ),
                     'Deprecated Transitive Dependencies': deprecatedTransitiveDeps.join('; '),
-                    'Detail Link': `details/${detailFilename}`,
+                    'Detail Link': `${detailPrefix}details/${detailFilename}`,
                 });
             }
         }
+        return rows;
+    }
 
-        // Sort by package name then by usage count descending
-        return rows.sort((a, b) => {
-            const nameCompare = (a['Package Name'] as string).localeCompare(
-                b['Package Name'] as string,
+    /**
+     * Generate a standalone HTML page with embedded data and enhanced Tabulator viewer.
+     */
+    async toHtml(providers: ProviderOutput[], store: FactStore): Promise<string> {
+        // Build tabs array: one "all" and one "duplicates" tab per provider
+        const tabs: Array<{
+            id: string;
+            label: string;
+            data: Array<
+                Record<string, string | number | boolean | Record<string, string[]> | null>
+            >;
+            groupBy?: string;
+            supportsCatalog: boolean;
+        }> = [];
+
+        for (const provider of providers) {
+            const detailPrefix = `${provider.name}/`;
+            const allRows = this.buildRows(provider.dependencies, store, detailPrefix);
+
+            const multiVersionDeps = provider.dependencies.filter((dep) => dep.versions.length > 1);
+            const duplicateRows = this.buildRows(multiVersionDeps, store, detailPrefix).sort(
+                (a, b) => {
+                    const nameCompare = (a['Package Name'] as string).localeCompare(
+                        b['Package Name'] as string,
+                    );
+                    if (nameCompare !== 0) return nameCompare;
+                    return (b['Used By Count'] as number) - (a['Used By Count'] as number);
+                },
             );
-            if (nameCompare !== 0) return nameCompare;
-            return (b['Used By Count'] as number) - (a['Used By Count'] as number);
+
+            tabs.push({
+                id: provider.name,
+                label: provider.name,
+                data: allRows,
+                supportsCatalog: provider.supportsCatalog,
+            });
+            tabs.push({
+                id: `${provider.name}-duplicates`,
+                label: `${provider.name} Duplicates`,
+                data: duplicateRows,
+                groupBy: 'Package Name',
+                supportsCatalog: provider.supportsCatalog,
+            });
+        }
+
+        // Build unique notes across all providers
+        const mergedDeps = mergeProviderDependencies(providers);
+        const allRows = this.buildRows(mergedDeps, store, '');
+        const uniqueNotes = [
+            ...new Set(
+                allRows
+                    .map((r) => r.Notes as string)
+                    .filter(Boolean)
+                    .flatMap((notes) => notes.split(', ')),
+            ),
+        ];
+
+        // Ensure standard note values are always available in the filter
+        const standardNotes = ['Patched', 'Forked', 'Catalog Mismatch', 'Deprecated'];
+        for (const note of standardNotes) {
+            if (!uniqueNotes.includes(note)) {
+                uniqueNotes.push(note);
+            }
+        }
+
+        // Bundle browser code and load CSS
+        const bundledJs = await this.bundleBrowserCode();
+        const cssContent = await this.readCssFile();
+
+        // Prepare custom column definitions for browser
+        const browserColumns: BrowserColumnDef[] = this.columns.map((col) => ({
+            key: col.key,
+            header: col.header,
+            width: col.width,
+            filter: col.filter,
+            filterValues: col.filterValues,
+            hasTooltip: col.getTooltip !== undefined,
+            hasFilterValue: col.getFilterValue !== undefined,
+        }));
+
+        // Prepare tab summaries for template rendering (Handlebars loop)
+        const tabSummaries = tabs.map((t) => ({
+            id: t.id,
+            label: t.label,
+            rowCount: t.data.length,
+            grouped: t.groupBy !== undefined,
+        }));
+
+        // Render content using template
+        const content = this.templateService.render('pages/index', {
+            tabs: tabSummaries,
+            tabsJson: JSON.stringify(tabs),
+            uniqueNotesJson: JSON.stringify(uniqueNotes),
+            customColumnsJson: JSON.stringify(browserColumns),
+            groupingsJson: JSON.stringify(
+                this.groupings.map((g) => ({
+                    key: g.key,
+                    slug: g.slugPrefix ?? g.key,
+                })),
+            ),
+        });
+
+        // Render full page with layout
+        return this.templateService.render('layouts/index', {
+            title: 'Dependency Report',
+            siteName: this.siteName,
+            cssContent,
+            bundledJs,
+            content,
+            timestamp: new Date().toLocaleString(),
+            groupings: this.groupings.map((g) => ({
+                label: g.label,
+                slug: g.slugPrefix ?? g.key,
+            })),
         });
     }
 
     /**
      * Generate detail HTML pages for each package@version combination.
-     * Returns an array of DetailPage objects with filename and html content.
+     * Returns an array of DetailPage objects with provider-scoped filenames
+     * (e.g. "pnpm/details/react@18.2.0.html").
      * All data is pre-enriched, so no network requests are made.
      */
-    toDetailPages(dependencies: DirectDependency[], store: FactStore): DetailPage[] {
+    toDetailPages(providers: ProviderOutput[], store: FactStore): DetailPage[] {
         process.stderr.write('Generating detail pages...\n');
         const pages: DetailPage[] = [];
         let generated = 0;
-        const total = dependencies.reduce((sum, dep) => sum + dep.versions.length, 0);
+        const total = providers.reduce(
+            (sum, p) => sum + p.dependencies.reduce((s, dep) => s + dep.versions.length, 0),
+            0,
+        );
 
-        for (const dep of dependencies) {
-            for (const versionInfo of dep.versions) {
-                const filename = HtmlWriter.getDetailFilename(dep.packageName, versionInfo.version);
-                const html = this.generateDetailPage(dep, versionInfo, store);
-                pages.push({ filename, html });
+        for (const provider of providers) {
+            const providerPrefix = `${provider.name}/`;
+            for (const dep of provider.dependencies) {
+                for (const versionInfo of dep.versions) {
+                    const detailFilename = HtmlWriter.getDetailFilename(
+                        dep.packageName,
+                        versionInfo.version,
+                    );
+                    const html = this.generateDetailPage(
+                        dep,
+                        versionInfo,
+                        store,
+                        '../../',
+                        providerPrefix,
+                    );
+                    pages.push({ filename: `${providerPrefix}details/${detailFilename}`, html });
 
-                generated++;
-                if (generated % 100 === 0 || generated === total) {
-                    process.stderr.write(`  Generated ${generated}/${total} pages\n`);
+                    generated++;
+                    if (generated % 100 === 0 || generated === total) {
+                        process.stderr.write(`  Generated ${generated}/${total} pages\n`);
+                    }
                 }
             }
         }
@@ -421,6 +423,8 @@ export class HtmlWriter {
         dep: DirectDependency,
         versionInfo: DependencyVersion,
         store: FactStore,
+        baseHref = '../',
+        providerPrefix = '',
     ): string {
         const packageName = dep.packageName;
         const description =
@@ -546,7 +550,8 @@ export class HtmlWriter {
             title: `${packageName}@${versionInfo.version}`,
             siteName: this.siteName,
             content,
-            baseHref: '../',
+            baseHref,
+            providerPrefix,
             timestamp: new Date().toLocaleString(),
             groupings: this.groupings.map((g) => ({
                 label: g.label,
@@ -651,13 +656,17 @@ export class HtmlWriter {
     /**
      * Generate all grouping pages for a single grouping configuration.
      * Returns an index page and one detail page per unique annotation value.
+     * When providerPrefix is set (e.g. "pnpm/"), filenames and links are scoped
+     * under the provider directory.
      */
     toGroupingPages(
         dependencies: DirectDependency[],
         grouping: GroupingConfig,
         store: FactStore,
+        providerPrefix = '',
     ): { index: DetailPage; details: DetailPage[] } {
         const slug = grouping.slugPrefix ?? grouping.key;
+        const baseHref = providerPrefix ? '../../' : '../';
 
         // Collect all dependencies for each unique grouping value
         const grouped = new Map<string, DirectDependency[]>();
@@ -701,7 +710,8 @@ export class HtmlWriter {
             title: grouping.label,
             siteName: this.siteName,
             content: indexContent,
-            baseHref: '../',
+            baseHref,
+            providerPrefix,
             timestamp: new Date().toLocaleString(),
             groupings: this.groupings.map((g) => ({
                 label: g.label,
@@ -710,7 +720,7 @@ export class HtmlWriter {
         });
 
         const index: DetailPage = {
-            filename: `${slug}/index.html`,
+            filename: `${providerPrefix}${slug}/index.html`,
             html: indexHtml,
         };
 
@@ -753,7 +763,8 @@ export class HtmlWriter {
                     title: `${grouping.label}: ${value}`,
                     siteName: this.siteName,
                     content: detailContent,
-                    baseHref: '../',
+                    baseHref,
+                    providerPrefix,
                     timestamp: new Date().toLocaleString(),
                     groupings: this.groupings.map((g) => ({
                         label: g.label,
@@ -762,7 +773,7 @@ export class HtmlWriter {
                 });
 
                 return {
-                    filename: `${slug}/${value}.html`,
+                    filename: `${providerPrefix}${slug}/${value}.html`,
                     html: detailHtml,
                 };
             });
@@ -771,19 +782,27 @@ export class HtmlWriter {
     }
 
     /**
-     * Generate all grouping pages for all configured groupings.
+     * Generate all grouping pages for all configured groupings across all providers.
      */
-    toAllGroupingPages(dependencies: DirectDependency[], store: FactStore): DetailPage[] {
+    toAllGroupingPages(providers: ProviderOutput[], store: FactStore): DetailPage[] {
         if (this.groupings.length === 0) {
             return [];
         }
 
         const pages: DetailPage[] = [];
 
-        for (const grouping of this.groupings) {
-            const { index, details } = this.toGroupingPages(dependencies, grouping, store);
-            pages.push(index);
-            pages.push(...details);
+        for (const provider of providers) {
+            const providerPrefix = `${provider.name}/`;
+            for (const grouping of this.groupings) {
+                const { index, details } = this.toGroupingPages(
+                    provider.dependencies,
+                    grouping,
+                    store,
+                    providerPrefix,
+                );
+                pages.push(index);
+                pages.push(...details);
+            }
         }
 
         return pages;

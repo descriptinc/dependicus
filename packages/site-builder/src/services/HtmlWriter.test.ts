@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import type { DirectDependency, DependencyVersion, GroupingConfig } from '@dependicus/core';
+import type {
+    DirectDependency,
+    DependencyVersion,
+    GroupingConfig,
+    ProviderOutput,
+} from '@dependicus/core';
 import { FactStore, FactKeys } from '@dependicus/core';
 import { HtmlWriter } from './HtmlWriter';
 
@@ -19,6 +24,18 @@ function makeMockDependency(overrides?: Partial<DirectDependency>): DirectDepend
     return {
         packageName: '@scope/test-pkg',
         versions: [makeMockVersion()],
+        ...overrides,
+    };
+}
+
+function makeProvider(
+    deps: DirectDependency[],
+    overrides?: Partial<ProviderOutput>,
+): ProviderOutput {
+    return {
+        name: 'pnpm',
+        supportsCatalog: true,
+        dependencies: deps,
         ...overrides,
     };
 }
@@ -122,7 +139,8 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = await writer.toHtml([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const html = await writer.toHtml(providers, store);
 
             // Check that the output is valid HTML with expected structure
             expect(html).toContain('<!DOCTYPE html>');
@@ -136,7 +154,8 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = await writer.toHtml([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const html = await writer.toHtml(providers, store);
 
             expect(html).toContain('tabulator-tables');
             expect(html).toContain('window.dependicusData');
@@ -146,11 +165,11 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = await writer.toHtml([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const html = await writer.toHtml(providers, store);
 
-            expect(html).toContain('data-sheet="all"');
-            expect(html).toContain('Multiple Versions');
-            expect(html).toContain('Catalog');
+            expect(html).toContain('data-tab="pnpm"');
+            expect(html).toContain('pnpm Duplicates');
         });
 
         it('generates multi-version rows for packages with multiple versions', async () => {
@@ -178,10 +197,12 @@ describe('HtmlWriter', () => {
             store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
-            const html = await writer.toHtml([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const html = await writer.toHtml(providers, store);
 
-            // Multi-version tab should have count > 0
-            expect(html).toContain('multiVersionData');
+            // Duplicates tab should have data (multi-version dep goes in the duplicates tab)
+            expect(html).toContain('"tabs"');
+            expect(html).toContain('pnpm Duplicates');
         });
     });
 
@@ -190,10 +211,11 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const pages = writer.toDetailPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toDetailPages(providers, store);
 
             expect(pages).toHaveLength(1);
-            expect(pages[0]!.filename).toBe('scope-test-pkg@1.0.0.html');
+            expect(pages[0]!.filename).toBe('pnpm/details/scope-test-pkg@1.0.0.html');
             expect(pages[0]!.html).toContain('@scope/test-pkg@1.0.0');
         });
 
@@ -201,7 +223,8 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const pages = writer.toDetailPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toDetailPages(providers, store);
 
             const html = pages[0]!.html;
             expect(html).toContain('A test package');
@@ -213,7 +236,8 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const pages = writer.toDetailPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toDetailPages(providers, store);
 
             const html = pages[0]!.html;
             expect(html).toContain('Upgrade Path');
@@ -224,7 +248,8 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const pages = writer.toDetailPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toDetailPages(providers, store);
 
             const html = pages[0]!.html;
             expect(html).toContain('Used By <span class="dep-count-badge">2</span>');
@@ -255,7 +280,8 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const pages = writer.toDetailPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toDetailPages(providers, store);
 
             const html = pages[0]!.html;
             expect(html).toContain('Surface');
@@ -282,7 +308,8 @@ describe('HtmlWriter', () => {
             const store = new FactStore();
             store.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
             store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
-            const pages = writer.toDetailPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toDetailPages(providers, store);
 
             const html = pages[0]!.html;
             // Should not contain the custom metadata section label inline with value
@@ -305,7 +332,8 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const pages = writer.toAllGroupingPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toAllGroupingPages(providers, store);
             expect(pages).toHaveLength(0);
         });
 
@@ -315,14 +343,14 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const { index, details } = writer.toGroupingPages([dep], teamGrouping, store);
+            const { index, details } = writer.toGroupingPages([dep], teamGrouping, store, 'pnpm/');
 
-            expect(index.filename).toBe('teams/index.html');
+            expect(index.filename).toBe('pnpm/teams/index.html');
             expect(index.html).toContain('Teams');
             expect(index.html).toContain('TestTeam');
 
             expect(details).toHaveLength(1);
-            expect(details[0]!.filename).toBe('teams/TestTeam.html');
+            expect(details[0]!.filename).toBe('pnpm/teams/TestTeam.html');
             expect(details[0]!.html).toContain('Teams: TestTeam');
             expect(details[0]!.html).toContain('@scope/test-pkg');
         });
@@ -347,15 +375,16 @@ describe('HtmlWriter', () => {
 
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const pages = writer.toAllGroupingPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toAllGroupingPages(providers, store);
             // 1 team index + 1 team detail + 1 surface index + 1 surface detail = 4
             expect(pages).toHaveLength(4);
 
             const filenames = pages.map((p) => p.filename);
-            expect(filenames).toContain('teams/index.html');
-            expect(filenames).toContain('teams/TestTeam.html');
-            expect(filenames).toContain('surfaces/index.html');
-            expect(filenames).toContain('surfaces/test-surface.html');
+            expect(filenames).toContain('pnpm/teams/index.html');
+            expect(filenames).toContain('pnpm/teams/TestTeam.html');
+            expect(filenames).toContain('pnpm/surfaces/index.html');
+            expect(filenames).toContain('pnpm/surfaces/test-surface.html');
         });
 
         it('groups multiple deps under the same grouping value', () => {
@@ -366,7 +395,7 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter({
                 groupings: [teamGrouping],
             });
-            const { details } = writer.toGroupingPages([dep1, dep2], teamGrouping, store);
+            const { details } = writer.toGroupingPages([dep1, dep2], teamGrouping, store, 'pnpm/');
 
             expect(details).toHaveLength(1);
             expect(details[0]!.html).toContain('pkg-a');
@@ -390,7 +419,12 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter({
                 groupings: [partialGrouping],
             });
-            const { details } = writer.toGroupingPages([dep1, dep2], partialGrouping, store);
+            const { details } = writer.toGroupingPages(
+                [dep1, dep2],
+                partialGrouping,
+                store,
+                'pnpm/',
+            );
 
             expect(details).toHaveLength(1);
             expect(details[0]!.html).toContain('with-team');
@@ -409,11 +443,12 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const pages = writer.toAllGroupingPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toAllGroupingPages(providers, store);
 
             const filenames = pages.map((p) => p.filename);
-            expect(filenames).toContain('env/index.html');
-            expect(filenames).toContain('env/production.html');
+            expect(filenames).toContain('pnpm/env/index.html');
+            expect(filenames).toContain('pnpm/env/production.html');
         });
 
         it('includes nav links for configured groupings', async () => {
@@ -422,7 +457,8 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = await writer.toHtml([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const html = await writer.toHtml(providers, store);
 
             expect(html).toContain('teams/index.html');
             expect(html).toContain('Teams');
@@ -434,7 +470,8 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const pages = writer.toDetailPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toDetailPages(providers, store);
 
             expect(pages[0]!.html).toContain('teams/index.html');
             expect(pages[0]!.html).toContain('Teams');
@@ -455,7 +492,7 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const { details } = writer.toGroupingPages([dep], teamGrouping, store);
+            const { details } = writer.toGroupingPages([dep], teamGrouping, store, 'pnpm/');
 
             expect(details[0]!.html).toContain('Compliance');
             expect(details[0]!.html).toContain('Out of Compliance');
@@ -467,55 +504,66 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const { index } = writer.toGroupingPages([dep], teamGrouping, store);
+            const { index } = writer.toGroupingPages([dep], teamGrouping, store, 'pnpm/');
 
             // The dep is outdated (1.0.0 vs 2.0.0)
             expect(index.html).toContain('outdated');
         });
     });
 
-    describe('hasCatalog parameter', () => {
-        it('shows catalog tab when hasCatalog is true, even with no catalog data', async () => {
+    describe('supportsCatalog in provider', () => {
+        it('includes supportsCatalog: true in tabs JSON when provider supports catalog', async () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency({
                 versions: [makeMockVersion({ inCatalog: false })],
             });
             const store = makeMockStore([dep]);
-            const html = await writer.toHtml([dep], store, true);
+            const providers: ProviderOutput[] = [makeProvider([dep], { supportsCatalog: true })];
+            const html = await writer.toHtml(providers, store);
 
-            expect(html).toContain('hasCatalog: true');
+            expect(html).toContain('"supportsCatalog":true');
         });
 
-        it('hides catalog tab when hasCatalog is false, even with catalog data', async () => {
+        it('includes supportsCatalog: false in tabs JSON when provider does not support catalog', async () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency({
                 versions: [makeMockVersion({ inCatalog: true })],
             });
             const store = makeMockStore([dep]);
-            const html = await writer.toHtml([dep], store, false);
+            const providers: ProviderOutput[] = [makeProvider([dep], { supportsCatalog: false })];
+            const html = await writer.toHtml(providers, store);
 
-            expect(html).toContain('hasCatalog: false');
+            expect(html).toContain('"supportsCatalog":false');
         });
 
-        it('defaults hasCatalog to false when omitted', async () => {
+        it('defaults supportsCatalog based on provider when not explicitly set', async () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency({
                 versions: [makeMockVersion({ inCatalog: true })],
             });
             const store = makeMockStore([dep]);
-            const html = await writer.toHtml([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep], { supportsCatalog: false })];
+            const html = await writer.toHtml(providers, store);
 
-            expect(html).toContain('hasCatalog: false');
+            expect(html).toContain('"supportsCatalog":false');
         });
     });
 
     describe('edge cases', () => {
-        it('handles empty dependencies array', async () => {
+        it('handles empty providers array', async () => {
             const writer = new HtmlWriter();
             const store = new FactStore();
             const html = await writer.toHtml([], store);
             expect(html).toContain('<!DOCTYPE html>');
             expect(html).toContain('Dependicus - Dependency Report');
+        });
+
+        it('handles provider with empty dependencies array', async () => {
+            const writer = new HtmlWriter();
+            const providers: ProviderOutput[] = [makeProvider([])];
+            const store = new FactStore();
+            const html = await writer.toHtml(providers, store);
+            expect(html).toContain('<!DOCTYPE html>');
         });
 
         it('handles dependencies with empty versions array', async () => {
@@ -524,12 +572,13 @@ describe('HtmlWriter', () => {
                 packageName: 'empty-pkg',
                 versions: [],
             };
+            const providers: ProviderOutput[] = [makeProvider([dep])];
             const store = new FactStore();
-            const html = await writer.toHtml([dep], store);
+            const html = await writer.toHtml(providers, store);
             expect(html).toContain('<!DOCTYPE html>');
         });
 
-        it('generates no detail pages for empty dependencies', () => {
+        it('generates no detail pages for empty providers', () => {
             const writer = new HtmlWriter();
             const store = new FactStore();
             const pages = writer.toDetailPages([], store);
@@ -545,7 +594,8 @@ describe('HtmlWriter', () => {
             ]);
 
             const writer = new HtmlWriter();
-            const pages = writer.toDetailPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toDetailPages(providers, store);
 
             const html = pages[0]!.html;
             expect(html).toContain('Deprecated Transitive Dependencies');
@@ -559,7 +609,8 @@ describe('HtmlWriter', () => {
             // Default store already has empty deprecated transitive deps
 
             const writer = new HtmlWriter();
-            const pages = writer.toDetailPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toDetailPages(providers, store);
 
             const html = pages[0]!.html;
             expect(html).not.toContain('Deprecated Transitive Dependencies');
@@ -579,7 +630,8 @@ describe('HtmlWriter', () => {
             store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
-            const pages = writer.toDetailPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toDetailPages(providers, store);
 
             const html = pages[0]!.html;
             expect(html).toContain('up to date');
@@ -609,7 +661,8 @@ describe('HtmlWriter', () => {
             store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
-            const pages = writer.toDetailPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toDetailPages(providers, store);
             const html = pages[0]!.html;
 
             // Size column header should be present
@@ -633,7 +686,8 @@ describe('HtmlWriter', () => {
             store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
-            const pages = writer.toDetailPages([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const pages = writer.toDetailPages(providers, store);
 
             const html = pages[0]!.html;
             expect(html).toContain('@scope/test-pkg@1.0.0');
@@ -655,9 +709,10 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = await writer.toHtml([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const html = await writer.toHtml(providers, store);
 
-            // The custom column data should be in the allData JSON
+            // The custom column data should be in the tabs JSON
             expect(html).toContain('"surface"');
             expect(html).toContain('test-surface');
             expect(html).toContain('customColumns');
@@ -671,7 +726,8 @@ describe('HtmlWriter', () => {
             store.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
             store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
-            const html = await writer.toHtml([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const html = await writer.toHtml(providers, store);
 
             // Standard notes should still appear in uniqueNotes for filter dropdown
             expect(html).toContain('Patched');
@@ -683,8 +739,9 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
             // Should not throw
-            const html = await writer.toHtml([dep], store);
+            const html = await writer.toHtml(providers, store);
             expect(html).toContain('<!DOCTYPE html>');
         });
 
@@ -692,10 +749,11 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = await writer.toHtml([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const html = await writer.toHtml(providers, store);
 
             // Without getUsedByGroupKey, Used By Grouped should be null in the JSON data
-            expect(html).toContain('"Used By Grouped": null');
+            expect(html).toContain('"Used By Grouped":null');
         });
 
         it('groupPackagesByMeta uses custom group key', async () => {
@@ -707,7 +765,8 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const html = await writer.toHtml([dep], store);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const html = await writer.toHtml(providers, store);
 
             expect(html).toContain('TestTeam');
         });

@@ -4,6 +4,7 @@ export type {
     DependencyVersion,
     DependicusOutput,
     OutputMetadata,
+    ProviderOutput,
     GroupingConfig,
     GroupingDetailContext,
     GroupingSection,
@@ -14,7 +15,7 @@ export type {
     PackageVersionInfo,
     UsedByGroupKeyFn,
 } from './types';
-export { computeOutputMetadata } from './types';
+export { mergeProviderDependencies } from './types';
 
 export {
     formatDate,

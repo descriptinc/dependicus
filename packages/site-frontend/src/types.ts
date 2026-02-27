@@ -42,16 +42,24 @@ export interface BrowserColumnDef {
 }
 
 /**
+ * A single tab in the dependency dashboard
+ */
+export interface DashboardTab {
+    id: string;
+    label: string;
+    data: RowData[];
+    groupBy?: string; // column name for grouped tables (e.g. 'Package Name')
+    supportsCatalog: boolean;
+}
+
+/**
  * Data passed from Node.js to browser via global variable
  */
 export interface DependicusData {
-    allData: RowData[];
-    multiVersionData: RowData[];
-    catalogData: RowData[];
+    tabs: DashboardTab[];
     uniqueNotes: string[];
     customColumns: BrowserColumnDef[];
     groupings: GroupingSlug[];
-    hasCatalog: boolean;
 }
 
 /**

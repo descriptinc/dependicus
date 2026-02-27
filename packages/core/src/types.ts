@@ -1,6 +1,5 @@
 import type { SerializedFacts } from './sources/FactStore';
 import type { FactStore } from './sources/FactStore';
-import { FactKeys } from './sources/FactStore';
 
 export interface PackageInfo {
     name: string;
@@ -79,45 +78,92 @@ export interface GitHubData {
 // ============================================================================
 
 /**
+ * Per-provider dependency output.
+ */
+export interface ProviderOutput {
+    name: string;
+    supportsCatalog: boolean;
+    dependencies: DirectDependency[];
+}
+
+/**
  * Full dependicus JSON output format
  */
 export interface DependicusOutput {
     metadata: OutputMetadata;
-    dependencies: DirectDependency[];
+    providers: ProviderOutput[];
     facts: SerializedFacts;
 }
 
 export interface OutputMetadata {
     generatedAt: string;
-    totalDependencies: number;
-    totalPackages: number;
-    deprecatedCount: number;
-    hasCatalog: boolean;
 }
 
-export function computeOutputMetadata(
-    dependencies: DirectDependency[],
-    store: FactStore,
-    supportsCatalog: boolean,
-): OutputMetadata {
-    let deprecatedCount = 0;
-    for (const dep of dependencies) {
-        for (const ver of dep.versions) {
-            if (
-                store.getVersionFact<boolean>(dep.packageName, ver.version, FactKeys.IS_DEPRECATED)
-            ) {
-                deprecatedCount++;
+/**
+ * Merge dependencies from multiple providers into a single deduplicated list.
+ * Merges by (packageName, version), unioning usedBy and dependencyTypes.
+ * Useful for consumers that don't care about provider identity (tickets, issues).
+ */
+export function mergeProviderDependencies(providers: ProviderOutput[]): DirectDependency[] {
+    // Map: packageName -> Map<version, merged entry>
+    const depMap = new Map<
+        string,
+        Map<
+            string,
+            {
+                usedBy: Set<string>;
+                types: Set<'dev' | 'prod'>;
+                latestVersion: string;
+                publishDate: string;
+                inCatalog: boolean;
+            }
+        >
+    >();
+
+    for (const provider of providers) {
+        for (const dep of provider.dependencies) {
+            let versionMap = depMap.get(dep.packageName);
+            if (!versionMap) {
+                versionMap = new Map();
+                depMap.set(dep.packageName, versionMap);
+            }
+            for (const ver of dep.versions) {
+                let entry = versionMap.get(ver.version);
+                if (!entry) {
+                    entry = {
+                        usedBy: new Set(),
+                        types: new Set(),
+                        latestVersion: ver.latestVersion,
+                        publishDate: ver.publishDate,
+                        inCatalog: ver.inCatalog,
+                    };
+                    versionMap.set(ver.version, entry);
+                }
+                for (const u of ver.usedBy) entry.usedBy.add(u);
+                for (const t of ver.dependencyTypes) entry.types.add(t);
+                if (ver.inCatalog) entry.inCatalog = true;
             }
         }
     }
 
-    return {
-        generatedAt: new Date().toISOString(),
-        totalDependencies: dependencies.reduce((sum, d) => sum + d.versions.length, 0),
-        totalPackages: dependencies.length,
-        deprecatedCount,
-        hasCatalog: supportsCatalog,
-    };
+    const result: DirectDependency[] = [];
+    for (const [packageName, versionMap] of depMap) {
+        const versions: DependencyVersion[] = [];
+        for (const [version, entry] of versionMap) {
+            versions.push({
+                version,
+                latestVersion: entry.latestVersion,
+                usedBy: Array.from(entry.usedBy).sort(),
+                dependencyTypes: Array.from(entry.types).sort(),
+                publishDate: entry.publishDate,
+                inCatalog: entry.inCatalog,
+            });
+        }
+        versions.sort((a, b) => b.usedBy.length - a.usedBy.length);
+        result.push({ packageName, versions });
+    }
+    result.sort((a, b) => a.packageName.localeCompare(b.packageName));
+    return result;
 }
 
 export type UsedByGroupKeyFn = (

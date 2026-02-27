@@ -1,13 +1,20 @@
-import type { DirectDependency, DependencyVersion, PackageInfo } from '../types';
+import type { DirectDependency, DependencyVersion, PackageInfo, ProviderOutput } from '../types';
 import type { DependencyProvider } from '../providers/DependencyProvider';
 import type { RegistryService } from './RegistryService';
 import { WORKER_COUNT } from '../constants';
 import { processInParallel } from '../utils/workerQueue';
 
-interface PackageWithProvider {
-    pkg: PackageInfo;
-    provider: DependencyProvider;
-}
+type DependencyMap = Map<
+    string,
+    Map<
+        string,
+        {
+            usedBy: Set<string>;
+            types: Set<'dev' | 'prod'>;
+            provider: DependencyProvider;
+        }
+    >
+>;
 
 export class DependencyCollector {
     constructor(
@@ -16,53 +23,35 @@ export class DependencyCollector {
     ) {}
 
     /**
-     * Collect all direct dependencies across the monorepo.
-     * Returns a flat, deduplicated list with version tracking.
+     * Collect direct dependencies per provider.
+     * Each provider gets its own ProviderOutput entry.
      */
-    async collectDirectDependencies(): Promise<DirectDependency[]> {
-        // Collect packages from all providers
-        const allPackagesWithProvider: PackageWithProvider[] = [];
+    async collectDirectDependencies(): Promise<ProviderOutput[]> {
+        const results: ProviderOutput[] = [];
+
         for (const provider of this.providers) {
             const packages = await provider.getPackages();
+
+            const dependencyMap: DependencyMap = new Map();
             for (const pkg of packages) {
-                allPackagesWithProvider.push({ pkg, provider });
+                this.processPackageDependencies(pkg, provider, dependencyMap);
             }
+
+            const dependencies = await this.convertToDirectDependencies(dependencyMap);
+            results.push({
+                name: provider.name,
+                supportsCatalog: provider.supportsCatalog,
+                dependencies,
+            });
         }
 
-        // Map: packageName -> Map<version, {usedBy: Set<string>, types: Set<'dev' | 'prod'>, provider: DependencyProvider}>
-        const dependencyMap = new Map<
-            string,
-            Map<
-                string,
-                {
-                    usedBy: Set<string>;
-                    types: Set<'dev' | 'prod'>;
-                    provider: DependencyProvider;
-                }
-            >
-        >();
-
-        for (const { pkg, provider } of allPackagesWithProvider) {
-            this.processPackageDependencies(pkg, provider, dependencyMap);
-        }
-
-        return await this.convertToDirectDependencies(dependencyMap);
+        return results;
     }
 
     private processPackageDependencies(
         pkg: PackageInfo,
         provider: DependencyProvider,
-        dependencyMap: Map<
-            string,
-            Map<
-                string,
-                {
-                    usedBy: Set<string>;
-                    types: Set<'dev' | 'prod'>;
-                    provider: DependencyProvider;
-                }
-            >
-        >,
+        dependencyMap: DependencyMap,
     ): void {
         // Process production dependencies
         if (pkg.dependencies) {
@@ -104,17 +93,7 @@ export class DependencyCollector {
     }
 
     private addDependencyToMap(
-        dependencyMap: Map<
-            string,
-            Map<
-                string,
-                {
-                    usedBy: Set<string>;
-                    types: Set<'dev' | 'prod'>;
-                    provider: DependencyProvider;
-                }
-            >
-        >,
+        dependencyMap: DependencyMap,
         depName: string,
         version: string,
         packageName: string,
@@ -140,17 +119,7 @@ export class DependencyCollector {
     }
 
     private async convertToDirectDependencies(
-        dependencyMap: Map<
-            string,
-            Map<
-                string,
-                {
-                    usedBy: Set<string>;
-                    types: Set<'dev' | 'prod'>;
-                    provider: DependencyProvider;
-                }
-            >
-        >,
+        dependencyMap: DependencyMap,
     ): Promise<DirectDependency[]> {
         const result: DirectDependency[] = [];
 
@@ -200,17 +169,7 @@ export class DependencyCollector {
     }
 
     private async fetchAllRegistryData(
-        dependencyMap: Map<
-            string,
-            Map<
-                string,
-                {
-                    usedBy: Set<string>;
-                    types: Set<'dev' | 'prod'>;
-                    provider: DependencyProvider;
-                }
-            >
-        >,
+        dependencyMap: DependencyMap,
     ): Promise<Map<string, { publishDate: string; latestVersion: string }>> {
         // Fetch full metadata per package (not per version). This is the same
         // data that NpmRegistrySource.prefetchFullMetadata fetches later, so
