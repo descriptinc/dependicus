@@ -474,6 +474,41 @@ describe('HtmlWriter', () => {
         });
     });
 
+    describe('hasCatalog parameter', () => {
+        it('shows catalog tab when hasCatalog is true, even with no catalog data', async () => {
+            const writer = new HtmlWriter();
+            const dep = makeMockDependency({
+                versions: [makeMockVersion({ inCatalog: false })],
+            });
+            const store = makeMockStore([dep]);
+            const html = await writer.toHtml([dep], store, true);
+
+            expect(html).toContain('hasCatalog: true');
+        });
+
+        it('hides catalog tab when hasCatalog is false, even with catalog data', async () => {
+            const writer = new HtmlWriter();
+            const dep = makeMockDependency({
+                versions: [makeMockVersion({ inCatalog: true })],
+            });
+            const store = makeMockStore([dep]);
+            const html = await writer.toHtml([dep], store, false);
+
+            expect(html).toContain('hasCatalog: false');
+        });
+
+        it('defaults hasCatalog to false when omitted', async () => {
+            const writer = new HtmlWriter();
+            const dep = makeMockDependency({
+                versions: [makeMockVersion({ inCatalog: true })],
+            });
+            const store = makeMockStore([dep]);
+            const html = await writer.toHtml([dep], store);
+
+            expect(html).toContain('hasCatalog: false');
+        });
+    });
+
     describe('edge cases', () => {
         it('handles empty dependencies array', async () => {
             const writer = new HtmlWriter();

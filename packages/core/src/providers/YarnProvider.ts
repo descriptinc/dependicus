@@ -17,6 +17,7 @@ interface YarnLockEntry {
 
 export class YarnProvider implements DependencyProvider {
     readonly name = 'yarn';
+    readonly supportsCatalog = false;
     readonly rootDir: string;
     readonly lockfilePath: string;
     private cachedPackages: PackageInfo[] | undefined = undefined;

@@ -25,6 +25,7 @@ function mockProvider(overrides: Partial<DependencyProvider> = {}): DependencyPr
         name: 'mock',
         rootDir: '/repo',
         lockfilePath: '/repo/mock.lock',
+        supportsCatalog: false,
         getPackages: vi.fn().mockResolvedValue([]),
         isPatched: vi.fn(() => false),
         hasPackageInCatalog: vi.fn(() => false),

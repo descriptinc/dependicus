@@ -202,7 +202,11 @@ export class HtmlWriter {
     /**
      * Generate a standalone HTML page with embedded data and enhanced Tabulator viewer.
      */
-    async toHtml(dependencies: DirectDependency[], store: FactStore): Promise<string> {
+    async toHtml(
+        dependencies: DirectDependency[],
+        store: FactStore,
+        hasCatalog = false,
+    ): Promise<string> {
         // Flatten data into rows (similar to CSV structure)
         const allRows: Array<
             Record<string, string | number | boolean | Record<string, string[]> | null>
@@ -285,8 +289,6 @@ export class HtmlWriter {
             hasTooltip: col.getTooltip !== undefined,
             hasFilterValue: col.getFilterValue !== undefined,
         }));
-
-        const hasCatalog = catalogRows.length > 0;
 
         // Render content using template
         const content = this.templateService.render('pages/index', {

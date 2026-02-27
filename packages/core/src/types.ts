@@ -98,6 +98,7 @@ export interface OutputMetadata {
 export function computeOutputMetadata(
     dependencies: DirectDependency[],
     store: FactStore,
+    supportsCatalog: boolean,
 ): OutputMetadata {
     let deprecatedCount = 0;
     for (const dep of dependencies) {
@@ -109,23 +110,13 @@ export function computeOutputMetadata(
             }
         }
     }
-    let hasCatalog = false;
-    for (const dep of dependencies) {
-        for (const ver of dep.versions) {
-            if (ver.inCatalog) {
-                hasCatalog = true;
-                break;
-            }
-        }
-        if (hasCatalog) break;
-    }
 
     return {
         generatedAt: new Date().toISOString(),
         totalDependencies: dependencies.reduce((sum, d) => sum + d.versions.length, 0),
         totalPackages: dependencies.length,
         deprecatedCount,
-        hasCatalog,
+        hasCatalog: supportsCatalog,
     };
 }
 

@@ -28,6 +28,7 @@ export interface CoreServicesConfig {
 }
 
 export interface CoreServices {
+    readonly supportsCatalog: boolean;
     collect(): Promise<{ dependencies: DirectDependency[]; store: FactStore }>;
 }
 
@@ -58,7 +59,10 @@ export function createCoreServices(config: CoreServicesConfig): CoreServices {
 
     const collector = new DependencyCollector(providers, registryService);
 
+    const supportsCatalog = providers.some((p) => p.supportsCatalog);
+
     return {
+        supportsCatalog,
         async collect(): Promise<{ dependencies: DirectDependency[]; store: FactStore }> {
             const dependencies = await collector.collectDirectDependencies();
             const store = new FactStore();

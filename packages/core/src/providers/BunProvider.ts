@@ -50,6 +50,7 @@ function extractVersion(resolvedId: string): string | undefined {
 
 export class BunProvider implements DependencyProvider {
     readonly name = 'bun';
+    readonly supportsCatalog = true;
     readonly rootDir: string;
     readonly lockfilePath: string;
     private cachedPackages: PackageInfo[] | undefined = undefined;

@@ -15,6 +15,7 @@ interface PnpmWorkspace {
 
 export class PnpmProvider implements DependencyProvider {
     readonly name = 'pnpm';
+    readonly supportsCatalog = true;
     readonly rootDir: string;
     readonly lockfilePath: string;
     private cachedPackages: PackageInfo[] | undefined = undefined;

@@ -67,7 +67,7 @@ export async function createDependicus(config: DependicusConfig): Promise<Depend
         async collectData(): Promise<CollectResult> {
             const { dependencies, store } = await core.collect();
             return {
-                metadata: computeOutputMetadata(dependencies, store),
+                metadata: computeOutputMetadata(dependencies, store, core.supportsCatalog),
                 dependencies,
                 facts: store.toJSON(),
                 store,
@@ -84,7 +84,7 @@ export async function createDependicus(config: DependicusConfig): Promise<Depend
             await mkdir(outputDir, { recursive: true });
 
             // Generate index
-            const html = await htmlWriter.toHtml(dependencies, store);
+            const html = await htmlWriter.toHtml(dependencies, store, core.supportsCatalog);
             await writeFile(join(outputDir, 'index.html'), html, 'utf-8');
 
             // Write bundled CSS for detail and grouping pages

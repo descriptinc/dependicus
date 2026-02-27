@@ -9,6 +9,7 @@ function createMockProvider(packages: PackageInfo[] = []): DependencyProvider {
         name: 'mock',
         rootDir: '/repo',
         lockfilePath: '/repo/mock.lock',
+        supportsCatalog: false,
         getPackages: vi.fn().mockResolvedValue(packages),
         isInCatalog: vi.fn().mockReturnValue(false),
         hasPackageInCatalog: vi.fn().mockReturnValue(false),
