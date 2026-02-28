@@ -1,12 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { DeprecationSource } from './DeprecationSource';
-import { FactStore, FactKeys } from './FactStore';
+import { RootFactStore, FactKeys } from './FactStore';
 import type { DirectDependency } from '../types';
 import type { DeprecationService } from '../services/DeprecationService';
 
 function makeDep(packageName: string, version: string, latestVersion = '2.0.0'): DirectDependency {
     return {
         packageName,
+        ecosystem: 'npm',
         versions: [
             {
                 version,
@@ -44,7 +45,7 @@ describe('DeprecationSource', () => {
             getDeprecatedPackages: vi.fn(async () => new Set(['old-lib@1.0.0'])),
         });
         const source = new DeprecationSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         await source.fetch([makeDep('old-lib', '1.0.0')], store);
 
@@ -56,7 +57,7 @@ describe('DeprecationSource', () => {
             getDeprecatedPackages: vi.fn(async () => new Set<string>()),
         });
         const source = new DeprecationSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         await source.fetch([makeDep('react', '18.2.0')], store);
 
@@ -74,7 +75,7 @@ describe('DeprecationSource', () => {
             getDeprecationMap: vi.fn(async () => deprecationMap),
         });
         const source = new DeprecationSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         await source.fetch([makeDep('react', '18.2.0')], store);
 
@@ -93,7 +94,7 @@ describe('DeprecationSource', () => {
             getDeprecationMap: vi.fn(async () => deprecationMap),
         });
         const source = new DeprecationSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         const deps = [makeDep('react', '18.2.0'), makeDep('old-lib', '1.0.0')];
         await source.fetch(deps, store);
@@ -115,7 +116,7 @@ describe('DeprecationSource', () => {
             getDeprecationMap: vi.fn(async () => deprecationMap),
         });
         const source = new DeprecationSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         await source.fetch([makeDep('my-pkg', '1.0.0')], store);
 
@@ -132,7 +133,7 @@ describe('DeprecationSource', () => {
             getDeprecationMap: vi.fn(async () => new Map()),
         });
         const source = new DeprecationSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         await source.fetch([makeDep('react', '18.2.0')], store);
 
@@ -147,10 +148,11 @@ describe('DeprecationSource', () => {
             getDeprecatedPackages: vi.fn(async () => deprecated),
         });
         const source = new DeprecationSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         const dep: DirectDependency = {
             packageName: 'react',
+            ecosystem: 'npm',
             versions: [
                 {
                     version: '17.0.0',

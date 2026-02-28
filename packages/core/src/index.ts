@@ -57,8 +57,8 @@ export { detectProviders, detectRuntime, createProvidersByName } from './provide
 
 // Sources module
 export type { DataSource } from './sources/types';
-export { FactStore, FactKeys } from './sources/FactStore';
-export type { SerializedFacts } from './sources/FactStore';
+export type { FactStore, SerializedFacts } from './sources/FactStore';
+export { RootFactStore, ScopedFactStore, FactKeys } from './sources/FactStore';
 export { runSources } from './sources/runSources';
 export { NpmRegistrySource } from './sources/NpmRegistrySource';
 export { NpmSizeSource } from './sources/NpmSizeSource';

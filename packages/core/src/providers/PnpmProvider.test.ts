@@ -7,6 +7,7 @@ import type { PackageInfo } from '../types';
 
 vi.mock('node:child_process', () => ({
     execSync: vi.fn(),
+    execFile: vi.fn(),
 }));
 
 import { execSync } from 'node:child_process';

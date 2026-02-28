@@ -3,7 +3,11 @@ import { join, resolve } from 'node:path';
 import { satisfies, validRange } from 'semver';
 import type { PackageInfo, DependencyInfo } from '../types';
 import type { CacheService } from '../services/CacheService';
-import type { DependencyProvider } from './DependencyProvider';
+import type { DependencyProvider, SourceContext } from './DependencyProvider';
+import type { DataSource } from '../sources/types';
+import { NpmRegistryService } from '../services/NpmRegistryService';
+import { NpmRegistrySource } from '../sources/NpmRegistrySource';
+import { NpmSizeSource } from '../sources/NpmSizeSource';
 
 /**
  * Shape of the bun.lock JSONC file (bun >= 1.2).
@@ -50,6 +54,7 @@ function extractVersion(resolvedId: string): string | undefined {
 
 export class BunProvider implements DependencyProvider {
     readonly name = 'bun';
+    readonly ecosystem = 'npm';
     readonly supportsCatalog = true;
     readonly rootDir: string;
     readonly lockfilePath: string;
@@ -166,5 +171,10 @@ export class BunProvider implements DependencyProvider {
         void _version;
         void packageName;
         return false;
+    }
+
+    createSources(ctx: SourceContext): DataSource[] {
+        const registryService = new NpmRegistryService(ctx.cacheService, this.lockfilePath);
+        return [new NpmRegistrySource(registryService), new NpmSizeSource(registryService)];
     }
 }

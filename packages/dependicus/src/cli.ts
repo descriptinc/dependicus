@@ -126,7 +126,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                 .option('--repo-root <path>', 'Root directory of the project (default: cwd)')
                 .option(
                     '--provider <name>',
-                    'Dependency provider to use (repeatable): pnpm, bun, yarn (default: auto-detect)',
+                    'Dependency provider to use (repeatable): pnpm, bun, yarn, mise (default: auto-detect)',
                     collect,
                     [] as string[],
                 );

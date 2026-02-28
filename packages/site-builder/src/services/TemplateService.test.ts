@@ -154,7 +154,7 @@ describe('TemplateService', () => {
                         {
                             version: '2.0.0',
                             formattedPublishDate: '2025-01-01',
-                            npmUrl: 'https://npmjs.com/pkg',
+                            registryUrl: 'https://npmjs.com/pkg',
                             isLatest: true,
                         },
                     ],

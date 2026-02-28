@@ -1,7 +1,8 @@
-export type { DependencyProvider } from './DependencyProvider';
+export type { DependencyProvider, SourceContext } from './DependencyProvider';
 export { PnpmProvider } from './PnpmProvider';
 export { BunProvider } from './BunProvider';
 export { YarnProvider } from './YarnProvider';
+export { MiseProvider } from './MiseProvider';
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -10,6 +11,7 @@ import type { DependencyProvider } from './DependencyProvider';
 import { PnpmProvider } from './PnpmProvider';
 import { BunProvider } from './BunProvider';
 import { YarnProvider } from './YarnProvider';
+import { MiseProvider } from './MiseProvider';
 
 /**
  * Detect the active package manager from the runtime environment.
@@ -51,9 +53,12 @@ export function detectProviders(cacheService: CacheService, rootDir: string): De
     if (existsSync(join(rootDir, 'yarn.lock'))) {
         providers.push(new YarnProvider(cacheService, rootDir));
     }
+    if (existsSync(join(rootDir, 'mise.toml'))) {
+        providers.push(new MiseProvider(cacheService, rootDir));
+    }
     if (providers.length === 0) {
         throw new Error(
-            'No supported lockfile found. Expected pnpm-lock.yaml, bun.lock, or yarn.lock in ' +
+            'No supported lockfile found. Expected pnpm-lock.yaml, bun.lock, yarn.lock, or mise.toml in ' +
                 rootDir,
         );
     }
@@ -80,8 +85,11 @@ export function createProvidersByName(
             case 'yarn':
                 providers.push(new YarnProvider(cacheService, rootDir));
                 break;
+            case 'mise':
+                providers.push(new MiseProvider(cacheService, rootDir));
+                break;
             default:
-                throw new Error(`Unknown provider: ${name}. Supported: pnpm, bun, yarn`);
+                throw new Error(`Unknown provider: ${name}. Supported: pnpm, bun, yarn, mise`);
         }
     }
     return providers;

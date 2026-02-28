@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { DependencyVersion, PackageVersionInfo, GitHubData } from '@dependicus/core';
-import { FactStore, FactKeys } from '@dependicus/core';
+import { RootFactStore, FactKeys } from '@dependicus/core';
+import type { FactStore } from '@dependicus/core';
 import type { OutdatedPackage, OutdatedGroup } from './types';
 import {
     buildIssueDescription,
@@ -13,13 +14,13 @@ const defaultVersionsBetween: PackageVersionInfo[] = [
         version: '1.1.0',
         publishDate: '2024-03-01',
         isPrerelease: false,
-        npmUrl: 'https://www.npmjs.com/package/test-pkg/v/1.1.0',
+        registryUrl: 'https://www.npmjs.com/package/test-pkg/v/1.1.0',
     },
     {
         version: '2.0.0',
         publishDate: '2024-06-01',
         isPrerelease: false,
-        npmUrl: 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
+        registryUrl: 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
     },
 ];
 
@@ -38,6 +39,7 @@ function makeVersion(overrides: Partial<DependencyVersion> = {}): DependencyVers
 function makePackage(overrides: Partial<OutdatedPackage> = {}): OutdatedPackage {
     return {
         packageName: 'test-pkg',
+        ecosystem: 'npm',
         versions: [makeVersion()],
         worstCompliance: { updateType: 'major', daysOverdue: 30, thresholdDays: 360 },
         owner: 'myorg',
@@ -45,7 +47,7 @@ function makePackage(overrides: Partial<OutdatedPackage> = {}): OutdatedPackage 
         policy: { type: 'dueDate' },
         assignment: { type: 'unassigned' },
         ...overrides,
-    };
+    } as OutdatedPackage;
 }
 
 function makeStore(
@@ -63,7 +65,8 @@ function makeStore(
         isPatched?: boolean;
     } = {},
 ): FactStore {
-    const store = new FactStore();
+    const root = new RootFactStore();
+    const store = root.scoped(pkg.ecosystem);
     const version = pkg.versions[0]!;
     const vb = opts.versionsBetween ?? defaultVersionsBetween;
 
@@ -127,28 +130,29 @@ function makeStore(
         store.setVersionFact(pkg.packageName, version.version, FactKeys.IS_PATCHED, true);
     }
 
-    return store;
+    return root;
 }
 
 function makeGroupStore(group: OutdatedGroup, descriptions?: Record<string, string>): FactStore {
-    const store = new FactStore();
+    const root = new RootFactStore();
     for (const pkg of group.packages) {
         const version = pkg.versions[0];
         if (!version) continue;
-        store.setVersionFact(
+        const scoped = root.scoped(pkg.ecosystem);
+        scoped.setVersionFact(
             pkg.packageName,
             version.version,
             FactKeys.VERSIONS_BETWEEN,
             defaultVersionsBetween,
         );
-        store.setVersionFact(
+        scoped.setVersionFact(
             pkg.packageName,
             version.version,
             FactKeys.DESCRIPTION,
             descriptions?.[pkg.packageName] ?? 'A test package',
         );
     }
-    return store;
+    return root;
 }
 
 const BASE_URL = 'https://example.com/dependicus';
@@ -306,7 +310,7 @@ describe('buildNewVersionsComment', () => {
                 version: '2.1.0',
                 publishDate: '2024-07-01',
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/test-pkg/v/2.1.0',
+                registryUrl: 'https://www.npmjs.com/package/test-pkg/v/2.1.0',
             },
         ];
 
@@ -322,13 +326,13 @@ describe('buildNewVersionsComment', () => {
                 version: '2.1.0',
                 publishDate: '2024-07-01',
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/test-pkg/v/2.1.0',
+                registryUrl: 'https://www.npmjs.com/package/test-pkg/v/2.1.0',
             },
             {
                 version: '2.2.0',
                 publishDate: '2024-08-01',
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/test-pkg/v/2.2.0',
+                registryUrl: 'https://www.npmjs.com/package/test-pkg/v/2.2.0',
             },
         ];
 
@@ -342,7 +346,7 @@ describe('buildNewVersionsComment', () => {
                 version: '2.1.0',
                 publishDate: '2024-07-01',
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/test-pkg/v/2.1.0',
+                registryUrl: 'https://www.npmjs.com/package/test-pkg/v/2.1.0',
             },
         ];
 

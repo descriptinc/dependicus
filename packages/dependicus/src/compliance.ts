@@ -134,6 +134,9 @@ export function getPackageComplianceStatus(
 
     // Calculate how long the update has been available
     const daysAvailable = getAgeDays(firstVersion.publishDate);
+    if (daysAvailable === undefined) {
+        return { status: 'not-applicable' };
+    }
 
     if (daysAvailable > thresholdDays) {
         return {

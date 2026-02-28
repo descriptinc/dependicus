@@ -45,11 +45,14 @@ export function buildIssueDescription(
     dependicusBaseUrl: string,
     dueDate?: string,
 ): string {
-    const { packageName, versions, worstCompliance } = pkg;
+    const { packageName, ecosystem, versions, worstCompliance } = pkg;
     const version = versions[0];
     if (!version) {
         throw new Error(`No versions found for package ${packageName}`);
     }
+
+    // Scope store reads to the package's ecosystem
+    store = store.scoped(ecosystem);
 
     // Read enriched data from FactStore
     const versionsBetween =
@@ -186,13 +189,14 @@ export function buildGroupIssueDescription(
                 const version = pkg.versions[0];
                 if (!version) return undefined;
 
+                const scoped = store.scoped(pkg.ecosystem);
                 const versionsBetween =
-                    store.getVersionFact<PackageVersionInfo[]>(
+                    scoped.getVersionFact<PackageVersionInfo[]>(
                         pkg.packageName,
                         version.version,
                         FactKeys.VERSIONS_BETWEEN,
                     ) ?? [];
-                const pkgDescription = store.getVersionFact<string>(
+                const pkgDescription = scoped.getVersionFact<string>(
                     pkg.packageName,
                     version.version,
                     FactKeys.DESCRIPTION,

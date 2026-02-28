@@ -1,6 +1,6 @@
 export type { DataSource } from './types';
-export { FactStore, FactKeys } from './FactStore';
-export type { SerializedFacts } from './FactStore';
+export type { FactStore, SerializedFacts } from './FactStore';
+export { RootFactStore, ScopedFactStore, FactKeys } from './FactStore';
 export { runSources } from './runSources';
 export { NpmRegistrySource } from './NpmRegistrySource';
 export { NpmSizeSource } from './NpmSizeSource';

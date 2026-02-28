@@ -33,7 +33,7 @@
                 {{/if}}
             </div>
             <div class="dep-version-cell">
-                <a href="{{npmUrl}}">npm</a>
+                {{#if registryUrl}}<a href="{{registryUrl}}">Registry</a>{{/if}}
                 {{#if githubUrl}} | <a href="{{githubUrl}}">GitHub</a>{{/if}}
             </div>
 

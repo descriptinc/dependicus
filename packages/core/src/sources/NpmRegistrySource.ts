@@ -1,5 +1,5 @@
 import type { DirectDependency } from '../types';
-import type { RegistryService } from '../services/RegistryService';
+import type { NpmRegistryService } from '../services/NpmRegistryService';
 import { convertGitUrlToHttps } from '../utils/formatters';
 import type { DataSource, FactStore } from './types';
 import { FactKeys } from './FactStore';
@@ -15,7 +15,7 @@ export class NpmRegistrySource implements DataSource {
     readonly name = 'npm-registry';
     readonly dependsOn: readonly string[] = [];
 
-    constructor(private registryService: RegistryService) {}
+    constructor(private registryService: NpmRegistryService) {}
 
     async fetch(dependencies: DirectDependency[], store: FactStore): Promise<void> {
         const packageNames = dependencies.map((d) => d.packageName);

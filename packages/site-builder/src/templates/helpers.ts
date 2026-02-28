@@ -11,7 +11,7 @@ export const helpers = {
         if (!dateStr) {
             throw new Error('formatDate: date string is required');
         }
-        return formatDate(dateStr);
+        return formatDate(dateStr) ?? '';
     },
 
     /**
@@ -21,7 +21,7 @@ export const helpers = {
         if (!dateStr) {
             throw new Error('formatAgeHuman: date string is required');
         }
-        return formatAgeHuman(dateStr);
+        return formatAgeHuman(dateStr) ?? '';
     },
 
     /**

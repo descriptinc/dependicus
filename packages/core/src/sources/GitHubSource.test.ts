@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { GitHubSource } from './GitHubSource';
-import { FactStore, FactKeys } from './FactStore';
+import { RootFactStore, FactKeys } from './FactStore';
 import type { DirectDependency, GitHubData } from '../types';
 import type {
     GitHubService,
@@ -12,6 +12,7 @@ import type {
 function makeDep(packageName: string, version: string, latestVersion: string): DirectDependency {
     return {
         packageName,
+        ecosystem: 'npm',
         versions: [
             {
                 version,
@@ -60,10 +61,10 @@ function mockGitHubService(overrides: Partial<GitHubService> = {}): GitHubServic
 }
 
 describe('GitHubSource', () => {
-    it('has the correct name and depends on npm-registry', () => {
+    it('has the correct name and no dependencies', () => {
         const source = new GitHubSource(mockGitHubService());
         expect(source.name).toBe('github');
-        expect(source.dependsOn).toEqual(['npm-registry']);
+        expect(source.dependsOn).toEqual([]);
     });
 
     it('collects repo URLs from version facts and fetches', async () => {
@@ -72,15 +73,18 @@ describe('GitHubSource', () => {
         const prefetchRepoData = vi.fn(async () => {});
         const service = mockGitHubService({ parseRepoUrl, prefetchRepoData });
         const source = new GitHubSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         // Pre-populate rawRepoUrl facts (normally set by NpmRegistrySource)
-        store.setVersionFact(
-            'react',
-            '18.2.0',
-            FactKeys.RAW_REPO_URL,
-            'git+https://github.com/facebook/react.git',
-        );
+        // GitHubSource reads through store.scoped(dep.ecosystem), so write through scoped too
+        store
+            .scoped('npm')
+            .setVersionFact(
+                'react',
+                '18.2.0',
+                FactKeys.RAW_REPO_URL,
+                'git+https://github.com/facebook/react.git',
+            );
 
         await source.fetch([makeDep('react', '18.2.0', '19.0.0')], store);
 
@@ -95,8 +99,9 @@ describe('GitHubSource', () => {
             getChangelogUrl: vi.fn(async () => fakeChangelog),
         });
         const source = new GitHubSource(service);
-        const store = new FactStore();
-        store.setVersionFact(
+        const store = new RootFactStore();
+        const scoped = store.scoped('npm');
+        scoped.setVersionFact(
             'react',
             '18.2.0',
             FactKeys.RAW_REPO_URL,
@@ -105,7 +110,7 @@ describe('GitHubSource', () => {
 
         await source.fetch([makeDep('react', '18.2.0', '19.0.0')], store);
 
-        const githubData = store.getPackageFact<GitHubData>('react', FactKeys.GITHUB_DATA);
+        const githubData = scoped.getPackageFact<GitHubData>('react', FactKeys.GITHUB_DATA);
         expect(githubData).toBeDefined();
         expect(githubData!.owner).toBe('facebook');
         expect(githubData!.repo).toBe('react');
@@ -125,8 +130,9 @@ describe('GitHubSource', () => {
             ),
         });
         const source = new GitHubSource(service);
-        const store = new FactStore();
-        store.setVersionFact(
+        const store = new RootFactStore();
+        const scoped = store.scoped('npm');
+        scoped.setVersionFact(
             'react',
             '18.2.0',
             FactKeys.RAW_REPO_URL,
@@ -135,7 +141,7 @@ describe('GitHubSource', () => {
 
         await source.fetch([makeDep('react', '18.2.0', '19.0.0')], store);
 
-        expect(store.getVersionFact('react', '18.2.0', FactKeys.COMPARE_URL)).toBe(
+        expect(scoped.getVersionFact('react', '18.2.0', FactKeys.COMPARE_URL)).toBe(
             'https://github.com/facebook/react/compare/v18.2.0...v19.0.0',
         );
     });
@@ -148,8 +154,9 @@ describe('GitHubSource', () => {
             getCompareUrl,
         });
         const source = new GitHubSource(service);
-        const store = new FactStore();
-        store.setVersionFact(
+        const store = new RootFactStore();
+        const scoped = store.scoped('npm');
+        scoped.setVersionFact(
             'react',
             '19.0.0',
             FactKeys.RAW_REPO_URL,
@@ -159,7 +166,7 @@ describe('GitHubSource', () => {
         await source.fetch([makeDep('react', '19.0.0', '19.0.0')], store);
 
         expect(getCompareUrl).not.toHaveBeenCalled();
-        expect(store.getVersionFact('react', '19.0.0', FactKeys.COMPARE_URL)).toBeUndefined();
+        expect(scoped.getVersionFact('react', '19.0.0', FactKeys.COMPARE_URL)).toBeUndefined();
     });
 
     it('skips dependencies without a parseable repo URL', async () => {
@@ -167,12 +174,14 @@ describe('GitHubSource', () => {
             parseRepoUrl: vi.fn(() => undefined),
         });
         const source = new GitHubSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
         // No rawRepoUrl set — simulating a package without a repository field
 
         await source.fetch([makeDep('some-pkg', '1.0.0', '2.0.0')], store);
 
-        expect(store.getPackageFact('some-pkg', FactKeys.GITHUB_DATA)).toBeUndefined();
+        expect(
+            store.scoped('npm').getPackageFact('some-pkg', FactKeys.GITHUB_DATA),
+        ).toBeUndefined();
     });
 
     it('handles multiple dependencies with different repos', async () => {
@@ -189,21 +198,27 @@ describe('GitHubSource', () => {
             getChangelogUrl: vi.fn(async () => undefined),
         });
         const source = new GitHubSource(service);
-        const store = new FactStore();
-        store.setVersionFact(
+        const store = new RootFactStore();
+        const scoped = store.scoped('npm');
+        scoped.setVersionFact(
             'react',
             '18.2.0',
             FactKeys.RAW_REPO_URL,
             'https://github.com/facebook/react',
         );
-        store.setVersionFact('vue', '3.3.0', 'rawRepoUrl', 'https://github.com/vuejs/core');
+        scoped.setVersionFact(
+            'vue',
+            '3.3.0',
+            FactKeys.RAW_REPO_URL,
+            'https://github.com/vuejs/core',
+        );
 
         const deps = [makeDep('react', '18.2.0', '19.0.0'), makeDep('vue', '3.3.0', '3.4.0')];
 
         await source.fetch(deps, store);
 
-        const reactData = store.getPackageFact<GitHubData>('react', FactKeys.GITHUB_DATA);
-        const vueData = store.getPackageFact<GitHubData>('vue', FactKeys.GITHUB_DATA);
+        const reactData = scoped.getPackageFact<GitHubData>('react', FactKeys.GITHUB_DATA);
+        const vueData = scoped.getPackageFact<GitHubData>('vue', FactKeys.GITHUB_DATA);
 
         expect(reactData!.owner).toBe('facebook');
         expect(vueData!.owner).toBe('vuejs');

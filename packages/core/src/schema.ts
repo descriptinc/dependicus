@@ -6,24 +6,26 @@ const dependencyVersionSchema = z.object({
     latestVersion: z.string(),
     usedBy: z.array(z.string()),
     dependencyTypes: z.array(z.enum(['dev', 'prod'])),
-    publishDate: z.string(),
+    publishDate: z.union([z.string(), z.undefined()]),
     inCatalog: z.boolean(),
 });
 
 const directDependencySchema = z.object({
     packageName: z.string(),
+    ecosystem: z.string().default('npm'),
     versions: z.array(dependencyVersionSchema),
 });
 
 const providerOutputSchema = z.object({
     name: z.string(),
+    ecosystem: z.string().default('npm'),
     supportsCatalog: z.boolean(),
     dependencies: z.array(directDependencySchema),
 });
 
 const serializedFactsSchema = z.object({
-    package: z.record(z.string(), z.record(z.string(), z.unknown())),
-    version: z.record(z.string(), z.record(z.string(), z.record(z.string(), z.unknown()))),
+    package: z.record(z.string(), z.unknown()),
+    version: z.record(z.string(), z.unknown()),
 });
 
 const dependicusOutputSchema = z.object({
@@ -47,5 +49,5 @@ export {
  * Throws a ZodError if the input does not match the expected schema.
  */
 export function parseDependicusOutput(input: unknown): DependicusOutput {
-    return dependicusOutputSchema.parse(input);
+    return dependicusOutputSchema.parse(input) as unknown as DependicusOutput;
 }

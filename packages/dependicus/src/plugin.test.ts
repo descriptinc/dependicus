@@ -5,14 +5,14 @@ import type {
     GroupingDetailContext,
     GroupingSection,
 } from '@dependicus/core';
-import { FactStore } from '@dependicus/core';
+import { RootFactStore } from '@dependicus/core';
 import type { VersionContext } from '@dependicus/linear';
 import type { CustomColumn } from '@dependicus/site-builder';
 import { resolvePlugins } from './plugin';
 import type { DependicusPlugin } from './plugin';
 import type { DependicusCliConfig } from './cli';
 
-const mockStore = new FactStore();
+const mockStore = new RootFactStore();
 
 function makeSource(name: string): DataSource {
     // eslint-disable-next-line @typescript-eslint/no-empty-function

@@ -1,5 +1,5 @@
 import type { DirectDependency, PackageVersionInfo } from '../types';
-import type { RegistryService } from '../services/RegistryService';
+import type { NpmRegistryService } from '../services/NpmRegistryService';
 import type { DataSource, FactStore } from './types';
 import { FactKeys } from './FactStore';
 
@@ -18,7 +18,7 @@ export class NpmSizeSource implements DataSource {
     readonly name = 'npm-sizes';
     readonly dependsOn: readonly string[] = ['npm-registry'];
 
-    constructor(private registryService: RegistryService) {}
+    constructor(private registryService: NpmRegistryService) {}
 
     async fetch(dependencies: DirectDependency[], store: FactStore): Promise<void> {
         const packageNames = dependencies.map((d) => d.packageName);

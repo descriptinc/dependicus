@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { DirectDependency, DependencyVersion, PackageVersionInfo } from '@dependicus/core';
-import { FactStore, FactKeys, getUpdateType } from '@dependicus/core';
+import { RootFactStore, FactKeys, getUpdateType } from '@dependicus/core';
+import type { FactStore } from '@dependicus/core';
 import { reconcileIssues, type IssueReconcilerConfig } from './issueReconciler';
 import type { VersionContext, LinearIssueSpec } from './types';
 
@@ -42,13 +43,13 @@ const defaultVersionsBetween: PackageVersionInfo[] = [
         version: '1.1.0',
         publishDate: '2024-03-01',
         isPrerelease: false,
-        npmUrl: 'https://www.npmjs.com/package/test-pkg/v/1.1.0',
+        registryUrl: 'https://www.npmjs.com/package/test-pkg/v/1.1.0',
     },
     {
         version: '2.0.0',
         publishDate: '2024-06-01',
         isPrerelease: false,
-        npmUrl: 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
+        registryUrl: 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
     },
 ];
 
@@ -107,7 +108,7 @@ function makeVersion(overrides: Partial<DependencyVersion> = {}): DependencyVers
 }
 
 function makeDep(packageName: string, versions: DependencyVersion[]): DirectDependency {
-    return { packageName, versions };
+    return { packageName, ecosystem: 'npm', versions };
 }
 
 /** Populate the FactStore with facts matching the old EnrichedVersion shape. */
@@ -121,13 +122,16 @@ function populateFacts(
         description?: string;
     } = {},
 ): void {
+    const scoped = store.scoped('npm');
     const vb = opts.versionsBetween ?? defaultVersionsBetween;
-    store.setVersionFact(packageName, version.version, FactKeys.VERSIONS_BETWEEN, vb);
+    scoped.setVersionFact(packageName, version.version, FactKeys.VERSIONS_BETWEEN, vb);
     if (opts.description !== undefined) {
-        store.setVersionFact(packageName, version.version, FactKeys.DESCRIPTION, opts.description);
+        scoped.setVersionFact(packageName, version.version, FactKeys.DESCRIPTION, opts.description);
     } else {
-        store.setVersionFact(packageName, version.version, FactKeys.DESCRIPTION, 'A test package');
+        scoped.setVersionFact(packageName, version.version, FactKeys.DESCRIPTION, 'A test package');
     }
+    // testMeta is consumer-facing metadata read by the getLinearIssueSpec callback,
+    // which receives the root (unscoped) store. Write it unscoped.
     if (opts.meta !== undefined) {
         store.setPackageFact(packageName, 'testMeta', opts.meta);
     } else {
@@ -148,7 +152,7 @@ describe('reconcileIssues', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        store = new FactStore();
+        store = new RootFactStore();
 
         // Default mock: label exists, no existing issues
         mockClient.issueLabels.mockResolvedValue({
@@ -423,19 +427,19 @@ describe('reconcileIssues', () => {
                 version: '1.5.0',
                 publishDate: '2024-03-01',
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/test-pkg/v/1.5.0',
+                registryUrl: 'https://www.npmjs.com/package/test-pkg/v/1.5.0',
             },
             {
                 version: '1.6.0',
                 publishDate: '2024-04-01',
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/test-pkg/v/1.6.0',
+                registryUrl: 'https://www.npmjs.com/package/test-pkg/v/1.6.0',
             },
             {
                 version: '2.0.0',
                 publishDate: '2024-06-01',
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
+                registryUrl: 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
             },
         ];
 
@@ -487,7 +491,7 @@ describe('reconcileIssues', () => {
                 version: '1.0.1',
                 publishDate: '2024-01-15',
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/test-pkg/v/1.0.1',
+                registryUrl: 'https://www.npmjs.com/package/test-pkg/v/1.0.1',
             },
         ];
         populateFacts(store, 'test-pkg', v, { versionsBetween: vb });
@@ -575,7 +579,7 @@ describe('reconcileIssues', () => {
                 version: '1.0.1',
                 publishDate: '2024-01-15',
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/test-pkg/v/1.0.1',
+                registryUrl: 'https://www.npmjs.com/package/test-pkg/v/1.0.1',
             },
         ];
         populateFacts(store, 'test-pkg', v, { versionsBetween: vb });
@@ -656,7 +660,7 @@ describe('reconcileIssues', () => {
                 version: '1.1.0',
                 publishDate: new Date().toISOString(),
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/notify-pkg/v/1.1.0',
+                registryUrl: 'https://www.npmjs.com/package/notify-pkg/v/1.1.0',
             },
         ];
         populateFacts(store, 'notify-pkg', v, { meta, versionsBetween: vb });
@@ -698,13 +702,13 @@ describe('reconcileIssues', () => {
                 version: '1.1.0',
                 publishDate: '2024-03-01',
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/notify-pkg/v/1.1.0',
+                registryUrl: 'https://www.npmjs.com/package/notify-pkg/v/1.1.0',
             },
             {
                 version: '1.2.0',
                 publishDate: '2024-06-01',
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/notify-pkg/v/1.2.0',
+                registryUrl: 'https://www.npmjs.com/package/notify-pkg/v/1.2.0',
             },
         ];
         populateFacts(store, 'notify-pkg', v, { meta, versionsBetween: vb });
@@ -783,7 +787,7 @@ describe('reconcileIssues', () => {
                 version: '1.0.1',
                 publishDate: new Date(Date.now() - 2 * 86400000).toISOString(),
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/cool-pkg/v/1.0.1',
+                registryUrl: 'https://www.npmjs.com/package/cool-pkg/v/1.0.1',
             },
         ];
         populateFacts(store, 'cool-pkg', v, { versionsBetween: vb });
@@ -815,7 +819,7 @@ describe('reconcileIssues', () => {
                 version: '2.0.0',
                 publishDate: new Date(Date.now() - 2 * 86400000).toISOString(),
                 isPrerelease: false,
-                npmUrl: 'https://www.npmjs.com/package/notify-major-pkg/v/2.0.0',
+                registryUrl: 'https://www.npmjs.com/package/notify-major-pkg/v/2.0.0',
             },
         ];
         populateFacts(store, 'notify-major-pkg', v, { meta, versionsBetween: vb });
@@ -1006,19 +1010,19 @@ describe('reconcileIssues', () => {
                     version: '1.1.0',
                     publishDate: '2024-03-01',
                     isPrerelease: false,
-                    npmUrl: 'https://www.npmjs.com/package/partial-pkg/v/1.1.0',
+                    registryUrl: 'https://www.npmjs.com/package/partial-pkg/v/1.1.0',
                 },
                 {
                     version: '1.2.0',
                     publishDate: '2024-05-01',
                     isPrerelease: false,
-                    npmUrl: 'https://www.npmjs.com/package/partial-pkg/v/1.2.0',
+                    registryUrl: 'https://www.npmjs.com/package/partial-pkg/v/1.2.0',
                 },
                 {
                     version: '2.0.0',
                     publishDate: '2024-06-01',
                     isPrerelease: false,
-                    npmUrl: 'https://www.npmjs.com/package/partial-pkg/v/2.0.0',
+                    registryUrl: 'https://www.npmjs.com/package/partial-pkg/v/2.0.0',
                 },
             ];
             populateFacts(store, 'partial-pkg', v, { versionsBetween: vb });
@@ -1044,12 +1048,7 @@ describe('reconcileIssues', () => {
             };
 
             const config = { ...defaultConfig, dryRun: false };
-            const result = await reconcileIssues(
-                deps,
-                store,
-                config,
-                partialSlaGetLinearIssueSpec,
-            );
+            const result = await reconcileIssues(deps, store, config, partialSlaGetLinearIssueSpec);
             expect(result.created).toBe(1);
             // The issue title should target the latest within current major (1.2.0), not 2.0.0
             const createCall = mockClient.createIssue.mock.calls[0]![0];
@@ -1066,7 +1065,7 @@ describe('reconcileIssues', () => {
                     version: '2.0.0',
                     publishDate: '2024-06-01',
                     isPrerelease: false,
-                    npmUrl: 'https://www.npmjs.com/package/major-only-pkg/v/2.0.0',
+                    registryUrl: 'https://www.npmjs.com/package/major-only-pkg/v/2.0.0',
                 },
             ];
             populateFacts(store, 'major-only-pkg', v, { versionsBetween: vb });

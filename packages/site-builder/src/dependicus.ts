@@ -11,6 +11,7 @@ import type {
     DependencyProvider,
     FactStore,
     UsedByGroupKeyFn,
+    RootFactStore,
 } from '@dependicus/core';
 import { createCoreServices } from '@dependicus/core';
 import { HtmlWriter } from './services/HtmlWriter';
@@ -35,7 +36,7 @@ export interface CollectResult {
     metadata: { generatedAt: string };
     providers: ProviderOutput[];
     facts: SerializedFacts;
-    store: FactStore;
+    store: RootFactStore;
 }
 
 export interface DependicusInstance {

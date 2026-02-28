@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { FactStore, FactKeys } from '@dependicus/core';
+import { RootFactStore, FactKeys } from '@dependicus/core';
+import type { FactStore } from '@dependicus/core';
 import type {
     PackageVersionInfo,
     GroupingDetailContext,
@@ -55,7 +56,7 @@ function makeConfig(): BasicComplianceConfig {
 }
 
 function makeStore(packageName: string, policyId: string | undefined): FactStore {
-    const store = new FactStore();
+    const store = new RootFactStore();
     if (policyId) {
         store.setPackageFact(packageName, POLICY_KEY, policyId);
     }
@@ -84,7 +85,7 @@ describe('compliance columns', () => {
                 version: '2.0.0',
                 publishDate: '2022-01-01T00:00:00.000Z',
                 isPrerelease: false,
-                npmUrl: '',
+                registryUrl: '',
             },
         ];
         store.setVersionFact('test-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, versionsBetween);
@@ -100,7 +101,7 @@ describe('compliance columns', () => {
         const store = makeStore('test-pkg', 'tier1');
         const recentDate = new Date(Date.now() - 30 * 86400000).toISOString(); // 30 days ago
         const versionsBetween: PackageVersionInfo[] = [
-            { version: '2.0.0', publishDate: recentDate, isPrerelease: false, npmUrl: '' },
+            { version: '2.0.0', publishDate: recentDate, isPrerelease: false, registryUrl: '' },
         ];
         store.setVersionFact('test-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, versionsBetween);
 
@@ -128,7 +129,7 @@ describe('compliance columns', () => {
                 version: '2.0.0',
                 publishDate: '2022-01-01T00:00:00.000Z',
                 isPrerelease: false,
-                npmUrl: '',
+                registryUrl: '',
             },
         ];
         store.setVersionFact('test-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, versionsBetween);
@@ -148,13 +149,13 @@ describe('getSections', () => {
             getPolicy: (pkg, s) => s.getPackageFact<string>(pkg, POLICY_KEY),
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         // Compliant package
         store.setPackageFact('compliant-pkg', POLICY_KEY, 'tier1');
         const recentDate = new Date(Date.now() - 30 * 86400000).toISOString();
         store.setVersionFact('compliant-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
-            { version: '2.0.0', publishDate: recentDate, isPrerelease: false, npmUrl: '' },
+            { version: '2.0.0', publishDate: recentDate, isPrerelease: false, registryUrl: '' },
         ]);
 
         // Non-compliant package
@@ -164,15 +165,23 @@ describe('getSections', () => {
                 version: '2.0.0',
                 publishDate: '2022-01-01T00:00:00.000Z',
                 isPrerelease: false,
-                npmUrl: '',
+                registryUrl: '',
             },
         ]);
 
         const ctx: GroupingDetailContext = {
             groupValue: 'test-group',
             dependencies: [
-                { packageName: 'compliant-pkg', versions: [makeDependencyVersion()] },
-                { packageName: 'overdue-pkg', versions: [makeDependencyVersion()] },
+                {
+                    packageName: 'compliant-pkg',
+                    ecosystem: 'npm',
+                    versions: [makeDependencyVersion()],
+                },
+                {
+                    packageName: 'overdue-pkg',
+                    ecosystem: 'npm',
+                    versions: [makeDependencyVersion()],
+                },
             ],
             store,
         };
@@ -198,7 +207,7 @@ describe('getSections', () => {
             getPolicy: (pkg, s) => s.getPackageFact<string>(pkg, POLICY_KEY),
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
         const ctx: GroupingDetailContext = {
             groupValue: 'test-group',
             dependencies: [],
@@ -215,10 +224,16 @@ describe('getSections', () => {
             getPolicy: () => undefined, // no policy for any package
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
         const ctx: GroupingDetailContext = {
             groupValue: 'test-group',
-            dependencies: [{ packageName: 'no-policy-pkg', versions: [makeDependencyVersion()] }],
+            dependencies: [
+                {
+                    packageName: 'no-policy-pkg',
+                    ecosystem: 'npm',
+                    versions: [makeDependencyVersion()],
+                },
+            ],
             store,
         };
 
@@ -242,9 +257,9 @@ describe('getLinearIssueSpec', () => {
             getPolicy: () => 'tier1',
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
         store.setVersionFact('test-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
-            { version: '2.0.0', publishDate: '2022-01-01', isPrerelease: false, npmUrl: '' },
+            { version: '2.0.0', publishDate: '2022-01-01', isPrerelease: false, registryUrl: '' },
         ]);
 
         const result = plugin.getLinearIssueSpec!(defaultContext, store);
@@ -258,7 +273,7 @@ describe('getLinearIssueSpec', () => {
             getPolicy: () => 'tier3',
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result).toBeDefined();
@@ -271,7 +286,7 @@ describe('getLinearIssueSpec', () => {
             getPolicy: () => 'none',
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result).toBeDefined();
@@ -284,9 +299,9 @@ describe('getLinearIssueSpec', () => {
             getPolicy: () => 'tier1',
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
         store.setVersionFact('test-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
-            { version: '2.0.0', publishDate: '2022-01-01', isPrerelease: false, npmUrl: '' },
+            { version: '2.0.0', publishDate: '2022-01-01', isPrerelease: false, registryUrl: '' },
         ]);
 
         const result = plugin.getLinearIssueSpec!(defaultContext, store);
@@ -301,7 +316,7 @@ describe('getLinearIssueSpec', () => {
             getPolicy: () => 'tier3',
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result!.daysOverdue).toBeUndefined();
@@ -315,10 +330,10 @@ describe('getLinearIssueSpec', () => {
             getPolicy: () => 'tier2',
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
         store.setVersionFact('test-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
-            { version: '1.1.0', publishDate: '2022-01-01', isPrerelease: false, npmUrl: '' },
-            { version: '2.0.0', publishDate: '2022-06-01', isPrerelease: false, npmUrl: '' },
+            { version: '1.1.0', publishDate: '2022-01-01', isPrerelease: false, registryUrl: '' },
+            { version: '2.0.0', publishDate: '2022-06-01', isPrerelease: false, registryUrl: '' },
         ]);
 
         const result = plugin.getLinearIssueSpec!(defaultContext, store);
@@ -343,10 +358,10 @@ describe('getLinearIssueSpec', () => {
             currentVersion: '1.0.0',
             latestVersion: '1.5.0',
         };
-        const store = new FactStore();
+        const store = new RootFactStore();
         store.setVersionFact('test-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
-            { version: '1.0.5', publishDate: '2022-01-01', isPrerelease: false, npmUrl: '' },
-            { version: '1.5.0', publishDate: '2022-06-01', isPrerelease: false, npmUrl: '' },
+            { version: '1.0.5', publishDate: '2022-01-01', isPrerelease: false, registryUrl: '' },
+            { version: '1.5.0', publishDate: '2022-06-01', isPrerelease: false, registryUrl: '' },
         ]);
 
         const result = plugin.getLinearIssueSpec!(context, store);
@@ -360,7 +375,7 @@ describe('getLinearIssueSpec', () => {
             getPolicy: () => 'tier1',
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result!.descriptionSections).toHaveLength(1);
@@ -378,7 +393,7 @@ describe('getLinearIssueSpec', () => {
             getPolicy: () => 'tier1',
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result).toBeDefined();
@@ -394,7 +409,7 @@ describe('getLinearIssueSpec', () => {
             getPolicy: () => undefined,
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result).toBeUndefined();
@@ -406,7 +421,7 @@ describe('getLinearIssueSpec', () => {
             getPolicy: () => 'nonexistent-policy',
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         const result = plugin.getLinearIssueSpec!(defaultContext, store);
         expect(result).toBeUndefined();
@@ -418,7 +433,7 @@ describe('getLinearIssueSpec', () => {
             getPolicy: () => 'tier3',
         };
         const plugin = new BasicCompliancePlugin(config);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         const result = plugin.getLinearIssueSpec!(defaultContext, store);
         const section = result!.descriptionSections![0]!;
@@ -450,14 +465,14 @@ describe('groupings', () => {
 
     it('getSections returns compliance stats for the grouped packages', () => {
         const plugin = new BasicCompliancePlugin(makeConfig());
-        const store = new FactStore();
+        const store = new RootFactStore();
         store.setPackageFact('compliant-pkg', POLICY_KEY, 'tier1');
         store.setVersionFact('compliant-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
             {
                 version: '2.0.0',
                 publishDate: new Date(Date.now() - 30 * 86400000).toISOString(),
                 isPrerelease: false,
-                npmUrl: '',
+                registryUrl: '',
             },
         ]);
         store.setPackageFact('overdue-pkg', POLICY_KEY, 'tier1');
@@ -466,7 +481,7 @@ describe('groupings', () => {
                 version: '2.0.0',
                 publishDate: '2022-01-01T00:00:00.000Z',
                 isPrerelease: false,
-                npmUrl: '',
+                registryUrl: '',
             },
         ]);
 
@@ -474,8 +489,16 @@ describe('groupings', () => {
         const sections = grouping.getSections!({
             groupValue: 'Tier 1',
             dependencies: [
-                { packageName: 'compliant-pkg', versions: [makeDependencyVersion()] },
-                { packageName: 'overdue-pkg', versions: [makeDependencyVersion()] },
+                {
+                    packageName: 'compliant-pkg',
+                    ecosystem: 'npm',
+                    versions: [makeDependencyVersion()],
+                },
+                {
+                    packageName: 'overdue-pkg',
+                    ecosystem: 'npm',
+                    versions: [makeDependencyVersion()],
+                },
             ],
             store,
         });

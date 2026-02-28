@@ -8,21 +8,21 @@ export function sanitizeCacheKey(str: string): string {
     return str.replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
-export function formatDate(isoDate: string): string {
+export function formatDate(isoDate: string | undefined): string | undefined {
     if (!isoDate) {
-        return '';
+        return undefined;
     }
 
     const date = new Date(isoDate);
     if (isNaN(date.getTime())) {
-        return '';
+        return undefined;
     }
-    return date.toISOString().split('T')[0] || '';
+    return date.toISOString().split('T')[0] || undefined;
 }
 
-export function getAgeDays(publishDate: string): number {
+export function getAgeDays(publishDate: string | undefined): number | undefined {
     if (!publishDate) {
-        return 0;
+        return undefined;
     }
 
     const published = new Date(publishDate);
@@ -36,12 +36,15 @@ export function getAgeDays(publishDate: string): number {
     return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
-export function formatAgeHuman(publishDate: string): string {
+export function formatAgeHuman(publishDate: string | undefined): string | undefined {
     if (!publishDate) {
-        return '';
+        return undefined;
     }
 
     const diffDays = getAgeDays(publishDate);
+    if (diffDays === undefined) {
+        return undefined;
+    }
     const years = Math.floor(diffDays / 365);
     const months = Math.floor((diffDays % 365) / 30);
     const days = diffDays % 30;

@@ -22,12 +22,13 @@ export interface DependencyVersion {
     latestVersion: string; // latest version from npm registry
     usedBy: string[]; // package names using this version
     dependencyTypes: ('dev' | 'prod')[]; // whether used as dev and/or prod dependency
-    publishDate: string; // ISO date string when this version was published
+    publishDate: string | undefined; // ISO date string when this version was published
     inCatalog: boolean; // whether this version is pinned in pnpm-workspace.yaml catalog
 }
 
 export interface DirectDependency {
     packageName: string;
+    ecosystem: string;
     versions: DependencyVersion[];
 }
 
@@ -52,14 +53,14 @@ export interface GitHubRelease {
 }
 
 /**
- * Version info for upgrade path (matches RegistryService.PackageVersionInfo)
+ * Version info for upgrade path (matches NpmRegistryService.PackageVersionInfo)
  * @group Core Types
  */
 export interface PackageVersionInfo {
     version: string;
-    publishDate: string;
+    publishDate: string | undefined;
     isPrerelease: boolean;
-    npmUrl: string;
+    registryUrl?: string;
     unpackedSize?: number;
 }
 
@@ -82,6 +83,7 @@ export interface GitHubData {
  */
 export interface ProviderOutput {
     name: string;
+    ecosystem: string;
     supportsCatalog: boolean;
     dependencies: DirectDependency[];
 }
@@ -105,49 +107,55 @@ export interface OutputMetadata {
  * Useful for consumers that don't care about provider identity (tickets, issues).
  */
 export function mergeProviderDependencies(providers: ProviderOutput[]): DirectDependency[] {
-    // Map: packageName -> Map<version, merged entry>
+    // Map: "ecosystem::packageName" -> Map<version, merged entry>
     const depMap = new Map<
         string,
-        Map<
-            string,
-            {
-                usedBy: Set<string>;
-                types: Set<'dev' | 'prod'>;
-                latestVersion: string;
-                publishDate: string;
-                inCatalog: boolean;
-            }
-        >
+        {
+            ecosystem: string;
+            packageName: string;
+            versionMap: Map<
+                string,
+                {
+                    usedBy: Set<string>;
+                    types: Set<'dev' | 'prod'>;
+                    latestVersion: string;
+                    publishDate: string | undefined;
+                    inCatalog: boolean;
+                }
+            >;
+        }
     >();
 
     for (const provider of providers) {
         for (const dep of provider.dependencies) {
-            let versionMap = depMap.get(dep.packageName);
-            if (!versionMap) {
-                versionMap = new Map();
-                depMap.set(dep.packageName, versionMap);
+            const ecosystem = dep.ecosystem ?? provider.ecosystem;
+            const key = `${ecosystem}::${dep.packageName}`;
+            let entry = depMap.get(key);
+            if (!entry) {
+                entry = { ecosystem, packageName: dep.packageName, versionMap: new Map() };
+                depMap.set(key, entry);
             }
             for (const ver of dep.versions) {
-                let entry = versionMap.get(ver.version);
-                if (!entry) {
-                    entry = {
+                let vEntry = entry.versionMap.get(ver.version);
+                if (!vEntry) {
+                    vEntry = {
                         usedBy: new Set(),
                         types: new Set(),
                         latestVersion: ver.latestVersion,
                         publishDate: ver.publishDate,
                         inCatalog: ver.inCatalog,
                     };
-                    versionMap.set(ver.version, entry);
+                    entry.versionMap.set(ver.version, vEntry);
                 }
-                for (const u of ver.usedBy) entry.usedBy.add(u);
-                for (const t of ver.dependencyTypes) entry.types.add(t);
-                if (ver.inCatalog) entry.inCatalog = true;
+                for (const u of ver.usedBy) vEntry.usedBy.add(u);
+                for (const t of ver.dependencyTypes) vEntry.types.add(t);
+                if (ver.inCatalog) vEntry.inCatalog = true;
             }
         }
     }
 
     const result: DirectDependency[] = [];
-    for (const [packageName, versionMap] of depMap) {
+    for (const { ecosystem, packageName, versionMap } of depMap.values()) {
         const versions: DependencyVersion[] = [];
         for (const [version, entry] of versionMap) {
             versions.push({
@@ -160,7 +168,7 @@ export function mergeProviderDependencies(providers: ProviderOutput[]): DirectDe
             });
         }
         versions.sort((a, b) => b.usedBy.length - a.usedBy.length);
-        result.push({ packageName, versions });
+        result.push({ packageName, ecosystem, versions });
     }
     result.sort((a, b) => a.packageName.localeCompare(b.packageName));
     return result;

@@ -13,16 +13,18 @@ import { FactKeys } from './FactStore';
  */
 export class GitHubSource implements DataSource {
     readonly name = 'github';
-    readonly dependsOn: readonly string[] = ['npm-registry'];
+    readonly dependsOn: readonly string[] = [];
 
     constructor(private githubService: GitHubService) {}
 
     async fetch(dependencies: DirectDependency[], store: FactStore): Promise<void> {
         // Collect unique repos from all version-level rawRepoUrl facts
+        // Each dependency carries its ecosystem, so we scope reads accordingly
         const repos: GitHubRepo[] = [];
         for (const dep of dependencies) {
+            const scoped = store.scoped(dep.ecosystem);
             for (const ver of dep.versions) {
-                const rawUrl = store.getVersionFact<string>(
+                const rawUrl = scoped.getVersionFact<string>(
                     dep.packageName,
                     ver.version,
                     FactKeys.RAW_REPO_URL,
@@ -37,11 +39,11 @@ export class GitHubSource implements DataSource {
         await this.githubService.prefetchRepoData(repos);
 
         for (const dep of dependencies) {
-            // Use the first version's repo URL as the canonical repo for the package
+            const scoped = store.scoped(dep.ecosystem);
             const firstVersion = dep.versions[0];
             if (!firstVersion) continue;
 
-            const rawUrl = store.getVersionFact<string>(
+            const rawUrl = scoped.getVersionFact<string>(
                 dep.packageName,
                 firstVersion.version,
                 FactKeys.RAW_REPO_URL,
@@ -65,9 +67,8 @@ export class GitHubSource implements DataSource {
                 changelogUrl: changelogInfo?.url,
             };
 
-            store.setPackageFact(dep.packageName, FactKeys.GITHUB_DATA, githubData);
+            scoped.setPackageFact(dep.packageName, FactKeys.GITHUB_DATA, githubData);
 
-            // Store compare URLs for versions that aren't at latest
             for (const ver of dep.versions) {
                 if (ver.version !== ver.latestVersion) {
                     const compareUrl = this.githubService.getCompareUrl(
@@ -76,7 +77,7 @@ export class GitHubSource implements DataSource {
                         ver.latestVersion,
                         releases,
                     );
-                    store.setVersionFact(
+                    scoped.setVersionFact(
                         dep.packageName,
                         ver.version,
                         FactKeys.COMPARE_URL,

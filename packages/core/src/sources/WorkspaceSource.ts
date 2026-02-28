@@ -14,16 +14,17 @@ export class WorkspaceSource implements DataSource {
 
     async fetch(dependencies: DirectDependency[], store: FactStore): Promise<void> {
         for (const dep of dependencies) {
+            const scoped = store.scoped(dep.ecosystem);
             for (const ver of dep.versions) {
                 const isPatched = this.providers.some((p) =>
                     p.isPatched(dep.packageName, ver.version),
                 );
-                store.setVersionFact(dep.packageName, ver.version, FactKeys.IS_PATCHED, isPatched);
+                scoped.setVersionFact(dep.packageName, ver.version, FactKeys.IS_PATCHED, isPatched);
 
                 const catalogProvider = this.providers.find((p) =>
                     p.hasPackageInCatalog(dep.packageName),
                 );
-                store.setVersionFact(
+                scoped.setVersionFact(
                     dep.packageName,
                     ver.version,
                     FactKeys.HAS_CATALOG_MISMATCH,

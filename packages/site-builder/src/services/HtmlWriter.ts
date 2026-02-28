@@ -214,17 +214,18 @@ export class HtmlWriter {
             Record<string, string | number | boolean | Record<string, string[]> | null>
         > = [];
         for (const dep of deps) {
+            const scoped = store.scoped(dep.ecosystem);
             for (const versionInfo of dep.versions) {
                 const detailFilename = HtmlWriter.getDetailFilename(
                     dep.packageName,
                     versionInfo.version,
                 );
                 const deprecatedTransitiveDeps =
-                    store.getPackageFact<string[]>(
+                    scoped.getPackageFact<string[]>(
                         dep.packageName,
                         FactKeys.DEPRECATED_TRANSITIVE_DEPS,
                     ) ?? [];
-                const notes = this.composeNotes(dep.packageName, versionInfo.version, store);
+                const notes = this.composeNotes(dep.packageName, versionInfo.version, scoped);
                 rows.push({
                     'Package Name': dep.packageName,
                     Type: versionInfo.dependencyTypes.join(', '),
@@ -235,17 +236,17 @@ export class HtmlWriter {
                         versionInfo.latestVersion,
                     ),
                     'Catalog?': versionInfo.inCatalog,
-                    'Published Date': formatDate(versionInfo.publishDate),
-                    Age: getAgeDays(versionInfo.publishDate),
+                    'Published Date': formatDate(versionInfo.publishDate) ?? '',
+                    Age: getAgeDays(versionInfo.publishDate) ?? '',
                     Notes: notes,
-                    ...this.buildCustomColumnData(dep.packageName, versionInfo, store),
+                    ...this.buildCustomColumnData(dep.packageName, versionInfo, scoped),
                     'Used By Count': versionInfo.usedBy.length,
                     'Used By Packages': versionInfo.usedBy.join('; '),
                     'Used By Grouped': this.groupPackagesByMeta(
                         versionInfo.usedBy,
                         dep.packageName,
                         versionInfo,
-                        store,
+                        scoped,
                     ),
                     'Deprecated Transitive Dependencies': deprecatedTransitiveDeps.join('; '),
                     'Detail Link': `${detailPrefix}details/${detailFilename}`,
@@ -389,6 +390,7 @@ export class HtmlWriter {
 
         for (const provider of providers) {
             const providerPrefix = `${provider.name}/`;
+            const scopedStore = store.scoped(provider.ecosystem);
             for (const dep of provider.dependencies) {
                 for (const versionInfo of dep.versions) {
                     const detailFilename = HtmlWriter.getDetailFilename(
@@ -398,7 +400,7 @@ export class HtmlWriter {
                     const html = this.generateDetailPage(
                         dep,
                         versionInfo,
-                        store,
+                        scopedStore,
                         '../../',
                         providerPrefix,
                     );
@@ -445,8 +447,8 @@ export class HtmlWriter {
             versionInfo.version,
             FactKeys.UNPACKED_SIZE,
         );
-        const npmUrl = `https://www.npmjs.com/package/${packageName}/v/${versionInfo.version}`;
-        const npmGraphUrl = `https://npmgraph.js.org/?q=${encodeURIComponent(`${packageName}@${versionInfo.version}`)}`;
+        const registryUrl = `https://www.npmjs.com/package/${packageName}/v/${versionInfo.version}`;
+        const graphUrl = `https://npmgraph.js.org/?q=${encodeURIComponent(`${packageName}@${versionInfo.version}`)}`;
 
         // Get GitHub data from FactStore
         const githubData = store.getPackageFact<GitHubData>(packageName, FactKeys.GITHUB_DATA);
@@ -524,16 +526,16 @@ export class HtmlWriter {
             description,
             customMeta: customMeta.length > 0 ? customMeta : undefined,
             dependencyTypes: versionInfo.dependencyTypes.join(', '),
-            formattedPublishDate: formatDate(versionInfo.publishDate),
-            publishDateAge: versionInfo.publishDate ? formatAgeHuman(versionInfo.publishDate) : '',
+            formattedPublishDate: formatDate(versionInfo.publishDate) ?? '',
+            publishDateAge: formatAgeHuman(versionInfo.publishDate) ?? '',
             latestVersion: versionInfo.latestVersion,
             versionsBehindText,
             inCatalog: versionInfo.inCatalog,
             notes,
             formattedInstalledSize: formatBytes(unpackedSize),
             upgradePath: upgradePathData,
-            npmUrl,
-            npmGraphUrl,
+            registryUrl,
+            graphUrl,
             homepage,
             repositoryUrl,
             changelogUrl,
@@ -596,7 +598,7 @@ export class HtmlWriter {
             return {
                 version: v.version,
                 formattedPublishDate: formatDate(v.publishDate),
-                npmUrl: v.npmUrl,
+                registryUrl: v.registryUrl,
                 githubUrl,
                 releaseNotes,
                 isLatest: v.version === latestVersion,
@@ -793,11 +795,12 @@ export class HtmlWriter {
 
         for (const provider of providers) {
             const providerPrefix = `${provider.name}/`;
+            const scopedStore = store.scoped(provider.ecosystem);
             for (const grouping of this.groupings) {
                 const { index, details } = this.toGroupingPages(
                     provider.dependencies,
                     grouping,
-                    store,
+                    scopedStore,
                     providerPrefix,
                 );
                 pages.push(index);

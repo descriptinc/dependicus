@@ -7,7 +7,7 @@ describe('getPackageComplianceStatus', () => {
         version,
         publishDate,
         isPrerelease: false,
-        npmUrl: `https://www.npmjs.com/package/test/v/${version}`,
+        registryUrl: `https://www.npmjs.com/package/test/v/${version}`,
     });
 
     describe('not-applicable cases', () => {
@@ -142,13 +142,13 @@ describe('getPackageComplianceStatus', () => {
                     version: '2.0.0-alpha.1',
                     publishDate: '2024-01-01',
                     isPrerelease: true,
-                    npmUrl: 'https://www.npmjs.com/package/test/v/2.0.0-alpha.1',
+                    registryUrl: 'https://www.npmjs.com/package/test/v/2.0.0-alpha.1',
                 },
                 {
                     version: '2.0.0-beta.1',
                     publishDate: '2024-02-01',
                     isPrerelease: true,
-                    npmUrl: 'https://www.npmjs.com/package/test/v/2.0.0-beta.1',
+                    registryUrl: 'https://www.npmjs.com/package/test/v/2.0.0-beta.1',
                 },
             ];
             const result = getPackageComplianceStatus('1.0.0', '2.0.0', versions, 360);

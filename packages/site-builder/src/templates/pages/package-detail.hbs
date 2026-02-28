@@ -2,8 +2,8 @@
     <h1><code>{{packageName}}@{{version}}</code></h1>
     {{#if description}}<p class="dep-detail-description">{{description}}</p>{{/if}}
     <div class="dep-detail-links">
-        <a href="{{npmUrl}}">npm</a>
-        <a href="{{npmGraphUrl}}">npmgraph</a>
+        {{#if registryUrl}}<a href="{{registryUrl}}">Registry</a>{{/if}}
+        {{#if graphUrl}}<a href="{{graphUrl}}">Dependency Graph</a>{{/if}}
         {{#if homepage}}<a href="{{homepage}}">Homepage</a>{{/if}}
         {{#if repositoryUrl}}<a href="{{repositoryUrl}}">Repository</a>{{/if}}
         {{#if changelogUrl}}<a href="{{changelogUrl}}">CHANGELOG</a>{{/if}}
@@ -26,8 +26,10 @@
                 <dt>Type</dt>
                 <dd>{{dependencyTypes}}</dd>
 
+                {{#if formattedPublishDate}}
                 <dt>Published</dt>
                 <dd>{{formattedPublishDate}}{{#if publishDateAge}} <span class="dep-age-text">({{publishDateAge}})</span>{{/if}}</dd>
+                {{/if}}
 
                 <dt>Latest Version</dt>
                 <dd><code>{{latestVersion}}</code>{{versionsBehindText}}</dd>

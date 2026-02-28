@@ -31,13 +31,17 @@ describe('formatDate', () => {
         expect(formatDate('2023-12-31T23:59:59.999Z')).toBe('2023-12-31');
     });
 
-    it('returns empty string for empty input', () => {
-        expect(formatDate('')).toBe('');
+    it('returns undefined for empty input', () => {
+        expect(formatDate('')).toBeUndefined();
+    });
+
+    it('returns undefined for undefined input', () => {
+        expect(formatDate(undefined)).toBeUndefined();
     });
 
     it('handles invalid dates', () => {
         const result = formatDate('invalid');
-        expect(result).toBe('');
+        expect(result).toBeUndefined();
     });
 });
 
@@ -50,8 +54,12 @@ describe('getAgeDays', () => {
         expect(getAgeDays(publishDate)).toBe(1);
     });
 
-    it('returns 0 for empty input', () => {
-        expect(getAgeDays('')).toBe(0);
+    it('returns undefined for empty input', () => {
+        expect(getAgeDays('')).toBeUndefined();
+    });
+
+    it('returns undefined for undefined input', () => {
+        expect(getAgeDays(undefined)).toBeUndefined();
     });
 
     it('returns 0 for future dates', () => {
@@ -102,8 +110,12 @@ describe('formatAgeHuman', () => {
         expect(result).toMatch(/^2 years/);
     });
 
-    it('returns empty string for empty input', () => {
-        expect(formatAgeHuman('')).toBe('');
+    it('returns undefined for empty input', () => {
+        expect(formatAgeHuman('')).toBeUndefined();
+    });
+
+    it('returns undefined for undefined input', () => {
+        expect(formatAgeHuman(undefined)).toBeUndefined();
     });
 
     it('handles single units correctly', () => {

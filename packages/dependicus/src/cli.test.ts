@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { dependicusCli } from './cli';
 import type { DirectDependency, ProviderOutput } from '@dependicus/core';
-import { FactStore, readDependicusJson } from '@dependicus/core';
+import { RootFactStore, readDependicusJson } from '@dependicus/core';
 
 // Mock external dependencies
 vi.mock('@dependicus/site-builder', () => ({
@@ -39,6 +39,7 @@ const mockMkdir = vi.mocked(mkdir);
 function makeDep(packageName: string): DirectDependency {
     return {
         packageName,
+        ecosystem: 'npm',
         versions: [
             {
                 version: '1.0.0',
@@ -55,13 +56,14 @@ function makeDep(packageName: string): DirectDependency {
 function makeProvider(deps: DirectDependency[]): ProviderOutput {
     return {
         name: 'pnpm',
+        ecosystem: 'npm',
         supportsCatalog: false,
         dependencies: deps,
     };
 }
 
-function makeStore(): FactStore {
-    return new FactStore();
+function makeStore(): RootFactStore {
+    return new RootFactStore();
 }
 
 function argv(...args: string[]): string[] {

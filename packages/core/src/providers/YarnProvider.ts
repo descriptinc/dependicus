@@ -3,7 +3,11 @@ import { join, resolve } from 'node:path';
 import { load } from 'js-yaml';
 import type { PackageInfo, DependencyInfo } from '../types';
 import type { CacheService } from '../services/CacheService';
-import type { DependencyProvider } from './DependencyProvider';
+import type { DependencyProvider, SourceContext } from './DependencyProvider';
+import type { DataSource } from '../sources/types';
+import { NpmRegistryService } from '../services/NpmRegistryService';
+import { NpmRegistrySource } from '../sources/NpmRegistrySource';
+import { NpmSizeSource } from '../sources/NpmSizeSource';
 
 /**
  * Shape of a parsed yarn.lock entry (Yarn Berry v3/v4).
@@ -17,6 +21,7 @@ interface YarnLockEntry {
 
 export class YarnProvider implements DependencyProvider {
     readonly name = 'yarn';
+    readonly ecosystem = 'npm';
     readonly supportsCatalog = false;
     readonly rootDir: string;
     readonly lockfilePath: string;
@@ -208,6 +213,11 @@ export class YarnProvider implements DependencyProvider {
             };
         }
         return result;
+    }
+
+    createSources(ctx: SourceContext): DataSource[] {
+        const registryService = new NpmRegistryService(ctx.cacheService, this.lockfilePath);
+        return [new NpmRegistrySource(registryService), new NpmSizeSource(registryService)];
     }
 }
 

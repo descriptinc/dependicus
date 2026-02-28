@@ -3,19 +3,15 @@ import type { ProviderOutput } from './types';
 import { mergeProviderDependencies } from './types';
 import { parseDependicusOutput } from './schema';
 import { CacheService } from './services/CacheService';
-import { DeprecationService } from './services/DeprecationService';
-import { RegistryService } from './services/RegistryService';
+import { NpmRegistryService } from './services/NpmRegistryService';
 import { GitHubService } from './services/GitHubService';
-import { DependencyCollector } from './services/DependencyCollector';
+import { DependencyCollector, NpmMetadataResolver } from './services/DependencyCollector';
 import type { DependencyProvider } from './providers/DependencyProvider';
 import { detectProviders, createProvidersByName } from './providers';
 import type { DataSource } from './sources/types';
-import { FactStore } from './sources/FactStore';
+import { RootFactStore } from './sources/FactStore';
 import { runSources } from './sources/runSources';
-import { NpmRegistrySource } from './sources/NpmRegistrySource';
-import { NpmSizeSource } from './sources/NpmSizeSource';
 import { GitHubSource } from './sources/GitHubSource';
-import { DeprecationSource } from './sources/DeprecationSource';
 import { WorkspaceSource } from './sources/WorkspaceSource';
 
 export interface CoreServicesConfig {
@@ -29,7 +25,7 @@ export interface CoreServicesConfig {
 }
 
 export interface CoreServices {
-    collect(): Promise<{ providers: ProviderOutput[]; store: FactStore }>;
+    collect(): Promise<{ providers: ProviderOutput[]; store: RootFactStore }>;
 }
 
 export function createCoreServices(config: CoreServicesConfig): CoreServices {
@@ -44,28 +40,58 @@ export function createCoreServices(config: CoreServicesConfig): CoreServices {
     // Use the first provider's lockfile for cache invalidation of shared services
     const lockfilePath = providers[0]!.lockfilePath;
 
-    const deprecationService = new DeprecationService(cacheService, repoRoot);
-    const registryService = new RegistryService(cacheService, lockfilePath);
+    const registryService = new NpmRegistryService(cacheService, lockfilePath);
     const githubService = new GitHubService(cacheService, lockfilePath);
 
-    const builtinSources: DataSource[] = [
-        new NpmRegistrySource(registryService),
-        new NpmSizeSource(registryService),
-        new GitHubSource(githubService),
-        new DeprecationSource(deprecationService),
-        new WorkspaceSource(providers),
-    ];
-    const allSources = [...builtinSources, ...(config.sources ?? [])];
+    const npmResolver = new NpmMetadataResolver(registryService);
+    const collector = new DependencyCollector(providers, npmResolver);
 
-    const collector = new DependencyCollector(providers, registryService);
+    const sourceCtx = { cacheService, githubService, repoRoot };
 
     return {
-        async collect(): Promise<{ providers: ProviderOutput[]; store: FactStore }> {
+        async collect(): Promise<{ providers: ProviderOutput[]; store: RootFactStore }> {
             const providerOutputs = await collector.collectDirectDependencies();
-            const store = new FactStore();
-            // Sources operate on a merged view of all providers
+            const store = new RootFactStore();
+
+            // Per-ecosystem enrichment: each ecosystem's sources run with a scoped store
+            const byEcosystem = new Map<string, ProviderOutput[]>();
+            for (const po of providerOutputs) {
+                const list = byEcosystem.get(po.ecosystem) ?? [];
+                list.push(po);
+                byEcosystem.set(po.ecosystem, list);
+            }
+
+            const seenSourceNames = new Set<string>();
+            for (const [ecosystem, outputs] of byEcosystem) {
+                const ecosystemDeps = mergeProviderDependencies(outputs);
+                const scopedStore = store.scoped(ecosystem);
+
+                // Collect sources from providers, deduplicate by name
+                const ecosystemSources: DataSource[] = [];
+                for (const po of outputs) {
+                    const provider = providers.find((p) => p.name === po.name);
+                    if (!provider) continue;
+                    for (const src of provider.createSources(sourceCtx)) {
+                        const key = `${ecosystem}::${src.name}`;
+                        if (!seenSourceNames.has(key)) {
+                            seenSourceNames.add(key);
+                            ecosystemSources.push(src);
+                        }
+                    }
+                }
+
+                await runSources(ecosystemSources, ecosystemDeps, scopedStore);
+            }
+
+            // Universal enrichment: GitHub, Workspace, and user plugin sources
             const mergedDeps = mergeProviderDependencies(providerOutputs);
-            await runSources(allSources, mergedDeps, store);
+            const universalSources: DataSource[] = [
+                new GitHubSource(githubService),
+                new WorkspaceSource(providers),
+                ...(config.sources ?? []),
+            ];
+            await runSources(universalSources, mergedDeps, store);
+
             return { providers: providerOutputs, store };
         },
     };
@@ -73,11 +99,11 @@ export function createCoreServices(config: CoreServicesConfig): CoreServices {
 
 export async function readDependicusJson(
     path: string,
-): Promise<{ providers: ProviderOutput[]; store: FactStore }> {
+): Promise<{ providers: ProviderOutput[]; store: RootFactStore }> {
     const content = await readFile(path, 'utf-8');
     const parsed = parseDependicusOutput(JSON.parse(content));
     return {
         providers: parsed.providers,
-        store: FactStore.fromJSON(parsed.facts),
+        store: RootFactStore.fromJSON(parsed.facts),
     };
 }

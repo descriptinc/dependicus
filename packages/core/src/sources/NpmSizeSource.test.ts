@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { NpmSizeSource } from './NpmSizeSource';
-import { FactStore, FactKeys } from './FactStore';
+import { RootFactStore, FactKeys } from './FactStore';
 import type { DirectDependency, PackageVersionInfo } from '../types';
-import type { RegistryService } from '../services/RegistryService';
+import type { NpmRegistryService } from '../services/NpmRegistryService';
 
 function makeDep(
     packageName: string,
@@ -11,6 +11,7 @@ function makeDep(
 ): DirectDependency {
     return {
         packageName,
+        ecosystem: 'npm',
         versions: [
             {
                 version,
@@ -24,7 +25,7 @@ function makeDep(
     };
 }
 
-function mockRegistryService(overrides: Partial<RegistryService> = {}): RegistryService {
+function mockNpmRegistryService(overrides: Partial<NpmRegistryService> = {}): NpmRegistryService {
     return {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         prefetchFullMetadata: vi.fn(async () => {}),
@@ -38,12 +39,12 @@ function mockRegistryService(overrides: Partial<RegistryService> = {}): Registry
         hasFullMetadataCache: vi.fn(async () => false),
         getUnpackedSizes: vi.fn(async () => new Map()),
         ...overrides,
-    } as unknown as RegistryService;
+    } as unknown as NpmRegistryService;
 }
 
 describe('NpmSizeSource', () => {
     it('has the correct name and depends on npm-registry', () => {
-        const source = new NpmSizeSource(mockRegistryService());
+        const source = new NpmSizeSource(mockNpmRegistryService());
         expect(source.name).toBe('npm-sizes');
         expect(source.dependsOn).toEqual(['npm-registry']);
     });
@@ -51,10 +52,10 @@ describe('NpmSizeSource', () => {
     it('fetches unpacked sizes for all package names', async () => {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         const prefetchUnpackedSizes = vi.fn(async () => {});
-        const service = mockRegistryService({ prefetchUnpackedSizes });
+        const service = mockNpmRegistryService({ prefetchUnpackedSizes });
         const source = new NpmSizeSource(service);
 
-        await source.fetch([makeDep('react'), makeDep('vue')], new FactStore());
+        await source.fetch([makeDep('react'), makeDep('vue')], new RootFactStore());
 
         expect(prefetchUnpackedSizes).toHaveBeenCalledWith(['react', 'vue']);
     });
@@ -65,11 +66,11 @@ describe('NpmSizeSource', () => {
             ['2.0.0', 60000],
         ]);
 
-        const service = mockRegistryService({
+        const service = mockNpmRegistryService({
             getUnpackedSizes: vi.fn(async () => sizeMap),
         });
         const source = new NpmSizeSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         await source.fetch([makeDep('react')], store);
 
@@ -90,9 +91,9 @@ describe('NpmSizeSource', () => {
             return name === 'react' ? reactSizes : vueSizes;
         });
 
-        const service = mockRegistryService({ getUnpackedSizes });
+        const service = mockNpmRegistryService({ getUnpackedSizes });
         const source = new NpmSizeSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         await source.fetch([makeDep('react'), makeDep('vue')], store);
 
@@ -101,11 +102,11 @@ describe('NpmSizeSource', () => {
     });
 
     it('handles empty size maps', async () => {
-        const service = mockRegistryService({
+        const service = mockNpmRegistryService({
             getUnpackedSizes: vi.fn(async () => new Map()),
         });
         const source = new NpmSizeSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         await source.fetch([makeDep('react')], store);
 
@@ -118,11 +119,11 @@ describe('NpmSizeSource', () => {
 
     it('sets UNPACKED_SIZE fallback for installed version when not already set', async () => {
         const sizeMap = new Map<string, number | undefined>([['1.0.0', 45000]]);
-        const service = mockRegistryService({
+        const service = mockNpmRegistryService({
             getUnpackedSizes: vi.fn(async () => sizeMap),
         });
         const source = new NpmSizeSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
         // NpmRegistrySource did NOT set UNPACKED_SIZE (simulating missing dist.unpackedSize)
 
         await source.fetch([makeDep('react')], store);
@@ -132,11 +133,11 @@ describe('NpmSizeSource', () => {
 
     it('does not overwrite UNPACKED_SIZE if already set by NpmRegistrySource', async () => {
         const sizeMap = new Map<string, number | undefined>([['1.0.0', 45000]]);
-        const service = mockRegistryService({
+        const service = mockNpmRegistryService({
             getUnpackedSizes: vi.fn(async () => sizeMap),
         });
         const source = new NpmSizeSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
         // NpmRegistrySource already set a precise size
         store.setVersionFact('react', '1.0.0', FactKeys.UNPACKED_SIZE, 44800);
 
@@ -150,11 +151,11 @@ describe('NpmSizeSource', () => {
             ['1.1.0', 46000],
             ['1.2.0', 48000],
         ]);
-        const service = mockRegistryService({
+        const service = mockNpmRegistryService({
             getUnpackedSizes: vi.fn(async () => sizeMap),
         });
         const source = new NpmSizeSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         // Simulate NpmRegistrySource having stored VERSIONS_BETWEEN without sizes
         const versionsBetween: PackageVersionInfo[] = [
@@ -162,13 +163,13 @@ describe('NpmSizeSource', () => {
                 version: '1.1.0',
                 publishDate: '2024-03-01',
                 isPrerelease: false,
-                npmUrl: 'https://npmjs.com/react/1.1.0',
+                registryUrl: 'https://npmjs.com/react/1.1.0',
             },
             {
                 version: '1.2.0',
                 publishDate: '2024-06-01',
                 isPrerelease: false,
-                npmUrl: 'https://npmjs.com/react/1.2.0',
+                registryUrl: 'https://npmjs.com/react/1.2.0',
             },
         ];
         store.setVersionFact('react', '1.0.0', FactKeys.VERSIONS_BETWEEN, versionsBetween);
@@ -187,11 +188,11 @@ describe('NpmSizeSource', () => {
 
     it('does not overwrite existing unpackedSize on VERSIONS_BETWEEN entries', async () => {
         const sizeMap = new Map<string, number | undefined>([['1.1.0', 46000]]);
-        const service = mockRegistryService({
+        const service = mockNpmRegistryService({
             getUnpackedSizes: vi.fn(async () => sizeMap),
         });
         const source = new NpmSizeSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         // Entry already has unpackedSize
         const versionsBetween: PackageVersionInfo[] = [
@@ -199,7 +200,7 @@ describe('NpmSizeSource', () => {
                 version: '1.1.0',
                 publishDate: '2024-03-01',
                 isPrerelease: false,
-                npmUrl: '',
+                registryUrl: '',
                 unpackedSize: 99999,
             },
         ];
@@ -217,11 +218,11 @@ describe('NpmSizeSource', () => {
 
     it('handles missing VERSIONS_BETWEEN gracefully', async () => {
         const sizeMap = new Map<string, number | undefined>([['1.0.0', 50000]]);
-        const service = mockRegistryService({
+        const service = mockNpmRegistryService({
             getUnpackedSizes: vi.fn(async () => sizeMap),
         });
         const source = new NpmSizeSource(service);
-        const store = new FactStore();
+        const store = new RootFactStore();
         // No VERSIONS_BETWEEN set — should not throw
 
         await source.fetch([makeDep('react')], store);

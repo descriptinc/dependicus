@@ -34,7 +34,7 @@ export interface PackageMetadata {
     [key: string]: unknown;
 }
 
-export class RegistryService {
+export class NpmRegistryService {
     private readonly lockfilePath: string;
 
     constructor(
@@ -178,12 +178,12 @@ export class RegistryService {
 
             // Only include versions > current and <= latest
             if (semver.gt(version, currentVersion) && semver.lte(version, latestVersion)) {
-                const publishDate = metadata.time[version] || '';
+                const publishDate = metadata.time[version];
                 versions.push({
                     version,
                     publishDate,
                     isPrerelease: false,
-                    npmUrl: `https://www.npmjs.com/package/${packageName}/v/${version}`,
+                    registryUrl: `https://www.npmjs.com/package/${packageName}/v/${version}`,
                 });
             }
         }

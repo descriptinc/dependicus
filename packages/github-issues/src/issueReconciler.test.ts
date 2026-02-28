@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { DirectDependency, DependencyVersion, PackageVersionInfo } from '@dependicus/core';
-import { FactStore, FactKeys } from '@dependicus/core';
+import { RootFactStore, FactKeys } from '@dependicus/core';
+import type { FactStore } from '@dependicus/core';
 import { reconcileGitHubIssues, type IssueReconcilerConfig } from './issueReconciler';
 import type { GitHubIssueSpec } from './types';
 
@@ -27,13 +28,13 @@ const defaultVersionsBetween: PackageVersionInfo[] = [
         version: '1.1.0',
         publishDate: '2024-03-01',
         isPrerelease: false,
-        npmUrl: 'https://www.npmjs.com/package/test-pkg/v/1.1.0',
+        registryUrl: 'https://www.npmjs.com/package/test-pkg/v/1.1.0',
     },
     {
         version: '2.0.0',
         publishDate: '2024-06-01',
         isPrerelease: false,
-        npmUrl: 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
+        registryUrl: 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
     },
 ];
 
@@ -50,10 +51,11 @@ function makeVersion(overrides: Partial<DependencyVersion> = {}): DependencyVers
 }
 
 function makeStore(packageName: string = 'test-pkg', version: string = '1.0.0'): FactStore {
-    const store = new FactStore();
-    store.setVersionFact(packageName, version, FactKeys.VERSIONS_BETWEEN, defaultVersionsBetween);
-    store.setVersionFact(packageName, version, FactKeys.DESCRIPTION, 'A test package');
-    return store;
+    const root = new RootFactStore();
+    const scoped = root.scoped('npm');
+    scoped.setVersionFact(packageName, version, FactKeys.VERSIONS_BETWEEN, defaultVersionsBetween);
+    scoped.setVersionFact(packageName, version, FactKeys.DESCRIPTION, 'A test package');
+    return root;
 }
 
 const baseConfig: IssueReconcilerConfig = {
@@ -89,7 +91,9 @@ describe('reconcileGitHubIssues', () => {
     it('creates issues for outdated packages', async () => {
         setupMocks();
 
-        const deps: DirectDependency[] = [{ packageName: 'test-pkg', versions: [makeVersion()] }];
+        const deps: DirectDependency[] = [
+            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
         const store = makeStore();
 
         const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
@@ -116,7 +120,9 @@ describe('reconcileGitHubIssues', () => {
             },
         ]);
 
-        const deps: DirectDependency[] = [{ packageName: 'test-pkg', versions: [makeVersion()] }];
+        const deps: DirectDependency[] = [
+            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
         const store = makeStore();
 
         const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
@@ -139,7 +145,7 @@ describe('reconcileGitHubIssues', () => {
 
         // No outdated packages — the existing issue should be closed
         const deps: DirectDependency[] = [];
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
             makeSpec({ policy: { type: 'fyi' } }),
@@ -152,7 +158,9 @@ describe('reconcileGitHubIssues', () => {
     it('skips packages when getGitHubIssueSpec returns undefined', async () => {
         setupMocks();
 
-        const deps: DirectDependency[] = [{ packageName: 'test-pkg', versions: [makeVersion()] }];
+        const deps: DirectDependency[] = [
+            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
         const store = makeStore();
 
         const result = await reconcileGitHubIssues(deps, store, baseConfig, () => undefined);
@@ -164,7 +172,9 @@ describe('reconcileGitHubIssues', () => {
     it('skips packages with skip policy', async () => {
         setupMocks();
 
-        const deps: DirectDependency[] = [{ packageName: 'test-pkg', versions: [makeVersion()] }];
+        const deps: DirectDependency[] = [
+            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
         const store = makeStore();
 
         const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
@@ -177,7 +187,9 @@ describe('reconcileGitHubIssues', () => {
     it('respects allowNewIssues=false', async () => {
         setupMocks();
 
-        const deps: DirectDependency[] = [{ packageName: 'test-pkg', versions: [makeVersion()] }];
+        const deps: DirectDependency[] = [
+            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
         const store = makeStore();
 
         const result = await reconcileGitHubIssues(
@@ -204,7 +216,9 @@ describe('reconcileGitHubIssues', () => {
             },
         ]);
 
-        const deps: DirectDependency[] = [{ packageName: 'test-pkg', versions: [makeVersion()] }];
+        const deps: DirectDependency[] = [
+            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
         const store = makeStore();
 
         const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
@@ -217,7 +231,9 @@ describe('reconcileGitHubIssues', () => {
     it('appends due date to title for dueDate policy', async () => {
         setupMocks();
 
-        const deps: DirectDependency[] = [{ packageName: 'test-pkg', versions: [makeVersion()] }];
+        const deps: DirectDependency[] = [
+            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
         const store = makeStore();
 
         const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
@@ -236,7 +252,9 @@ describe('reconcileGitHubIssues', () => {
     it('includes assignees when assignment is assign type', async () => {
         setupMocks();
 
-        const deps: DirectDependency[] = [{ packageName: 'test-pkg', versions: [makeVersion()] }];
+        const deps: DirectDependency[] = [
+            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
         const store = makeStore();
 
         const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
@@ -258,8 +276,8 @@ describe('reconcileGitHubIssues', () => {
         setupMocks();
 
         const deps: DirectDependency[] = [
-            { packageName: 'pkg-a', versions: [makeVersion()] },
-            { packageName: 'pkg-b', versions: [makeVersion()] },
+            { packageName: 'pkg-a', ecosystem: 'npm', versions: [makeVersion()] },
+            { packageName: 'pkg-b', ecosystem: 'npm', versions: [makeVersion()] },
         ];
         const store = makeStore('pkg-a');
         store.setVersionFact('pkg-b', '1.0.0', FactKeys.VERSIONS_BETWEEN, defaultVersionsBetween);
@@ -277,7 +295,9 @@ describe('reconcileGitHubIssues', () => {
     it('dry-run mode does not call create/update APIs', async () => {
         setupMocks();
 
-        const deps: DirectDependency[] = [{ packageName: 'test-pkg', versions: [makeVersion()] }];
+        const deps: DirectDependency[] = [
+            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
         const store = makeStore();
 
         const result = await reconcileGitHubIssues(
@@ -297,10 +317,11 @@ describe('reconcileGitHubIssues', () => {
         const deps: DirectDependency[] = [
             {
                 packageName: 'test-pkg',
+                ecosystem: 'npm',
                 versions: [makeVersion({ version: '2.0.0', latestVersion: '2.0.0' })],
             },
         ];
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
             makeSpec({ policy: { type: 'fyi' } }),

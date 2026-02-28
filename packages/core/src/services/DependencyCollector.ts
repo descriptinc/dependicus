@@ -1,8 +1,15 @@
 import type { DirectDependency, DependencyVersion, PackageInfo, ProviderOutput } from '../types';
 import type { DependencyProvider } from '../providers/DependencyProvider';
-import type { RegistryService } from './RegistryService';
+import type { NpmRegistryService } from './NpmRegistryService';
 import { WORKER_COUNT } from '../constants';
 import { processInParallel } from '../utils/workerQueue';
+
+export interface MetadataResolver {
+    resolve(
+        packageNames: string[],
+        dependencyMap: DependencyMap,
+    ): Promise<Map<string, { publishDate: string | undefined; latestVersion: string }>>;
+}
 
 type DependencyMap = Map<
     string,
@@ -16,10 +23,54 @@ type DependencyMap = Map<
     >
 >;
 
+export class NpmMetadataResolver implements MetadataResolver {
+    constructor(private registryService: NpmRegistryService) {}
+
+    async resolve(
+        packageNames: string[],
+        dependencyMap: DependencyMap,
+    ): Promise<Map<string, { publishDate: string | undefined; latestVersion: string }>> {
+        const metadataMap = new Map<
+            string,
+            Awaited<ReturnType<typeof this.registryService.getFullPackageMetadata>>
+        >();
+        let completed = 0;
+
+        await processInParallel(
+            packageNames,
+            async (packageName) => {
+                const metadata = await this.registryService.getFullPackageMetadata(packageName);
+                metadataMap.set(packageName, metadata);
+                completed++;
+                if (completed % 50 === 0 || completed === packageNames.length) {
+                    process.stderr.write(
+                        `  Fetched ${completed}/${packageNames.length} packages\n`,
+                    );
+                }
+            },
+            { workerCount: WORKER_COUNT },
+        );
+
+        const resultMap = new Map<
+            string,
+            { publishDate: string | undefined; latestVersion: string }
+        >();
+        for (const [packageName, versionMap] of dependencyMap.entries()) {
+            const metadata = metadataMap.get(packageName);
+            const latestVersion = metadata?.['dist-tags']?.latest || '';
+            for (const version of versionMap.keys()) {
+                const publishDate = metadata?.time?.[version];
+                resultMap.set(`${packageName}@${version}`, { publishDate, latestVersion });
+            }
+        }
+        return resultMap;
+    }
+}
+
 export class DependencyCollector {
     constructor(
         private providers: DependencyProvider[],
-        private registryService: RegistryService,
+        private defaultResolver: MetadataResolver,
     ) {}
 
     /**
@@ -37,9 +88,10 @@ export class DependencyCollector {
                 this.processPackageDependencies(pkg, provider, dependencyMap);
             }
 
-            const dependencies = await this.convertToDirectDependencies(dependencyMap);
+            const dependencies = await this.convertToDirectDependencies(dependencyMap, provider);
             results.push({
                 name: provider.name,
+                ecosystem: provider.ecosystem,
                 supportsCatalog: provider.supportsCatalog,
                 dependencies,
             });
@@ -120,27 +172,36 @@ export class DependencyCollector {
 
     private async convertToDirectDependencies(
         dependencyMap: DependencyMap,
+        provider: DependencyProvider,
     ): Promise<DirectDependency[]> {
         const result: DirectDependency[] = [];
 
-        // Fetch all registry metadata in parallel
-        process.stderr.write('Fetching package metadata from npm registry...\n');
-        const registryDataMap = await this.fetchAllRegistryData(dependencyMap);
+        // Use provider's resolver if available, otherwise use default (npm)
+        let registryDataMap: Map<
+            string,
+            { publishDate: string | undefined; latestVersion: string }
+        >;
+        if (provider.resolveVersionMetadata) {
+            const packageNames = Array.from(dependencyMap.keys());
+            registryDataMap = await provider.resolveVersionMetadata(packageNames);
+        } else {
+            process.stderr.write('Fetching package metadata from npm registry...\n');
+            registryDataMap = await this.defaultResolver.resolve(
+                Array.from(dependencyMap.keys()),
+                dependencyMap,
+            );
+        }
 
         for (const [packageName, versionMap] of dependencyMap.entries()) {
             const versions: DependencyVersion[] = [];
 
             for (const [version, entry] of versionMap.entries()) {
-                // Get publish date and latest version from cached registry data
                 const key = `${packageName}@${version}`;
                 const registryData = registryDataMap.get(key);
-                const publishDate = registryData?.publishDate || '';
-                const latestVersion = registryData?.latestVersion || '';
+                const publishDate = registryData?.publishDate;
+                const latestVersion = registryData?.latestVersion ?? '';
 
-                // Check if this version is in the catalog via the owning provider
                 const inCatalog = entry.provider.isInCatalog(packageName, version);
-
-                // Convert dependency types Set to sorted array
                 const dependencyTypes = Array.from(entry.types).sort();
 
                 versions.push({
@@ -153,62 +214,15 @@ export class DependencyCollector {
                 });
             }
 
-            // Sort versions by the number of packages using them (descending)
             versions.sort((a, b) => b.usedBy.length - a.usedBy.length);
-
             result.push({
                 packageName,
+                ecosystem: provider.ecosystem,
                 versions,
             });
         }
 
-        // Sort by package name alphabetically
         result.sort((a, b) => a.packageName.localeCompare(b.packageName));
-
         return result;
-    }
-
-    private async fetchAllRegistryData(
-        dependencyMap: DependencyMap,
-    ): Promise<Map<string, { publishDate: string; latestVersion: string }>> {
-        // Fetch full metadata per package (not per version). This is the same
-        // data that NpmRegistrySource.prefetchFullMetadata fetches later, so
-        // doing it here means the downstream prefetch is a cache hit.
-        const packageNames = Array.from(dependencyMap.keys());
-
-        const metadataMap = new Map<
-            string,
-            Awaited<ReturnType<typeof this.registryService.getFullPackageMetadata>>
-        >();
-        let completed = 0;
-
-        await processInParallel(
-            packageNames,
-            async (packageName) => {
-                const metadata = await this.registryService.getFullPackageMetadata(packageName);
-                metadataMap.set(packageName, metadata);
-
-                completed++;
-                if (completed % 50 === 0 || completed === packageNames.length) {
-                    process.stderr.write(
-                        `  Fetched ${completed}/${packageNames.length} packages\n`,
-                    );
-                }
-            },
-            { workerCount: WORKER_COUNT },
-        );
-
-        // Build the per-version result map from the full metadata
-        const resultMap = new Map<string, { publishDate: string; latestVersion: string }>();
-        for (const [packageName, versionMap] of dependencyMap.entries()) {
-            const metadata = metadataMap.get(packageName);
-            const latestVersion = metadata?.['dist-tags']?.latest || '';
-            for (const version of versionMap.keys()) {
-                const publishDate = metadata?.time?.[version] || '';
-                resultMap.set(`${packageName}@${version}`, { publishDate, latestVersion });
-            }
-        }
-
-        return resultMap;
     }
 }

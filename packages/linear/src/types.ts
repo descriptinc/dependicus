@@ -92,6 +92,7 @@ export interface VersionContext {
 
 export interface OutdatedPackage {
     packageName: string;
+    ecosystem: string;
     versions: DependencyVersion[];
     worstCompliance: {
         updateType: 'major' | 'minor' | 'patch';

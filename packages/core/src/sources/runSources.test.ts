@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { runSources } from './runSources';
-import { FactStore } from './FactStore';
+import { RootFactStore } from './FactStore';
+import type { FactStore } from './FactStore';
 import type { DataSource } from './types';
 import type { DirectDependency } from '../types';
 
@@ -24,7 +25,7 @@ describe('runSources', () => {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         const fetch = vi.fn(async () => {});
         const source = makeSource('registry', [], fetch);
-        const store = new FactStore();
+        const store = new RootFactStore();
 
         await runSources([source], emptyDeps, store);
 
@@ -45,7 +46,7 @@ describe('runSources', () => {
             order.push('c');
         });
 
-        await runSources([c, b, a], emptyDeps, new FactStore());
+        await runSources([c, b, a], emptyDeps, new RootFactStore());
 
         expect(order).toEqual(['a', 'b', 'c']);
     });
@@ -66,7 +67,7 @@ describe('runSources', () => {
             timeline.push('b-end');
         });
 
-        await runSources([a, b], emptyDeps, new FactStore());
+        await runSources([a, b], emptyDeps, new RootFactStore());
 
         // Both should start before either ends
         const aStartIdx = timeline.indexOf('a-start');
@@ -97,7 +98,7 @@ describe('runSources', () => {
             order.push('d');
         });
 
-        await runSources([d, c, b, a], emptyDeps, new FactStore());
+        await runSources([d, c, b, a], emptyDeps, new RootFactStore());
 
         expect(order.indexOf('a')).toBeLessThan(order.indexOf('b'));
         expect(order.indexOf('a')).toBeLessThan(order.indexOf('c'));
@@ -109,6 +110,7 @@ describe('runSources', () => {
         const deps: DirectDependency[] = [
             {
                 packageName: 'react',
+                ecosystem: 'npm',
                 versions: [
                     {
                         version: '18.2.0',
@@ -121,7 +123,7 @@ describe('runSources', () => {
                 ],
             },
         ];
-        const store = new FactStore();
+        const store = new RootFactStore();
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         const fetch = vi.fn(async () => {});
         const source = makeSource('registry', [], fetch);
@@ -135,7 +137,7 @@ describe('runSources', () => {
         const a = makeSource('a', ['b']);
         const b = makeSource('b', ['a']);
 
-        await expect(runSources([a, b], emptyDeps, new FactStore())).rejects.toThrow(
+        await expect(runSources([a, b], emptyDeps, new RootFactStore())).rejects.toThrow(
             /cycle detected/i,
         );
     });
@@ -143,7 +145,7 @@ describe('runSources', () => {
     it('throws on self-referential dependency', async () => {
         const a = makeSource('a', ['a']);
 
-        await expect(runSources([a], emptyDeps, new FactStore())).rejects.toThrow(
+        await expect(runSources([a], emptyDeps, new RootFactStore())).rejects.toThrow(
             /cycle detected/i,
         );
     });
@@ -151,13 +153,13 @@ describe('runSources', () => {
     it('throws when dependsOn references an unknown source', async () => {
         const a = makeSource('a', ['nonexistent']);
 
-        await expect(runSources([a], emptyDeps, new FactStore())).rejects.toThrow(
+        await expect(runSources([a], emptyDeps, new RootFactStore())).rejects.toThrow(
             /unknown source "nonexistent"/i,
         );
     });
 
     it('handles empty source list', async () => {
-        await runSources([], emptyDeps, new FactStore());
+        await runSources([], emptyDeps, new RootFactStore());
         // Should complete without error
     });
 });

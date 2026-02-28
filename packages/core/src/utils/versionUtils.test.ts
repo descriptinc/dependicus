@@ -252,7 +252,7 @@ describe('findFirstVersionOfType', () => {
         version,
         publishDate,
         isPrerelease: prerelease,
-        npmUrl: `https://www.npmjs.com/package/test/v/${version}`,
+        registryUrl: `https://www.npmjs.com/package/test/v/${version}`,
     });
 
     it('finds first major version bump in versionsBetween', () => {
@@ -326,7 +326,7 @@ describe('calculateDueDate', () => {
         version,
         publishDate,
         isPrerelease: false,
-        npmUrl: `https://www.npmjs.com/package/test/v/${version}`,
+        registryUrl: `https://www.npmjs.com/package/test/v/${version}`,
     });
 
     it('calculates due date from first required version publish date', () => {
@@ -360,7 +360,7 @@ describe('isWithinCooldown', () => {
         version,
         publishDate,
         isPrerelease: false,
-        npmUrl: `https://www.npmjs.com/package/test/v/${version}`,
+        registryUrl: `https://www.npmjs.com/package/test/v/${version}`,
     });
 
     it('returns true when first required version published within cooldown days', () => {
@@ -406,7 +406,7 @@ describe('findLatestWithinMajor', () => {
         version,
         publishDate,
         isPrerelease: false,
-        npmUrl: `https://www.npmjs.com/package/test/v/${version}`,
+        registryUrl: `https://www.npmjs.com/package/test/v/${version}`,
     });
 
     it('finds latest minor/patch within current major', () => {

@@ -4,5 +4,5 @@ Since this issue was last updated, {{versionCountText}} been released:
 
 {{#each versions}}
 - **{{this.version}}** ({{formatDateShort this.publishDate}}){{#if this.formattedSize}} — {{this.formattedSize}}{{/if}}
-  - [npm]({{this.npmUrl}}){{#if this.releaseUrl}} | [GitHub Release]({{this.releaseUrl}}){{/if}}
+  - {{#if this.registryUrl}}[Registry]({{this.registryUrl}}){{/if}}{{#if this.releaseUrl}} | [GitHub Release]({{this.releaseUrl}}){{/if}}
 {{/each}}

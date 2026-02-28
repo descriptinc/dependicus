@@ -5,7 +5,8 @@ import type {
     GroupingConfig,
     ProviderOutput,
 } from '@dependicus/core';
-import { FactStore, FactKeys } from '@dependicus/core';
+import { RootFactStore, FactKeys } from '@dependicus/core';
+import type { FactStore } from '@dependicus/core';
 import { HtmlWriter } from './HtmlWriter';
 
 function makeMockVersion(overrides?: Partial<DependencyVersion>): DependencyVersion {
@@ -23,6 +24,7 @@ function makeMockVersion(overrides?: Partial<DependencyVersion>): DependencyVers
 function makeMockDependency(overrides?: Partial<DirectDependency>): DirectDependency {
     return {
         packageName: '@scope/test-pkg',
+        ecosystem: 'npm',
         versions: [makeMockVersion()],
         ...overrides,
     };
@@ -34,6 +36,7 @@ function makeProvider(
 ): ProviderOutput {
     return {
         name: 'pnpm',
+        ecosystem: 'npm',
         supportsCatalog: true,
         dependencies: deps,
         ...overrides,
@@ -44,12 +47,13 @@ function makeProvider(
  * Create a FactStore populated with facts matching the old EnrichedDependency shape.
  */
 function makeMockStore(deps?: DirectDependency[]): FactStore {
-    const store = new FactStore();
+    const store = new RootFactStore();
     const allDeps = deps ?? [makeMockDependency()];
 
     for (const dep of allDeps) {
+        const scoped = store.scoped(dep.ecosystem);
         // Package-level facts
-        store.setPackageFact(dep.packageName, FactKeys.GITHUB_DATA, {
+        scoped.setPackageFact(dep.packageName, FactKeys.GITHUB_DATA, {
             owner: 'test',
             repo: 'test-pkg',
             releases: [
@@ -63,53 +67,53 @@ function makeMockStore(deps?: DirectDependency[]): FactStore {
             ],
             changelogUrl: 'https://github.com/test/test-pkg/blob/main/CHANGELOG.md',
         });
-        store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
-        store.setPackageFact(dep.packageName, 'testMeta', {
+        scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+        scoped.setPackageFact(dep.packageName, 'testMeta', {
             surfaceId: 'test-surface',
             teamName: 'TestTeam',
         });
 
         for (const ver of dep.versions) {
             // Version-level facts
-            store.setVersionFact(
+            scoped.setVersionFact(
                 dep.packageName,
                 ver.version,
                 FactKeys.DESCRIPTION,
                 'A test package',
             );
-            store.setVersionFact(
+            scoped.setVersionFact(
                 dep.packageName,
                 ver.version,
                 FactKeys.HOMEPAGE,
                 'https://example.com',
             );
-            store.setVersionFact(
+            scoped.setVersionFact(
                 dep.packageName,
                 ver.version,
                 FactKeys.REPOSITORY_URL,
                 'https://github.com/test/test-pkg',
             );
-            store.setVersionFact(
+            scoped.setVersionFact(
                 dep.packageName,
                 ver.version,
                 FactKeys.BUGS_URL,
                 'https://github.com/test/test-pkg/issues',
             );
-            store.setVersionFact(dep.packageName, ver.version, FactKeys.VERSIONS_BETWEEN, [
+            scoped.setVersionFact(dep.packageName, ver.version, FactKeys.VERSIONS_BETWEEN, [
                 {
                     version: '1.1.0',
                     publishDate: '2024-03-01T00:00:00.000Z',
                     isPrerelease: false,
-                    npmUrl: 'https://www.npmjs.com/package/@scope/test-pkg/v/1.1.0',
+                    registryUrl: 'https://www.npmjs.com/package/@scope/test-pkg/v/1.1.0',
                 },
                 {
                     version: '2.0.0',
                     publishDate: '2024-06-01T00:00:00.000Z',
                     isPrerelease: false,
-                    npmUrl: 'https://www.npmjs.com/package/@scope/test-pkg/v/2.0.0',
+                    registryUrl: 'https://www.npmjs.com/package/@scope/test-pkg/v/2.0.0',
                 },
             ]);
-            store.setVersionFact(
+            scoped.setVersionFact(
                 dep.packageName,
                 ver.version,
                 FactKeys.COMPARE_URL,
@@ -189,12 +193,13 @@ describe('HtmlWriter', () => {
                     }),
                 ],
             });
-            const store = new FactStore();
+            const store = new RootFactStore();
+            const scoped = store.scoped(dep.ecosystem);
             // Set minimal facts for both versions
             for (const ver of dep.versions) {
-                store.setVersionFact(dep.packageName, ver.version, FactKeys.VERSIONS_BETWEEN, []);
+                scoped.setVersionFact(dep.packageName, ver.version, FactKeys.VERSIONS_BETWEEN, []);
             }
-            store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+            scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
             const providers: ProviderOutput[] = [makeProvider([dep])];
@@ -305,9 +310,10 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             // Store without META fact
-            const store = new FactStore();
-            store.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
-            store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+            const store = new RootFactStore();
+            const scoped = store.scoped(dep.ecosystem);
+            scoped.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
+            scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
             const providers: ProviderOutput[] = [makeProvider([dep])];
             const pages = writer.toDetailPages(providers, store);
 
@@ -343,7 +349,12 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const { index, details } = writer.toGroupingPages([dep], teamGrouping, store, 'pnpm/');
+            const { index, details } = writer.toGroupingPages(
+                [dep],
+                teamGrouping,
+                store.scoped(dep.ecosystem),
+                'pnpm/',
+            );
 
             expect(index.filename).toBe('pnpm/teams/index.html');
             expect(index.html).toContain('Teams');
@@ -395,7 +406,12 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter({
                 groupings: [teamGrouping],
             });
-            const { details } = writer.toGroupingPages([dep1, dep2], teamGrouping, store, 'pnpm/');
+            const { details } = writer.toGroupingPages(
+                [dep1, dep2],
+                teamGrouping,
+                store.scoped('npm'),
+                'pnpm/',
+            );
 
             expect(details).toHaveLength(1);
             expect(details[0]!.html).toContain('pkg-a');
@@ -422,7 +438,7 @@ describe('HtmlWriter', () => {
             const { details } = writer.toGroupingPages(
                 [dep1, dep2],
                 partialGrouping,
-                store,
+                store.scoped('npm'),
                 'pnpm/',
             );
 
@@ -492,7 +508,12 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const { details } = writer.toGroupingPages([dep], teamGrouping, store, 'pnpm/');
+            const { details } = writer.toGroupingPages(
+                [dep],
+                teamGrouping,
+                store.scoped(dep.ecosystem),
+                'pnpm/',
+            );
 
             expect(details[0]!.html).toContain('Compliance');
             expect(details[0]!.html).toContain('Out of Compliance');
@@ -504,7 +525,12 @@ describe('HtmlWriter', () => {
             });
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            const { index } = writer.toGroupingPages([dep], teamGrouping, store, 'pnpm/');
+            const { index } = writer.toGroupingPages(
+                [dep],
+                teamGrouping,
+                store.scoped(dep.ecosystem),
+                'pnpm/',
+            );
 
             // The dep is outdated (1.0.0 vs 2.0.0)
             expect(index.html).toContain('outdated');
@@ -552,7 +578,7 @@ describe('HtmlWriter', () => {
     describe('edge cases', () => {
         it('handles empty providers array', async () => {
             const writer = new HtmlWriter();
-            const store = new FactStore();
+            const store = new RootFactStore();
             const html = await writer.toHtml([], store);
             expect(html).toContain('<!DOCTYPE html>');
             expect(html).toContain('Dependicus - Dependency Report');
@@ -561,7 +587,7 @@ describe('HtmlWriter', () => {
         it('handles provider with empty dependencies array', async () => {
             const writer = new HtmlWriter();
             const providers: ProviderOutput[] = [makeProvider([])];
-            const store = new FactStore();
+            const store = new RootFactStore();
             const html = await writer.toHtml(providers, store);
             expect(html).toContain('<!DOCTYPE html>');
         });
@@ -570,17 +596,18 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter();
             const dep: DirectDependency = {
                 packageName: 'empty-pkg',
+                ecosystem: 'npm',
                 versions: [],
             };
             const providers: ProviderOutput[] = [makeProvider([dep])];
-            const store = new FactStore();
+            const store = new RootFactStore();
             const html = await writer.toHtml(providers, store);
             expect(html).toContain('<!DOCTYPE html>');
         });
 
         it('generates no detail pages for empty providers', () => {
             const writer = new HtmlWriter();
-            const store = new FactStore();
+            const store = new RootFactStore();
             const pages = writer.toDetailPages([], store);
             expect(pages).toHaveLength(0);
         });
@@ -588,10 +615,12 @@ describe('HtmlWriter', () => {
         it('handles detail page with deprecated transitive deps', () => {
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
-            store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, [
-                'old-dep@1.0.0',
-                '@scope/legacy@2.0.0',
-            ]);
+            store
+                .scoped(dep.ecosystem)
+                .setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, [
+                    'old-dep@1.0.0',
+                    '@scope/legacy@2.0.0',
+                ]);
 
             const writer = new HtmlWriter();
             const providers: ProviderOutput[] = [makeProvider([dep])];
@@ -625,9 +654,10 @@ describe('HtmlWriter', () => {
                     }),
                 ],
             });
-            const store = new FactStore();
-            store.setVersionFact(dep.packageName, '2.0.0', FactKeys.VERSIONS_BETWEEN, []);
-            store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+            const store = new RootFactStore();
+            const scoped = store.scoped(dep.ecosystem);
+            scoped.setVersionFact(dep.packageName, '2.0.0', FactKeys.VERSIONS_BETWEEN, []);
+            scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
             const providers: ProviderOutput[] = [makeProvider([dep])];
@@ -640,25 +670,26 @@ describe('HtmlWriter', () => {
 
         it('includes size column in detail page upgrade path', () => {
             const dep = makeMockDependency();
-            const store = new FactStore();
-            store.setVersionFact(dep.packageName, '1.0.0', FactKeys.UNPACKED_SIZE, 50_000);
-            store.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, [
+            const store = new RootFactStore();
+            const scoped = store.scoped(dep.ecosystem);
+            scoped.setVersionFact(dep.packageName, '1.0.0', FactKeys.UNPACKED_SIZE, 50_000);
+            scoped.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, [
                 {
                     version: '1.1.0',
                     publishDate: '2024-03-01T00:00:00.000Z',
                     isPrerelease: false,
-                    npmUrl: 'https://www.npmjs.com/package/@scope/test-pkg/v/1.1.0',
+                    registryUrl: 'https://www.npmjs.com/package/@scope/test-pkg/v/1.1.0',
                     unpackedSize: 75_000,
                 },
                 {
                     version: '2.0.0',
                     publishDate: '2024-06-01T00:00:00.000Z',
                     isPrerelease: false,
-                    npmUrl: 'https://www.npmjs.com/package/@scope/test-pkg/v/2.0.0',
+                    registryUrl: 'https://www.npmjs.com/package/@scope/test-pkg/v/2.0.0',
                     unpackedSize: 100_000,
                 },
             ]);
-            store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+            scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
             const providers: ProviderOutput[] = [makeProvider([dep])];
@@ -680,10 +711,11 @@ describe('HtmlWriter', () => {
 
         it('handles detail page without github data', () => {
             const dep = makeMockDependency();
-            const store = new FactStore();
+            const store = new RootFactStore();
+            const scoped = store.scoped(dep.ecosystem);
             // No GITHUB_DATA fact set
-            store.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
-            store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+            scoped.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
+            scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
             const providers: ProviderOutput[] = [makeProvider([dep])];
@@ -722,9 +754,10 @@ describe('HtmlWriter', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             // Store without any boolean note facts
-            const store = new FactStore();
-            store.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
-            store.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+            const store = new RootFactStore();
+            const scoped = store.scoped(dep.ecosystem);
+            scoped.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
+            scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const providers: ProviderOutput[] = [makeProvider([dep])];
             const html = await writer.toHtml(providers, store);

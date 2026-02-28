@@ -66,8 +66,9 @@ function hasMajorVersionPublishedSince(
         const version = pkg.versions[0];
         if (!version) continue;
 
+        const scoped = store.scoped(pkg.ecosystem);
         const versionsBetween =
-            store.getVersionFact<PackageVersionInfo[]>(
+            scoped.getVersionFact<PackageVersionInfo[]>(
                 pkg.packageName,
                 version.version,
                 FactKeys.VERSIONS_BETWEEN,
@@ -80,6 +81,7 @@ function hasMajorVersionPublishedSince(
 
             const vMajor = parseInt(v.version.split('.')[0] ?? '0', 10);
             if (vMajor > currentMajor) {
+                if (!v.publishDate) continue;
                 const publishTime = new Date(v.publishDate).getTime();
                 if (publishTime > sinceTime) {
                     return true;
@@ -151,8 +153,9 @@ function shouldSkipCreateDueToRateLimit(
     const allWithinRateLimit = packages.every((pkg) => {
         const version = pkg.versions[0];
         if (!version) return true;
+        const scoped = store.scoped(pkg.ecosystem);
         const versionsBetween =
-            store.getVersionFact<PackageVersionInfo[]>(
+            scoped.getVersionFact<PackageVersionInfo[]>(
                 pkg.packageName,
                 version.version,
                 FactKeys.VERSIONS_BETWEEN,
@@ -281,6 +284,7 @@ export async function reconcileIssues(
             if (!existing) {
                 outdatedPackages.set(dep.packageName, {
                     packageName: dep.packageName,
+                    ecosystem: dep.ecosystem,
                     versions: [version],
                     worstCompliance: {
                         updateType: effectiveUpdateType,
@@ -444,8 +448,9 @@ export async function reconcileIssues(
             throw new Error(`No versions found for package ${pkg.packageName}`);
         }
 
+        const scopedStore = store.scoped(pkg.ecosystem);
         const versionsBetween =
-            store.getVersionFact<PackageVersionInfo[]>(
+            scopedStore.getVersionFact<PackageVersionInfo[]>(
                 pkg.packageName,
                 version.version,
                 FactKeys.VERSIONS_BETWEEN,
@@ -484,7 +489,7 @@ export async function reconcileIssues(
         );
         const description = buildIssueDescription(
             pkg,
-            store,
+            scopedStore,
             minVersion,
             effectiveLatestVersion,
             dependicusBaseUrl,
@@ -534,7 +539,7 @@ export async function reconcileIssues(
                 );
 
                 if (newVersions.length > 0) {
-                    const github = store.getPackageFact<GitHubData>(
+                    const github = scopedStore.getPackageFact<GitHubData>(
                         pkg.packageName,
                         FactKeys.GITHUB_DATA,
                     );
@@ -639,8 +644,9 @@ export async function reconcileIssues(
                 const version = pkg.versions[0];
                 if (!version) continue;
 
+                const pkgScopedStore = store.scoped(pkg.ecosystem);
                 const versionsBetween =
-                    store.getVersionFact<PackageVersionInfo[]>(
+                    pkgScopedStore.getVersionFact<PackageVersionInfo[]>(
                         pkg.packageName,
                         version.version,
                         FactKeys.VERSIONS_BETWEEN,

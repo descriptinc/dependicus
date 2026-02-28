@@ -5,6 +5,7 @@ import type { ProviderOutput, DirectDependency } from './types';
 function makeProviderOutput(overrides?: Partial<ProviderOutput>): ProviderOutput {
     return {
         name: 'test-provider',
+        ecosystem: 'npm',
         supportsCatalog: false,
         dependencies: [],
         ...overrides,
@@ -14,6 +15,7 @@ function makeProviderOutput(overrides?: Partial<ProviderOutput>): ProviderOutput
 function makeDep(overrides?: Partial<DirectDependency>): DirectDependency {
     return {
         packageName: 'test-pkg',
+        ecosystem: 'npm',
         versions: [
             {
                 version: '1.0.0',

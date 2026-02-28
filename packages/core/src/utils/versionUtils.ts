@@ -267,13 +267,15 @@ export function calculateDueDate(
     versionsBetween: readonly PackageVersionInfo[],
     updateType: 'major' | 'minor' | 'patch',
     thresholdDays: number,
-    fallbackPublishDate: string,
+    fallbackPublishDate: string | undefined,
 ): Date {
     const firstVersion = findFirstVersionOfType(currentVersion, versionsBetween, updateType);
 
-    const availableDate = firstVersion
+    const availableDate = firstVersion?.publishDate
         ? new Date(firstVersion.publishDate)
-        : new Date(fallbackPublishDate);
+        : fallbackPublishDate
+          ? new Date(fallbackPublishDate)
+          : new Date();
 
     const dueDate = new Date(availableDate);
     dueDate.setDate(dueDate.getDate() + thresholdDays);
@@ -293,7 +295,7 @@ export function isWithinCooldown(
     now: Date = new Date(),
 ): boolean {
     const firstVersion = findFirstVersionOfType(currentVersion, versionsBetween, updateType);
-    if (!firstVersion) return false;
+    if (!firstVersion || !firstVersion.publishDate) return false;
 
     const publishedDaysAgo =
         (now.getTime() - new Date(firstVersion.publishDate).getTime()) / (1000 * 60 * 60 * 24);

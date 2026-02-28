@@ -5,7 +5,13 @@ import { load } from 'js-yaml';
 import { satisfies, validRange } from 'semver';
 import type { PackageInfo } from '../types';
 import type { CacheService } from '../services/CacheService';
-import type { DependencyProvider } from './DependencyProvider';
+import type { DependencyProvider, SourceContext } from './DependencyProvider';
+import type { DataSource } from '../sources/types';
+import { NpmRegistryService } from '../services/NpmRegistryService';
+import { NpmRegistrySource } from '../sources/NpmRegistrySource';
+import { NpmSizeSource } from '../sources/NpmSizeSource';
+import { DeprecationSource } from '../sources/DeprecationSource';
+import { DeprecationService } from '../services/DeprecationService';
 import { BUFFER_SIZES } from '../constants';
 
 interface PnpmWorkspace {
@@ -15,6 +21,7 @@ interface PnpmWorkspace {
 
 export class PnpmProvider implements DependencyProvider {
     readonly name = 'pnpm';
+    readonly ecosystem = 'npm';
     readonly supportsCatalog = true;
     readonly rootDir: string;
     readonly lockfilePath: string;
@@ -94,5 +101,15 @@ export class PnpmProvider implements DependencyProvider {
 
     isPatched(packageName: string, version: string): boolean {
         return this.patchedDeps.has(`${packageName}@${version}`);
+    }
+
+    createSources(ctx: SourceContext): DataSource[] {
+        const registryService = new NpmRegistryService(ctx.cacheService, this.lockfilePath);
+        const deprecationService = new DeprecationService(ctx.cacheService, this.rootDir);
+        return [
+            new NpmRegistrySource(registryService),
+            new NpmSizeSource(registryService),
+            new DeprecationSource(deprecationService),
+        ];
     }
 }

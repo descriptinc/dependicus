@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { RegistryService } from './RegistryService';
+import { NpmRegistryService } from './NpmRegistryService';
 import type { CacheService } from './CacheService';
 
 function createMockCacheService(overrides = {}): CacheService {
@@ -17,14 +17,14 @@ function createMockCacheService(overrides = {}): CacheService {
     } as unknown as CacheService;
 }
 
-describe('RegistryService', () => {
-    let service: RegistryService;
+describe('NpmRegistryService', () => {
+    let service: NpmRegistryService;
     let cacheService: CacheService;
 
     beforeEach(() => {
         vi.clearAllMocks();
         cacheService = createMockCacheService();
-        service = new RegistryService(cacheService, '/fake/lockfile');
+        service = new NpmRegistryService(cacheService, '/fake/lockfile');
     });
 
     describe('getVersionsBetween', () => {
