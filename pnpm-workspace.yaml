@@ -1,5 +1,9 @@
+# Workspace package locations. pnpm reads this file instead of the "workspaces"
+# field in package.json; the two must be kept in sync.
 packages:
     - 'packages/*'
 
+# Allow rolldown's postinstall script. Without this, pnpm silently skips the
+# native binary build step and rolldown fails at runtime.
 onlyBuiltDependencies:
     - 'rolldown'

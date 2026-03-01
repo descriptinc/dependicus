@@ -184,6 +184,65 @@ jobs:
                   name: typedoc-yarn
                   path: packages/dependicus/typedoc-out
 
+    check-npm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: sed -i 's/"workspace:\*"/"*"/g' packages/*/package.json
+            - run: rm -f yarn.lock
+            - run: npm ci
+            - run: mise run npm:typecheck
+            - run: mise run npm:test
+
+    lint-npm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: sed -i 's/"workspace:\*"/"*"/g' packages/*/package.json
+            - run: rm -f yarn.lock
+            - run: npm ci
+            - run: npm run format:check
+            - run: npm run lint
+
+    typedoc-npm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: sed -i 's/"workspace:\*"/"*"/g' packages/*/package.json
+            - run: rm -f yarn.lock
+            - run: npm ci
+            - run: mise run npm:build
+            - run: npm run typedoc
+              working-directory: packages/dependicus
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: typedoc-npm
+                  path: packages/dependicus/typedoc-out
+
+    dependicus-npm:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: sed -i 's/"workspace:\*"/"*"/g' packages/*/package.json
+            - run: npm ci
+            - run: mise run npm:build
+            - uses: actions/cache@v4
+              with:
+                  path: .dependicus-cache
+                  key: dependicus-npm-cache-${{ github.sha }}
+                  restore-keys: dependicus-npm-cache-
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider mise
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: dependicus-npm
+                  path: dependicus-out
+
     github-issues:
         if: github.ref == 'refs/heads/main'
         needs: [check, lint, dependicus]
@@ -215,16 +274,20 @@ jobs:
             [
                 check,
                 check-bun,
+                check-npm,
                 check-yarn,
                 lint,
                 lint-bun,
+                lint-npm,
                 lint-yarn,
                 zensical,
                 typedoc,
                 typedoc-bun,
+                typedoc-npm,
                 typedoc-yarn,
                 dependicus,
                 dependicus-bun,
+                dependicus-npm,
                 dependicus-yarn,
             ]
         runs-on: ubuntu-latest
@@ -263,6 +326,14 @@ jobs:
               with:
                   name: dependicus-yarn
                   path: site/yarn/dependencies
+            - uses: actions/download-artifact@v4
+              with:
+                  name: typedoc-npm
+                  path: site/npm/api
+            - uses: actions/download-artifact@v4
+              with:
+                  name: dependicus-npm
+                  path: site/npm/dependencies
             - uses: actions/upload-pages-artifact@v3
               with:
                   path: site

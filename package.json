@@ -10,11 +10,9 @@
         "type": "git",
         "url": "https://github.com/descriptinc/dependicus.git"
     },
-    "workspaces": {
-        "packages": [
-            "packages/*"
-        ]
-    },
+    "workspaces": [
+        "packages/*"
+    ],
     "scripts": {
         "lint": "oxlint --deny-warnings",
         "format": "oxfmt --write .",
@@ -27,6 +25,9 @@
         "tsx": "^4.21.0"
     },
     "resolutions": {
+        "rolldown": "1.0.0-rc.5"
+    },
+    "overrides": {
         "rolldown": "1.0.0-rc.5"
     },
     "engines": {
