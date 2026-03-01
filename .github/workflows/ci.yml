@@ -104,7 +104,7 @@ jobs:
                   path: .dependicus-cache
                   key: dependicus-cache-${{ github.sha }}
                   restore-keys: dependicus-cache-
-            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider mise
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
@@ -124,7 +124,7 @@ jobs:
                   path: .dependicus-cache
                   key: dependicus-bun-cache-${{ github.sha }}
                   restore-keys: dependicus-bun-cache-
-            - run: bun run packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn
+            - run: bun run packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider mise
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
@@ -162,7 +162,7 @@ jobs:
                   path: .dependicus-cache
                   key: dependicus-yarn-cache-${{ github.sha }}
                   restore-keys: dependicus-yarn-cache-
-            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider mise
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
