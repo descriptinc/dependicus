@@ -16,7 +16,7 @@ export class MiseVersionsSource implements DataSource {
 
     constructor(
         private cacheService: CacheService,
-        private lockfilePath: string,
+        private lockfilePaths: string | string[],
     ) {}
 
     async fetch(dependencies: DirectDependency[], store: FactStore): Promise<void> {
@@ -80,8 +80,11 @@ export class MiseVersionsSource implements DataSource {
 
     private async fetchToolVersions(toolName: string): Promise<string[]> {
         const cacheKey = `mise-versions-${toolName}`;
+        const primaryLockfile = Array.isArray(this.lockfilePaths)
+            ? this.lockfilePaths[0]!
+            : this.lockfilePaths;
 
-        if (await this.cacheService.isCacheValid(cacheKey, this.lockfilePath)) {
+        if (await this.cacheService.isCacheValid(cacheKey, primaryLockfile)) {
             try {
                 const cached = await this.cacheService.readCache(cacheKey);
                 return JSON.parse(cached) as string[];
@@ -98,11 +101,7 @@ export class MiseVersionsSource implements DataSource {
             const text = await response.text();
             const versions = text.trim().split('\n').filter(Boolean);
 
-            await this.cacheService.writeCache(
-                cacheKey,
-                JSON.stringify(versions),
-                this.lockfilePath,
-            );
+            await this.cacheService.writeCache(cacheKey, JSON.stringify(versions), primaryLockfile);
 
             return versions;
         } catch {
