@@ -129,6 +129,10 @@ export function dependicusCli(config: DependicusCliConfig): {
                     'Dependency provider to use (repeatable): pnpm, bun, yarn, mise (default: auto-detect)',
                     collect,
                     [] as string[],
+                )
+                .option(
+                    '--dependicus-base-url <url>',
+                    'Base URL where the Dependicus site is published',
                 );
 
             // Resolve config that depends on --repo-root after Commander parses argv.
@@ -138,7 +142,11 @@ export function dependicusCli(config: DependicusCliConfig): {
                 );
                 const providerOpts = program.opts<{ provider: string[] }>().provider;
                 const providerNames = providerOpts.length > 0 ? providerOpts : config.providerNames;
-                const effectiveConfig = { ...config, repoRoot, providerNames };
+                const dependicusBaseUrl = (
+                    program.opts<{ dependicusBaseUrl?: string }>().dependicusBaseUrl ??
+                    config.dependicusBaseUrl
+                )?.replace(/\/+$/, '');
+                const effectiveConfig = { ...config, repoRoot, providerNames, dependicusBaseUrl };
                 const resolved = resolvePlugins(effectiveConfig.plugins ?? [], effectiveConfig);
                 const outputDir = effectiveConfig.outputDir ?? join(repoRoot, 'dependicus-out');
                 const jsonPath = join(outputDir, JSON_FILENAME);

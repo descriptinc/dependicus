@@ -28,6 +28,8 @@ Where HTML and JSON output will be created. Defaults to `${repoRoot}/dependicus-
 
 Base URL of where Dependicus will be deployed. Used for linking from Linear tickets and GitHub Issues.
 
+Can also be passed via the CLI with `--dependicus-base-url <url>`. The CLI flag takes precedence over the programmatic config value.
+
 ### `cacheDir`
 
 Dependicus aggressively caches data in individual JSON files. This parameter controls where they go. The default value is `${repoRoot}/.dependicus-cache`.

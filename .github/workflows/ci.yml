@@ -265,7 +265,7 @@ jobs:
               with:
                   name: dependicus
                   path: dependicus-out
-            - run: node packages/dependicus/dist/bin.mjs make-github-issues
+            - run: node packages/dependicus/dist/bin.mjs make-github-issues --dependicus-base-url https://descriptinc.github.io/dependicus/dependencies
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
