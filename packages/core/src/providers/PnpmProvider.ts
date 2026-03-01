@@ -23,6 +23,11 @@ export class PnpmProvider implements DependencyProvider {
     readonly name = 'pnpm';
     readonly ecosystem = 'npm';
     readonly supportsCatalog = true;
+    readonly installCommand = 'pnpm install';
+    readonly urlPatterns = {
+        'Dependency Graph': 'https://npmgraph.js.org/?q={name}@{version}',
+        Registry: 'https://www.npmjs.com/package/{name}/v/{version}',
+    };
     readonly rootDir: string;
     readonly lockfilePath: string;
     private cachedPackages: PackageInfo[] | undefined = undefined;

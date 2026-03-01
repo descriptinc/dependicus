@@ -38,6 +38,11 @@ function makeProvider(
         name: 'pnpm',
         ecosystem: 'npm',
         supportsCatalog: true,
+        installCommand: 'pnpm install',
+        urlPatterns: {
+            'Dependency Graph': 'https://npmgraph.js.org/?q={name}@{version}',
+            Registry: 'https://www.npmjs.com/package/{name}/v/{version}',
+        },
         dependencies: deps,
         ...overrides,
     };
@@ -68,6 +73,10 @@ function makeMockStore(deps?: DirectDependency[]): FactStore {
             changelogUrl: 'https://github.com/test/test-pkg/blob/main/CHANGELOG.md',
         });
         scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+        scoped.setPackageFact(dep.packageName, FactKeys.URLS, {
+            'Dependency Graph': 'https://npmgraph.js.org/?q={name}@{version}',
+            Registry: 'https://www.npmjs.com/package/{name}/v/{version}',
+        });
         scoped.setPackageFact(dep.packageName, 'testMeta', {
             surfaceId: 'test-surface',
             teamName: 'TestTeam',

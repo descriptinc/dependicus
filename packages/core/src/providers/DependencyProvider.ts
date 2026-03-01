@@ -15,6 +15,8 @@ export interface DependencyProvider {
     readonly rootDir: string;
     readonly lockfilePath: string;
     readonly supportsCatalog: boolean;
+    readonly installCommand: string;
+    readonly urlPatterns: Record<string, string>;
     getPackages(): Promise<PackageInfo[]>;
     isInCatalog(packageName: string, version: string): boolean;
     hasPackageInCatalog(packageName: string): boolean;

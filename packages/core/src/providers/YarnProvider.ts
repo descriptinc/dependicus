@@ -23,6 +23,11 @@ export class YarnProvider implements DependencyProvider {
     readonly name = 'yarn';
     readonly ecosystem = 'npm';
     readonly supportsCatalog = false;
+    readonly installCommand = 'yarn install';
+    readonly urlPatterns = {
+        'Dependency Graph': 'https://npmgraph.js.org/?q={name}@{version}',
+        Registry: 'https://www.npmjs.com/package/{name}/v/{version}',
+    };
     readonly rootDir: string;
     readonly lockfilePath: string;
     private cachedPackages: PackageInfo[] | undefined = undefined;

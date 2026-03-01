@@ -58,6 +58,8 @@ function makeProvider(deps: DirectDependency[]): ProviderOutput {
         name: 'pnpm',
         ecosystem: 'npm',
         supportsCatalog: false,
+        installCommand: 'pnpm install',
+        urlPatterns: {},
         dependencies: deps,
     };
 }

@@ -32,6 +32,7 @@
 
 ## How to Update
 
+{{#if supportsCatalog}}
 {{#if inCatalog}}
 This dependency is managed in the pnpm catalog. Edit `pnpm-workspace.yaml`:
 
@@ -40,7 +41,7 @@ catalog:
   {{packageName}}: "{{effectiveLatestVersion}}"
 ```
 
-Then, run `mise install` to update the lockfile.
+Then, run `{{installCommand}}` to update the lockfile.
 {{else}}
 {{#if shouldRecommendCatalog}}
 This dependency is used by {{usedByCount}} packages. Consider adding it to the catalog:
@@ -54,7 +55,7 @@ catalog:
 
 2. **Update each package** to use `"{{packageName}}": "catalog:"` instead of the version number.
 
-3. **Run `mise install`** to update the lockfile.
+3. **Run `{{installCommand}}`** to update the lockfile.
 
 **Packages to update:**
 
@@ -78,8 +79,20 @@ This dependency is NOT in the catalog. Update the following package:
 - ... and {{usedByOverflow}} more
 {{/if}}
 
-Then, run `mise install` to update the lockfile.
+Then, run `{{installCommand}}` to update the lockfile.
 {{/if}}
+{{/if}}
+{{else}}
+Update the following package:
+
+{{#each usedByList}}
+- `{{this}}`
+{{/each}}
+{{#if usedByOverflow}}
+- ... and {{usedByOverflow}} more
+{{/if}}
+
+Then, run `{{installCommand}}` to update the lockfile.
 {{/if}}
 
 {{#if hasPatches}}
@@ -119,8 +132,9 @@ A major version (`{{availableMajorVersion}}`) is available but not required by t
 ## Links
 
 - [Dependicus Detail Page]({{detailUrl}})
-- [npm](https://www.npmjs.com/package/{{packageName}})
-- [npmgraph](https://npmgraph.js.org/?q={{npmgraphQuery}})
+{{#each urls}}
+- [{{this.label}}]({{this.url}})
+{{/each}}
 {{#if homepage}}
 - [Homepage]({{homepage}})
 {{/if}}

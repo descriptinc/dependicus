@@ -32,11 +32,12 @@ This issue tracks updates for the **{{groupName}}** package group.
 {{/if}}
 - **Update type:** {{this.updateType}}
 - **In catalog:** {{#if this.inCatalog}}Yes{{else}}No{{/if}}
-- [Dependicus Detail]({{this.detailUrl}}) | [npm](https://www.npmjs.com/package/{{this.packageName}})
+- [Dependicus Detail]({{this.detailUrl}}){{#each this.urls}} | [{{this.label}}]({{this.url}}){{/each}}
 
 {{/each}}
 ## How to Update
 
+{{#if supportsCatalog}}
 Update each package in `pnpm-workspace.yaml` catalog (if applicable) or individual package.json files:
 
 ```yaml
@@ -46,7 +47,10 @@ catalog:
 {{/each}}
 ```
 
-Then run `mise install` to update the lockfile.
+Then run `{{installCommand}}` to update the lockfile.
+{{else}}
+Update each package's version in the appropriate config file, then run `{{installCommand}}`.
+{{/if}}
 
 *PR title should be: "Update {{groupName}} packages"*
 

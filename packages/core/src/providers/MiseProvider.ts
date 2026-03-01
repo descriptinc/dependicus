@@ -69,6 +69,10 @@ export class MiseProvider implements DependencyProvider {
     readonly name = 'mise';
     readonly ecosystem = 'mise';
     readonly supportsCatalog = false;
+    readonly installCommand = 'mise install';
+    readonly urlPatterns = {
+        Registry: 'https://mise-versions.jdx.dev/tools/{name}',
+    };
     readonly rootDir: string;
     readonly lockfilePath: string;
     private cachedPackages: PackageInfo[] | undefined = undefined;

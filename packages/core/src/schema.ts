@@ -20,6 +20,8 @@ const providerOutputSchema = z.object({
     name: z.string(),
     ecosystem: z.string().default('npm'),
     supportsCatalog: z.boolean(),
+    installCommand: z.string().default('install'),
+    urlPatterns: z.record(z.string(), z.string()).default({}),
     dependencies: z.array(directDependencySchema),
 });
 

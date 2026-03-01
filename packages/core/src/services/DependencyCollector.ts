@@ -93,6 +93,8 @@ export class DependencyCollector {
                 name: provider.name,
                 ecosystem: provider.ecosystem,
                 supportsCatalog: provider.supportsCatalog,
+                installCommand: provider.installCommand,
+                urlPatterns: provider.urlPatterns,
                 dependencies,
             });
         }

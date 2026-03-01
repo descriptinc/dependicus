@@ -9,7 +9,7 @@ import { DependencyCollector, NpmMetadataResolver } from './services/DependencyC
 import type { DependencyProvider } from './providers/DependencyProvider';
 import { detectProviders, createProvidersByName } from './providers';
 import type { DataSource } from './sources/types';
-import { RootFactStore } from './sources/FactStore';
+import { RootFactStore, FactKeys } from './sources/FactStore';
 import { runSources } from './sources/runSources';
 import { GitHubSource } from './sources/GitHubSource';
 import { WorkspaceSource } from './sources/WorkspaceSource';
@@ -52,6 +52,18 @@ export function createCoreServices(config: CoreServicesConfig): CoreServices {
         async collect(): Promise<{ providers: ProviderOutput[]; store: RootFactStore }> {
             const providerOutputs = await collector.collectDirectDependencies();
             const store = new RootFactStore();
+
+            // Store URL patterns as package-level facts
+            for (const po of providerOutputs) {
+                if (Object.keys(po.urlPatterns).length > 0) {
+                    const scoped = store.scoped(po.ecosystem);
+                    for (const dep of po.dependencies) {
+                        scoped.setPackageFact(dep.packageName, FactKeys.URLS, {
+                            ...po.urlPatterns,
+                        });
+                    }
+                }
+            }
 
             // Per-ecosystem enrichment: each ecosystem's sources run with a scoped store
             const byEcosystem = new Map<string, ProviderOutput[]>();
@@ -102,8 +114,20 @@ export async function readDependicusJson(
 ): Promise<{ providers: ProviderOutput[]; store: RootFactStore }> {
     const content = await readFile(path, 'utf-8');
     const parsed = parseDependicusOutput(JSON.parse(content));
+    const store = RootFactStore.fromJSON(parsed.facts);
+
+    // Restore URL patterns as package-level facts
+    for (const po of parsed.providers) {
+        if (Object.keys(po.urlPatterns).length > 0) {
+            const scoped = store.scoped(po.ecosystem);
+            for (const dep of po.dependencies) {
+                scoped.setPackageFact(dep.packageName, FactKeys.URLS, { ...po.urlPatterns });
+            }
+        }
+    }
+
     return {
         providers: parsed.providers,
-        store: RootFactStore.fromJSON(parsed.facts),
+        store,
     };
 }

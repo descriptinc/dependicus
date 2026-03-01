@@ -4,6 +4,7 @@ export type {
     DependencyVersion,
     DependicusOutput,
     OutputMetadata,
+    ProviderInfo,
     ProviderOutput,
     GroupingConfig,
     GroupingDetailContext,
@@ -15,7 +16,12 @@ export type {
     PackageVersionInfo,
     UsedByGroupKeyFn,
 } from './types';
-export { mergeProviderDependencies, getDetailFilename, createDetailUrlBuilder } from './types';
+export {
+    mergeProviderDependencies,
+    getDetailFilename,
+    createDetailUrlBuilder,
+    buildProviderInfoMap,
+} from './types';
 export type { DetailUrlFn } from './types';
 
 export {

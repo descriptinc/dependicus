@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeProviderDependencies } from './types';
+import { mergeProviderDependencies, buildProviderInfoMap } from './types';
 import type { ProviderOutput, DirectDependency } from './types';
 
 function makeProviderOutput(overrides?: Partial<ProviderOutput>): ProviderOutput {
@@ -7,6 +7,8 @@ function makeProviderOutput(overrides?: Partial<ProviderOutput>): ProviderOutput
         name: 'test-provider',
         ecosystem: 'npm',
         supportsCatalog: false,
+        installCommand: 'pnpm install',
+        urlPatterns: {},
         dependencies: [],
         ...overrides,
     };
@@ -246,5 +248,45 @@ describe('mergeProviderDependencies', () => {
         expect(result[0]!.packageName).toBe('apple');
         expect(result[1]!.packageName).toBe('monkey');
         expect(result[2]!.packageName).toBe('zebra');
+    });
+});
+
+describe('buildProviderInfoMap', () => {
+    it('builds map from providers, first provider per ecosystem wins', () => {
+        const p1 = makeProviderOutput({
+            name: 'pnpm',
+            ecosystem: 'npm',
+            installCommand: 'pnpm install',
+            urlPatterns: { Registry: 'https://npmjs.com/{name}' },
+        });
+        const p2 = makeProviderOutput({
+            name: 'bun',
+            ecosystem: 'npm',
+            installCommand: 'bun install',
+        });
+        const p3 = makeProviderOutput({
+            name: 'mise',
+            ecosystem: 'mise',
+            installCommand: 'mise install',
+            urlPatterns: { Registry: 'https://mise-versions.jdx.dev/tools/{name}' },
+        });
+
+        const map = buildProviderInfoMap([p1, p2, p3]);
+
+        expect(map.size).toBe(2);
+        expect(map.get('npm')!.name).toBe('pnpm');
+        expect(map.get('npm')!.installCommand).toBe('pnpm install');
+        expect(map.get('mise')!.name).toBe('mise');
+    });
+
+    it('omits dependencies from ProviderInfo', () => {
+        const p = makeProviderOutput({
+            dependencies: [makeDep()],
+        });
+
+        const map = buildProviderInfoMap([p]);
+        const info = map.get('npm')!;
+
+        expect(info).not.toHaveProperty('dependencies');
     });
 });

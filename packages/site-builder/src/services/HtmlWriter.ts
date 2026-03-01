@@ -213,8 +213,13 @@ export class HtmlWriter {
                         FactKeys.DEPRECATED_TRANSITIVE_DEPS,
                     ) ?? [];
                 const notes = this.composeNotes(dep.packageName, versionInfo.version, scoped);
+                const rowUrlPatterns =
+                    scoped.getPackageFact<Record<string, string>>(dep.packageName, FactKeys.URLS) ??
+                    {};
+                const registryPattern = rowUrlPatterns['Registry'];
                 rows.push({
                     'Package Name': dep.packageName,
+                    Ecosystem: dep.ecosystem,
                     Type: versionInfo.dependencyTypes.join(', '),
                     Version: versionInfo.version,
                     'Latest Version': versionInfo.latestVersion,
@@ -227,6 +232,12 @@ export class HtmlWriter {
                     Age: getAgeDays(versionInfo.publishDate) ?? '',
                     Notes: notes,
                     ...this.buildCustomColumnData(dep.packageName, versionInfo, scoped),
+                    'Latest Version URL': registryPattern
+                        ? registryPattern
+                              .replace('{name}', dep.packageName)
+                              .replace('{version}', versionInfo.latestVersion)
+                        : '',
+                    'Deprecated Dep URL Pattern': registryPattern ?? '',
                     'Used By Count': versionInfo.usedBy.length,
                     'Used By': versionInfo.usedBy.join('; '),
                     'Used By Grouped': this.groupPackagesByMeta(
@@ -431,8 +442,16 @@ export class HtmlWriter {
             versionInfo.version,
             FactKeys.UNPACKED_SIZE,
         );
-        const registryUrl = `https://www.npmjs.com/package/${packageName}/v/${versionInfo.version}`;
-        const graphUrl = `https://npmgraph.js.org/?q=${encodeURIComponent(`${packageName}@${versionInfo.version}`)}`;
+        const urlPatterns =
+            store.getPackageFact<Record<string, string>>(packageName, FactKeys.URLS) ?? {};
+        const urls = Object.entries(urlPatterns)
+            .map(([label, pattern]) => ({
+                label,
+                url: pattern
+                    .replace('{name}', packageName)
+                    .replace('{version}', versionInfo.version),
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label));
 
         // Get GitHub data from FactStore
         const githubData = store.getPackageFact<GitHubData>(packageName, FactKeys.GITHUB_DATA);
@@ -518,8 +537,7 @@ export class HtmlWriter {
             notes,
             formattedInstalledSize: formatBytes(unpackedSize),
             upgradePath: upgradePathData,
-            registryUrl,
-            graphUrl,
+            urls,
             homepage,
             repositoryUrl,
             changelogUrl,

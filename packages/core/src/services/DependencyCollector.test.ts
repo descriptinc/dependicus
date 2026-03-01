@@ -11,6 +11,8 @@ function createMockProvider(packages: PackageInfo[] = []): DependencyProvider {
         rootDir: '/repo',
         lockfilePath: '/repo/mock.lock',
         supportsCatalog: false,
+        installCommand: 'pnpm install',
+        urlPatterns: {},
         getPackages: vi.fn().mockResolvedValue(packages),
         isInCatalog: vi.fn().mockReturnValue(false),
         hasPackageInCatalog: vi.fn().mockReturnValue(false),

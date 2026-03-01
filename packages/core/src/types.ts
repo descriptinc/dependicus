@@ -79,13 +79,35 @@ export interface GitHubData {
 // ============================================================================
 
 /**
- * Per-provider dependency output.
+ * Provider identity and presentation metadata (everything except dependencies).
  */
-export interface ProviderOutput {
+export interface ProviderInfo {
     name: string;
     ecosystem: string;
     supportsCatalog: boolean;
+    installCommand: string;
+    urlPatterns: Record<string, string>; // label -> URL template with {name}, {version}
+}
+
+/**
+ * Per-provider dependency output.
+ */
+export interface ProviderOutput extends ProviderInfo {
     dependencies: DirectDependency[];
+}
+
+/**
+ * Build a map from ecosystem to ProviderInfo, using the first provider per ecosystem.
+ */
+export function buildProviderInfoMap(providers: ProviderOutput[]): Map<string, ProviderInfo> {
+    const map = new Map<string, ProviderInfo>();
+    for (const p of providers) {
+        if (!map.has(p.ecosystem)) {
+            const { dependencies: _deps, ...info } = p;
+            map.set(p.ecosystem, info);
+        }
+    }
+    return map;
 }
 
 /**

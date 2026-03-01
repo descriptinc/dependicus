@@ -4,6 +4,7 @@ import type {
     PackageVersionInfo,
     GitHubData,
     DetailUrlFn,
+    ProviderInfo,
 } from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
 import {
@@ -46,6 +47,8 @@ export interface IssueReconcilerConfig {
     cooldownDays?: number;
     /** Whether to restrict new issue creation (e.g., only on main branch) */
     allowNewIssues?: boolean;
+    /** Provider info map (ecosystem -> ProviderInfo) for presentation metadata */
+    providerInfoMap?: Map<string, ProviderInfo>;
 }
 
 export interface ReconciliationResult {
@@ -501,12 +504,14 @@ export async function reconcileIssues(
             effectiveLatestVersion,
             { notificationsOnly },
         );
+        const providerInfo = config.providerInfoMap?.get(pkg.ecosystem);
         const description = buildIssueDescription(
             pkg,
             scopedStore,
             minVersion,
             effectiveLatestVersion,
             getDetailUrl,
+            providerInfo,
         );
 
         if (existingIssue) {
@@ -682,7 +687,12 @@ export async function reconcileIssues(
         const title = buildGroupTicketTitle(group.groupName, group.packages.length, {
             notificationsOnly: groupNotificationsOnly,
         });
-        const description = buildGroupIssueDescription(group, store, getDetailUrl);
+        const description = buildGroupIssueDescription(
+            group,
+            store,
+            getDetailUrl,
+            config.providerInfoMap,
+        );
 
         if (existingIssue) {
             const issueStateName = existingIssue.state.name?.toLowerCase();

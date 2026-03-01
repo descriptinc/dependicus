@@ -2,8 +2,7 @@
     <h1><code>{{packageName}}@{{version}}</code></h1>
     {{#if description}}<p class="dep-detail-description">{{description}}</p>{{/if}}
     <div class="dep-detail-links">
-        {{#if registryUrl}}<a href="{{registryUrl}}">Registry</a>{{/if}}
-        {{#if graphUrl}}<a href="{{graphUrl}}">Dependency Graph</a>{{/if}}
+        {{#each urls}}<a href="{{this.url}}">{{this.label}}</a>{{/each}}
         {{#if homepage}}<a href="{{homepage}}">Homepage</a>{{/if}}
         {{#if repositoryUrl}}<a href="{{repositoryUrl}}">Repository</a>{{/if}}
         {{#if changelogUrl}}<a href="{{changelogUrl}}">CHANGELOG</a>{{/if}}

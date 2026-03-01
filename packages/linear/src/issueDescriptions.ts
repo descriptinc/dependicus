@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Handlebars from 'handlebars';
-import type { PackageVersionInfo, GitHubData, DetailUrlFn } from '@dependicus/core';
+import type { PackageVersionInfo, GitHubData, DetailUrlFn, ProviderInfo } from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
 import { FactKeys, findFirstVersionOfType, formatBytes, formatSizeChange } from '@dependicus/core';
 import { helpers } from './templates/helpers';
@@ -43,6 +43,7 @@ export function buildIssueDescription(
     minVersion: string,
     effectiveLatestVersion: string,
     getDetailUrl: DetailUrlFn,
+    providerInfo?: ProviderInfo,
 ): string {
     const { packageName, ecosystem, versions, worstCompliance } = pkg;
     const version = versions[0];
@@ -111,6 +112,17 @@ export function buildIssueDescription(
         };
     });
 
+    const installCommand = providerInfo?.installCommand ?? 'install';
+    const supportsCatalog = providerInfo?.supportsCatalog ?? false;
+    const urlPatterns =
+        store.getPackageFact<Record<string, string>>(packageName, FactKeys.URLS) ?? {};
+    const urls = Object.entries(urlPatterns)
+        .map(([label, pattern]) => ({
+            label,
+            url: pattern.replace('{name}', packageName).replace('{version}', version.version),
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+
     const context = {
         packageName,
         description,
@@ -134,7 +146,10 @@ export function buildIssueDescription(
         versionsBehindCount: versionsBetween.length,
         dependencyTypes: version.dependencyTypes,
         inCatalog: version.inCatalog,
+        supportsCatalog,
         shouldRecommendCatalog,
+        installCommand,
+        urls,
         usedByCount: usedBy.length,
         usedByList: usedBy.slice(0, 20),
         usedByOverflow: usedBy.length > 20 ? usedBy.length - 20 : 0,
@@ -146,7 +161,6 @@ export function buildIssueDescription(
         versionsToShow,
         versionsOverflow: versionsBetween.length > 15 ? versionsBetween.length - 15 : 0,
         detailUrl: getDetailUrl(ecosystem, packageName, version.version),
-        npmgraphQuery: encodeURIComponent(`${packageName}@${version.version}`),
         homepage,
         repositoryUrl,
         changelogUrl: github?.changelogUrl,
@@ -165,10 +179,16 @@ export function buildGroupIssueDescription(
     group: OutdatedGroup,
     store: FactStore,
     getDetailUrl: DetailUrlFn,
+    providerInfoMap?: Map<string, ProviderInfo>,
 ): string {
     const { groupName, packages, worstCompliance } = group;
 
     const notificationsOnly = group.policy.type === 'fyi';
+
+    const firstPkg = packages[0];
+    const groupProviderInfo = firstPkg ? providerInfoMap?.get(firstPkg.ecosystem) : undefined;
+    const installCommand = groupProviderInfo?.installCommand ?? 'install';
+    const supportsCatalog = groupProviderInfo?.supportsCatalog ?? false;
 
     const context = {
         groupName,
@@ -177,6 +197,8 @@ export function buildGroupIssueDescription(
         updateType: worstCompliance.updateType,
         hasOverdue: worstCompliance.daysOverdue > 0,
         daysOverdue: worstCompliance.daysOverdue,
+        installCommand,
+        supportsCatalog,
         packages: packages
             .map((pkg) => {
                 const version = pkg.versions[0];
@@ -194,6 +216,17 @@ export function buildGroupIssueDescription(
                     version.version,
                     FactKeys.DESCRIPTION,
                 );
+                const pkgUrlPatterns =
+                    scoped.getPackageFact<Record<string, string>>(pkg.packageName, FactKeys.URLS) ??
+                    {};
+                const pkgUrls = Object.entries(pkgUrlPatterns)
+                    .map(([label, pattern]) => ({
+                        label,
+                        url: pattern
+                            .replace('{name}', pkg.packageName)
+                            .replace('{version}', version.version),
+                    }))
+                    .sort((a, b) => a.label.localeCompare(b.label));
 
                 const effectiveLatestVersion = pkg.targetVersion ?? version.latestVersion;
                 const pkgIsFyi = pkg.policy.type === 'fyi';
@@ -215,6 +248,7 @@ export function buildGroupIssueDescription(
                     updateType: pkg.worstCompliance.updateType,
                     inCatalog: version.inCatalog,
                     detailUrl: getDetailUrl(pkg.ecosystem, pkg.packageName, version.version),
+                    urls: pkgUrls,
                 };
             })
             .filter(Boolean),

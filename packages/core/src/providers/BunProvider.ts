@@ -56,6 +56,11 @@ export class BunProvider implements DependencyProvider {
     readonly name = 'bun';
     readonly ecosystem = 'npm';
     readonly supportsCatalog = true;
+    readonly installCommand = 'bun install';
+    readonly urlPatterns = {
+        'Dependency Graph': 'https://npmgraph.js.org/?q={name}@{version}',
+        Registry: 'https://www.npmjs.com/package/{name}/v/{version}',
+    };
     readonly rootDir: string;
     readonly lockfilePath: string;
     private cachedPackages: PackageInfo[] | undefined = undefined;

@@ -4,6 +4,7 @@ import type {
     PackageVersionInfo,
     GitHubData,
     DetailUrlFn,
+    ProviderInfo,
 } from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
 import {
@@ -46,6 +47,8 @@ export interface IssueReconcilerConfig {
     cooldownDays?: number;
     /** Whether to restrict new issue creation (e.g., only on main branch) */
     allowNewIssues?: boolean;
+    /** Provider info map (ecosystem -> ProviderInfo) for presentation metadata */
+    providerInfoMap?: Map<string, ProviderInfo>;
 }
 
 export interface ReconciliationResult {
@@ -505,12 +508,14 @@ export async function reconcileGitHubIssues(
         if (dueDateStr && !notificationsOnly) {
             title = `${title} (due ${dueDateStr})`;
         }
+        const providerInfo = config.providerInfoMap?.get(pkg.ecosystem);
         const description = buildIssueDescription(
             pkg,
             scopedStore,
             minVersion,
             effectiveLatestVersion,
             getDetailUrl,
+            providerInfo,
             dueDateStr,
         );
 
@@ -672,7 +677,13 @@ export async function reconcileGitHubIssues(
         if (dueDateStr && !groupNotificationsOnly) {
             title = `${title} (due ${dueDateStr})`;
         }
-        const description = buildGroupIssueDescription(group, store, getDetailUrl, dueDateStr);
+        const description = buildGroupIssueDescription(
+            group,
+            store,
+            getDetailUrl,
+            config.providerInfoMap,
+            dueDateStr,
+        );
 
         if (existingIssue) {
             // For fyi groups with rate limits, check if we should skip

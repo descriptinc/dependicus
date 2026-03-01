@@ -181,8 +181,12 @@ export function versionFormatter(cell: TabulatorCell): string {
 export function latestVersionFormatter(cell: TabulatorCell): string {
     const version = cell.getValue();
     if (!version) return '';
-    const packageName = cell.getRow().getData()['Package Name'];
-    return `<a href="https://www.npmjs.com/package/${packageName}/v/${version}" target="_blank" rel="noopener">${version}</a>`;
+    const data = cell.getRow().getData();
+    const url = data['Latest Version URL'];
+    if (url) {
+        return `<a href="${url}" target="_blank" rel="noopener">${version}</a>`;
+    }
+    return String(version);
 }
 
 /**
@@ -195,13 +199,17 @@ export function deprecatedFormatter(cell: TabulatorCell): string {
     const deps = String(value).split('; ').filter(Boolean);
     if (deps.length === 0) return '';
 
+    const pattern = cell.getRow().getData()['Deprecated Dep URL Pattern'] as string;
     return deps
         .map((dep) => {
-            // Parse package@version, handling scoped packages like @scope/package@version
-            const lastAtIndex = dep.lastIndexOf('@');
-            const packageName = dep.substring(0, lastAtIndex);
-            const version = dep.substring(lastAtIndex + 1);
-            return `<a href="https://www.npmjs.com/package/${packageName}/v/${version}" target="_blank" rel="noopener" class="dep-package-pill">${dep}</a>`;
+            if (pattern) {
+                const lastAtIndex = dep.lastIndexOf('@');
+                const packageName = dep.substring(0, lastAtIndex);
+                const version = dep.substring(lastAtIndex + 1);
+                const url = pattern.replace('{name}', packageName).replace('{version}', version);
+                return `<a href="${url}" target="_blank" rel="noopener" class="dep-package-pill">${dep}</a>`;
+            }
+            return `<span class="dep-package-pill">${dep}</span>`;
         })
         .join('');
 }

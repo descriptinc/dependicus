@@ -3,6 +3,7 @@
  */
 export interface RowData {
     'Package Name': string;
+    Ecosystem: string;
     Type: string;
     Version: string;
     'Latest Version': string;

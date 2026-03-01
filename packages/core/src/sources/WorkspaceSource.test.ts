@@ -28,6 +28,8 @@ function mockProvider(overrides: Partial<DependencyProvider> = {}): DependencyPr
         rootDir: '/repo',
         lockfilePath: '/repo/mock.lock',
         supportsCatalog: false,
+        installCommand: 'pnpm install',
+        urlPatterns: {},
         getPackages: vi.fn().mockResolvedValue([]),
         isPatched: vi.fn(() => false),
         hasPackageInCatalog: vi.fn(() => false),

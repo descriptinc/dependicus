@@ -23,6 +23,7 @@ function makeFakeElement(): HTMLElement {
 function makeCell(value: unknown, rowData?: Partial<RowData>): TabulatorCell {
     const fullRowData: RowData = {
         'Package Name': 'test-pkg',
+        Ecosystem: 'npm',
         Type: 'prod',
         Version: '1.0.0',
         'Latest Version': '2.0.0',
@@ -36,6 +37,8 @@ function makeCell(value: unknown, rowData?: Partial<RowData>): TabulatorCell {
         'Used By Grouped': null,
         'Deprecated Transitive Dependencies': '',
         'Detail Link': '',
+        'Latest Version URL': 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
+        'Deprecated Dep URL Pattern': 'https://www.npmjs.com/package/{name}/v/{version}',
         ...rowData,
     };
 
