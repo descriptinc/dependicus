@@ -5,7 +5,7 @@ import type {
     GroupingConfig,
     ProviderOutput,
 } from '@dependicus/core';
-import { RootFactStore, FactKeys } from '@dependicus/core';
+import { RootFactStore, FactKeys, getDetailFilename } from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
 import { HtmlWriter } from './HtmlWriter';
 
@@ -128,13 +128,11 @@ function makeMockStore(deps?: DirectDependency[]): FactStore {
 describe('HtmlWriter', () => {
     describe('getDetailFilename', () => {
         it('generates safe filename for scoped packages', () => {
-            expect(HtmlWriter.getDetailFilename('@scope/pkg', '1.0.0')).toBe(
-                'scope-pkg@1.0.0.html',
-            );
+            expect(getDetailFilename('@scope/pkg', '1.0.0')).toBe('scope-pkg@1.0.0.html');
         });
 
         it('generates safe filename for unscoped packages', () => {
-            expect(HtmlWriter.getDetailFilename('lodash', '4.17.21')).toBe('lodash@4.17.21.html');
+            expect(getDetailFilename('lodash', '4.17.21')).toBe('lodash@4.17.21.html');
         });
     });
 

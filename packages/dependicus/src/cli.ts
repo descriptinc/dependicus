@@ -5,7 +5,11 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { Command } from 'commander';
 import { createDependicus } from '@dependicus/site-builder';
-import { readDependicusJson, mergeProviderDependencies } from '@dependicus/core';
+import {
+    readDependicusJson,
+    mergeProviderDependencies,
+    createDetailUrlBuilder,
+} from '@dependicus/core';
 import type { FactStore, ProviderOutput } from '@dependicus/core';
 import { reconcileIssues } from '@dependicus/linear';
 import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
@@ -246,6 +250,11 @@ export function dependicusCli(config: DependicusCliConfig): {
                             dependicus.refreshLocal(deps, store);
                         }
 
+                        const getDetailUrl = createDetailUrlBuilder(
+                            effectiveConfig.dependicusBaseUrl,
+                            providers,
+                        );
+
                         await reconcileIssues(
                             deps,
                             store,
@@ -253,6 +262,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                                 linearApiKey,
                                 dryRun: options.dryRun,
                                 dependicusBaseUrl: effectiveConfig.dependicusBaseUrl,
+                                getDetailUrl,
                                 cooldownDays: linearConfig.cooldownDays,
                                 allowNewIssues: linearConfig.allowNewIssues,
                             },
@@ -319,6 +329,11 @@ export function dependicusCli(config: DependicusCliConfig): {
                             dependicus.refreshLocal(deps, store);
                         }
 
+                        const getDetailUrl = createDetailUrlBuilder(
+                            effectiveConfig.dependicusBaseUrl,
+                            providers,
+                        );
+
                         await reconcileGitHubIssues(
                             deps,
                             store,
@@ -326,6 +341,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                                 githubToken,
                                 dryRun: options.dryRun,
                                 dependicusBaseUrl: effectiveConfig.dependicusBaseUrl,
+                                getDetailUrl,
                                 cooldownDays: githubConfig.cooldownDays,
                                 allowNewIssues: githubConfig.allowNewIssues,
                             },

@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import type { DependencyVersion, PackageVersionInfo, GitHubData } from '@dependicus/core';
-import { RootFactStore, FactKeys } from '@dependicus/core';
+import type {
+    DependencyVersion,
+    PackageVersionInfo,
+    GitHubData,
+    DetailUrlFn,
+} from '@dependicus/core';
+import { RootFactStore, FactKeys, getDetailFilename } from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
 import type { OutdatedPackage, OutdatedGroup } from './types';
 import {
@@ -156,19 +161,23 @@ function makeGroupStore(group: OutdatedGroup, descriptions?: Record<string, stri
 }
 
 const BASE_URL = 'https://example.com/dependicus';
+const testGetDetailUrl: DetailUrlFn = (_ecosystem, packageName, version) => {
+    const filename = getDetailFilename(packageName, version);
+    return `${BASE_URL}/npm/details/${filename}`;
+};
 
 describe('buildIssueDescription', () => {
     it('includes package description as blockquote', () => {
         const pkg = makePackage();
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('> A test package');
     });
 
     it('includes summary with version info', () => {
         const pkg = makePackage();
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('## Summary');
         expect(result).toContain('**Current version:** `1.0.0`');
         expect(result).toContain('**Target version:** `1.1.0`');
@@ -179,21 +188,28 @@ describe('buildIssueDescription', () => {
     it('includes due date in body when provided', () => {
         const pkg = makePackage();
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL, '2025-06-01');
+        const result = buildIssueDescription(
+            pkg,
+            store,
+            '1.1.0',
+            '2.0.0',
+            testGetDetailUrl,
+            '2025-06-01',
+        );
         expect(result).toContain('**Due date:** 2025-06-01');
     });
 
     it('omits due date when not provided', () => {
         const pkg = makePackage();
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).not.toContain('Due date');
     });
 
     it('includes upgrade path', () => {
         const pkg = makePackage();
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('## Upgrade Path');
         expect(result).toContain('**2.0.0** (latest)');
     });
@@ -204,7 +220,7 @@ describe('buildIssueDescription', () => {
             homepage: 'https://example.com',
             repositoryUrl: 'https://github.com/example/test',
         });
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('[Dependicus Detail Page]');
         expect(result).toContain('[npm]');
         expect(result).toContain('[Homepage](https://example.com)');
@@ -213,7 +229,7 @@ describe('buildIssueDescription', () => {
     it('includes patch warning when patched', () => {
         const pkg = makePackage();
         const store = makeStore(pkg, { isPatched: true });
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('Patch Applied');
     });
 
@@ -222,7 +238,7 @@ describe('buildIssueDescription', () => {
             descriptionSections: [{ title: 'Policy Info', body: 'Must comply within 90 days.' }],
         });
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('## Policy Info');
         expect(result).toContain('Must comply within 90 days.');
     });
@@ -230,7 +246,7 @@ describe('buildIssueDescription', () => {
     it('includes footer about auto-creation', () => {
         const pkg = makePackage();
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('automatically created by Dependicus');
     });
 });
@@ -250,7 +266,7 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(group, store, BASE_URL);
+        const result = buildGroupIssueDescription(group, store, testGetDetailUrl);
         expect(result).toContain('**react-group** package group');
         expect(result).toContain('**Packages:** 2');
         expect(result).toContain('**Worst update type:** major');
@@ -267,7 +283,7 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(group, store, BASE_URL, '2025-06-01');
+        const result = buildGroupIssueDescription(group, store, testGetDetailUrl, '2025-06-01');
         expect(result).toContain('**Due date:** 2025-06-01');
     });
 
@@ -282,7 +298,7 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(group, store, BASE_URL);
+        const result = buildGroupIssueDescription(group, store, testGetDetailUrl);
         expect(result).toContain('Tracked for awareness only');
     });
 
@@ -297,7 +313,7 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(group, store, BASE_URL);
+        const result = buildGroupIssueDescription(group, store, testGetDetailUrl);
         expect(result).toContain('```yaml');
         expect(result).toContain('react: "2.0.0"');
     });

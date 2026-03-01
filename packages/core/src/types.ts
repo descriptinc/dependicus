@@ -174,6 +174,34 @@ export function mergeProviderDependencies(providers: ProviderOutput[]): DirectDe
     return result;
 }
 
+/** Build the filename for a package detail page (e.g., "scope-pkg@1.0.0.html"). */
+export function getDetailFilename(packageName: string, version: string): string {
+    const safeName = packageName.replace(/^@/, '').replace(/\//g, '-');
+    return `${safeName}@${version}.html`;
+}
+
+export type DetailUrlFn = (ecosystem: string, packageName: string, version: string) => string;
+
+/** Build a function that returns the full detail page URL for a given package version. */
+export function createDetailUrlBuilder(
+    dependicusBaseUrl: string,
+    providers: ProviderOutput[],
+): DetailUrlFn {
+    const ecosystemToProvider = new Map<string, string>();
+    for (const p of providers) {
+        if (!ecosystemToProvider.has(p.ecosystem)) {
+            ecosystemToProvider.set(p.ecosystem, p.name);
+        }
+    }
+    return (ecosystem, packageName, version) => {
+        const provider = ecosystemToProvider.get(ecosystem);
+        const filename = getDetailFilename(packageName, version);
+        return provider
+            ? `${dependicusBaseUrl}/${provider}/details/${filename}`
+            : `${dependicusBaseUrl}/details/${filename}`;
+    };
+}
+
 export type UsedByGroupKeyFn = (
     packageName: string,
     version: DependencyVersion,

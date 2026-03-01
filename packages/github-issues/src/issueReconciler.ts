@@ -1,5 +1,10 @@
 // Copyright 2026 Descript, Inc
-import type { DirectDependency, PackageVersionInfo, GitHubData } from '@dependicus/core';
+import type {
+    DirectDependency,
+    PackageVersionInfo,
+    GitHubData,
+    DetailUrlFn,
+} from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
 import {
     FactKeys,
@@ -13,6 +18,7 @@ import {
     isWithinCooldown,
     isWithinNotificationRateLimit,
     hasMajorVersionSinceLastUpdate,
+    getDetailFilename,
 } from '@dependicus/core';
 import { GitHubIssueService, DependicusIssue } from './GitHubIssueService';
 import type {
@@ -34,6 +40,8 @@ export interface IssueReconcilerConfig {
     dryRun?: boolean;
     /** Base URL for Dependicus HTML pages (for links in issue descriptions) */
     dependicusBaseUrl: string;
+    /** Builds the full detail page URL for a given package version. */
+    getDetailUrl?: DetailUrlFn;
     /** Cooldown days before creating issues for newly-published versions */
     cooldownDays?: number;
     /** Whether to restrict new issue creation (e.g., only on main branch) */
@@ -212,6 +220,12 @@ export async function reconcileGitHubIssues(
     const dryRun = config.dryRun ?? false;
     const allowNewIssues = config.allowNewIssues ?? true;
     const dependicusBaseUrl = config.dependicusBaseUrl;
+    const getDetailUrl: DetailUrlFn =
+        config.getDetailUrl ??
+        ((_eco, pkg, ver) => {
+            const filename = getDetailFilename(pkg, ver);
+            return `${dependicusBaseUrl}/details/${filename}`;
+        });
 
     const githubService = new GitHubIssueService(config.githubToken, { dryRun });
 
@@ -496,7 +510,7 @@ export async function reconcileGitHubIssues(
             scopedStore,
             minVersion,
             effectiveLatestVersion,
-            dependicusBaseUrl,
+            getDetailUrl,
             dueDateStr,
         );
 
@@ -658,7 +672,7 @@ export async function reconcileGitHubIssues(
         if (dueDateStr && !groupNotificationsOnly) {
             title = `${title} (due ${dueDateStr})`;
         }
-        const description = buildGroupIssueDescription(group, store, dependicusBaseUrl, dueDateStr);
+        const description = buildGroupIssueDescription(group, store, getDetailUrl, dueDateStr);
 
         if (existingIssue) {
             // For fyi groups with rate limits, check if we should skip

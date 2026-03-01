@@ -1,5 +1,10 @@
 // Copyright 2026 Descript, Inc
-import type { DirectDependency, PackageVersionInfo, GitHubData } from '@dependicus/core';
+import type {
+    DirectDependency,
+    PackageVersionInfo,
+    GitHubData,
+    DetailUrlFn,
+} from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
 import {
     FactKeys,
@@ -13,6 +18,7 @@ import {
     isWithinCooldown,
     isWithinNotificationRateLimit,
     hasMajorVersionSinceLastUpdate,
+    getDetailFilename,
 } from '@dependicus/core';
 import { LinearService, DependicusIssue } from './LinearService';
 import type {
@@ -34,6 +40,8 @@ export interface IssueReconcilerConfig {
     dryRun?: boolean;
     /** Base URL for Dependicus HTML pages (for links in issue descriptions) */
     dependicusBaseUrl: string;
+    /** Builds the full detail page URL for a given package version. */
+    getDetailUrl?: DetailUrlFn;
     /** Cooldown days before creating issues for newly-published versions */
     cooldownDays?: number;
     /** Whether to restrict new issue creation (e.g., only on main branch) */
@@ -219,6 +227,12 @@ export async function reconcileIssues(
     const dryRun = config.dryRun ?? false;
     const allowNewIssues = config.allowNewIssues ?? true;
     const dependicusBaseUrl = config.dependicusBaseUrl;
+    const getDetailUrl: DetailUrlFn =
+        config.getDetailUrl ??
+        ((_eco, pkg, ver) => {
+            const filename = getDetailFilename(pkg, ver);
+            return `${dependicusBaseUrl}/details/${filename}`;
+        });
 
     const linearService = new LinearService(config.linearApiKey, { dryRun });
 
@@ -492,7 +506,7 @@ export async function reconcileIssues(
             scopedStore,
             minVersion,
             effectiveLatestVersion,
-            dependicusBaseUrl,
+            getDetailUrl,
         );
 
         if (existingIssue) {
@@ -668,7 +682,7 @@ export async function reconcileIssues(
         const title = buildGroupTicketTitle(group.groupName, group.packages.length, {
             notificationsOnly: groupNotificationsOnly,
         });
-        const description = buildGroupIssueDescription(group, store, dependicusBaseUrl);
+        const description = buildGroupIssueDescription(group, store, getDetailUrl);
 
         if (existingIssue) {
             const issueStateName = existingIssue.state.name?.toLowerCase();

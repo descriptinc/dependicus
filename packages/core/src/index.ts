@@ -15,7 +15,8 @@ export type {
     PackageVersionInfo,
     UsedByGroupKeyFn,
 } from './types';
-export { mergeProviderDependencies } from './types';
+export { mergeProviderDependencies, getDetailFilename, createDetailUrlBuilder } from './types';
+export type { DetailUrlFn } from './types';
 
 export {
     formatDate,

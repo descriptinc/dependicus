@@ -7,6 +7,7 @@ import type {
 } from '@dependicus/core';
 import {
     getAgeDays,
+    getDetailFilename,
     getUpdateType,
     findFirstVersionOfType,
     FactKeys,
@@ -236,7 +237,7 @@ export class BasicCompliancePlugin implements DependicusPlugin {
                     flaggedPackages.push({
                         packageName: dep.packageName,
                         version: ver.version,
-                        detailLink: `../details/${dep.packageName.replace(/^@/, '').replace(/\//g, '-')}@${ver.version}.html`,
+                        detailLink: `../details/${getDetailFilename(dep.packageName, ver.version)}`,
                         label: detail,
                     });
                 } else {

@@ -15,7 +15,7 @@ import type {
     UsedByGroupKeyFn,
     FactStore,
 } from '@dependicus/core';
-import { mergeProviderDependencies } from '@dependicus/core';
+import { mergeProviderDependencies, getDetailFilename } from '@dependicus/core';
 import {
     FactKeys,
     formatDate,
@@ -109,16 +109,6 @@ export class HtmlWriter {
         this.getUsedByGroupKey = options?.getUsedByGroupKey;
         this.getSections = options?.getSections;
         this.siteName = options?.siteName ?? 'Dependicus';
-    }
-
-    /**
-     * Generate a safe filename for a package@version detail page.
-     * Replaces @ and / with safe characters.
-     */
-    static getDetailFilename(packageName: string, version: string): string {
-        // Replace @ with nothing (for scoped packages) and / with -
-        const safeName = packageName.replace(/^@/, '').replace(/\//g, '-');
-        return `${safeName}@${version}.html`;
     }
 
     /**
@@ -216,10 +206,7 @@ export class HtmlWriter {
         for (const dep of deps) {
             const scoped = store.scoped(dep.ecosystem);
             for (const versionInfo of dep.versions) {
-                const detailFilename = HtmlWriter.getDetailFilename(
-                    dep.packageName,
-                    versionInfo.version,
-                );
+                const detailFilename = getDetailFilename(dep.packageName, versionInfo.version);
                 const deprecatedTransitiveDeps =
                     scoped.getPackageFact<string[]>(
                         dep.packageName,
@@ -393,10 +380,7 @@ export class HtmlWriter {
             const scopedStore = store.scoped(provider.ecosystem);
             for (const dep of provider.dependencies) {
                 for (const versionInfo of dep.versions) {
-                    const detailFilename = HtmlWriter.getDetailFilename(
-                        dep.packageName,
-                        versionInfo.version,
-                    );
+                    const detailFilename = getDetailFilename(dep.packageName, versionInfo.version);
                     const html = this.generateDetailPage(
                         dep,
                         versionInfo,
@@ -745,7 +729,7 @@ export class HtmlWriter {
                         version: version?.version ?? '',
                         latestVersion: version?.latestVersion ?? '',
                         detailLink: version
-                            ? `../details/${HtmlWriter.getDetailFilename(dep.packageName, version.version)}`
+                            ? `../details/${getDetailFilename(dep.packageName, version.version)}`
                             : '',
                     };
                 });

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Handlebars from 'handlebars';
-import type { PackageVersionInfo, GitHubData } from '@dependicus/core';
+import type { PackageVersionInfo, GitHubData, DetailUrlFn } from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
 import { FactKeys, findFirstVersionOfType, formatBytes, formatSizeChange } from '@dependicus/core';
 import { helpers } from './templates/helpers';
@@ -42,7 +42,7 @@ export function buildIssueDescription(
     store: FactStore,
     minVersion: string,
     effectiveLatestVersion: string,
-    dependicusBaseUrl: string,
+    getDetailUrl: DetailUrlFn,
     dueDate?: string,
 ): string {
     const { packageName, ecosystem, versions, worstCompliance } = pkg;
@@ -112,9 +112,6 @@ export function buildIssueDescription(
         };
     });
 
-    const safeName = packageName.replace(/^@/, '').replace(/\//g, '-');
-    const detailFilename = `${safeName}@${version.version}.html`;
-
     const context = {
         packageName,
         description,
@@ -149,7 +146,7 @@ export function buildIssueDescription(
         compareUrl,
         versionsToShow,
         versionsOverflow: versionsBetween.length > 15 ? versionsBetween.length - 15 : 0,
-        detailUrl: `${dependicusBaseUrl}/details/${detailFilename}`,
+        detailUrl: getDetailUrl(ecosystem, packageName, version.version),
         npmgraphQuery: encodeURIComponent(`${packageName}@${version.version}`),
         homepage,
         repositoryUrl,
@@ -169,7 +166,7 @@ export function buildIssueDescription(
 export function buildGroupIssueDescription(
     group: OutdatedGroup,
     store: FactStore,
-    dependicusBaseUrl: string,
+    getDetailUrl: DetailUrlFn,
     dueDate?: string,
 ): string {
     const { groupName, packages, worstCompliance } = group;
@@ -212,9 +209,6 @@ export function buildGroupIssueDescription(
                           pkg.worstCompliance.updateType,
                       )?.version ?? effectiveLatestVersion);
 
-                const safeName = pkg.packageName.replace(/^@/, '').replace(/\//g, '-');
-                const detailFilename = `${safeName}@${version.version}.html`;
-
                 return {
                     packageName: pkg.packageName,
                     description: pkgDescription,
@@ -224,7 +218,7 @@ export function buildGroupIssueDescription(
                     effectiveLatestVersion,
                     updateType: pkg.worstCompliance.updateType,
                     inCatalog: version.inCatalog,
-                    detailUrl: `${dependicusBaseUrl}/details/${detailFilename}`,
+                    detailUrl: getDetailUrl(pkg.ecosystem, pkg.packageName, version.version),
                 };
             })
             .filter(Boolean),

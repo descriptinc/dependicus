@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import type { DependencyVersion, PackageVersionInfo, GitHubData } from '@dependicus/core';
-import { RootFactStore, FactKeys } from '@dependicus/core';
+import type {
+    DependencyVersion,
+    PackageVersionInfo,
+    GitHubData,
+    DetailUrlFn,
+} from '@dependicus/core';
+import { RootFactStore, FactKeys, getDetailFilename } from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
 import type { OutdatedPackage, OutdatedGroup } from './types';
 import {
@@ -157,12 +162,16 @@ function makeGroupStore(group: OutdatedGroup, descriptions?: Record<string, stri
 }
 
 const BASE_URL = 'https://example.com/dependicus';
+const testGetDetailUrl: DetailUrlFn = (_ecosystem, packageName, version) => {
+    const filename = getDetailFilename(packageName, version);
+    return `${BASE_URL}/npm/details/${filename}`;
+};
 
 describe('buildIssueDescription', () => {
     it('includes package description as blockquote', () => {
         const pkg = makePackage();
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('> A test package');
     });
 
@@ -178,14 +187,14 @@ describe('buildIssueDescription', () => {
                 FactKeys.DESCRIPTION,
                 undefined as unknown as string,
             );
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).not.toContain('> ');
     });
 
     it('includes summary with version info', () => {
         const pkg = makePackage();
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('## Summary');
         expect(result).toContain('**Current version:** `1.0.0`');
         expect(result).toContain('**Target version:** `1.1.0`');
@@ -199,7 +208,7 @@ describe('buildIssueDescription', () => {
     it('hides latest version when target equals latest', () => {
         const pkg = makePackage();
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '2.0.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '2.0.0', '2.0.0', testGetDetailUrl);
         expect(result).not.toContain('**Latest version:**');
     });
 
@@ -218,7 +227,7 @@ describe('buildIssueDescription', () => {
             FactKeys.VERSIONS_BETWEEN,
             defaultVersionsBetween,
         );
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('**Current versions in monorepo:**');
         expect(result).toContain('`1.0.0`');
         expect(result).toContain('`0.9.0`');
@@ -227,14 +236,14 @@ describe('buildIssueDescription', () => {
     it('shows display label', () => {
         const pkg = makePackage({ ownerLabel: 'Web App (Frontend)' });
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('- Web App (Frontend)');
     });
 
     it('shows catalog How to Update', () => {
         const pkg = makePackage();
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('managed in the pnpm catalog');
         expect(result).toContain('  test-pkg: "2.0.0"');
     });
@@ -244,7 +253,7 @@ describe('buildIssueDescription', () => {
             versions: [makeVersion({ inCatalog: false, usedBy: ['@app/web'] })],
         });
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('NOT in the catalog');
         expect(result).toContain('`@app/web`');
     });
@@ -259,7 +268,7 @@ describe('buildIssueDescription', () => {
             ],
         });
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('used by 2 packages');
         expect(result).toContain('Consider adding it to the catalog');
     });
@@ -267,7 +276,7 @@ describe('buildIssueDescription', () => {
     it('includes patch warning when patched', () => {
         const pkg = makePackage();
         const store = makeStore(pkg, { isPatched: true });
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('Patch Applied');
     });
 
@@ -276,7 +285,7 @@ describe('buildIssueDescription', () => {
             descriptionSections: [{ title: 'Policy Info', body: 'Must comply within 90 days.' }],
         });
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('## Policy Info');
         expect(result).toContain('Must comply within 90 days.');
     });
@@ -284,7 +293,7 @@ describe('buildIssueDescription', () => {
     it('includes major version available note', () => {
         const pkg = makePackage({ availableMajorVersion: '3.0.0' });
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('Major Version Available');
         expect(result).toContain('`3.0.0`');
     });
@@ -292,7 +301,7 @@ describe('buildIssueDescription', () => {
     it('includes upgrade path with version list', () => {
         const pkg = makePackage();
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('## Upgrade Path');
         expect(result).toContain('**2.0.0** (latest)');
         expect(result).toContain('1.1.0');
@@ -313,7 +322,7 @@ describe('buildIssueDescription', () => {
                 releases: [],
             },
         });
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('[Dependicus Detail Page]');
         expect(result).toContain('[Registry]');
         expect(result).toContain('[npmgraph]');
@@ -326,7 +335,7 @@ describe('buildIssueDescription', () => {
     it('includes deprecated transitive deps warning', () => {
         const pkg = makePackage();
         const store = makeStore(pkg, { deprecatedTransitiveDeps: ['old-dep', 'ancient-lib'] });
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('Deprecated Transitive Dependencies');
         expect(result).toContain('`old-dep`');
         expect(result).toContain('`ancient-lib`');
@@ -335,7 +344,7 @@ describe('buildIssueDescription', () => {
     it('includes AI agent instructions and footer', () => {
         const pkg = makePackage();
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('PR title should be');
         expect(result).toContain('automatically created by Dependicus');
     });
@@ -343,7 +352,7 @@ describe('buildIssueDescription', () => {
     it('handles scoped package names in detail URL', () => {
         const pkg = makePackage({ packageName: '@scope/my-pkg' });
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         // Scoped names should have @ removed and / replaced with -
         expect(result).toContain('scope-my-pkg@1.0.0.html');
     });
@@ -361,7 +370,7 @@ describe('buildIssueDescription', () => {
 
         const pkg = makePackage();
         const store = makeStore(pkg, { versionsBetween: manyVersions });
-        const result = buildIssueDescription(pkg, store, '1.1.0', '1.20.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '1.20.0', testGetDetailUrl);
         expect(result).toContain('... and 5 more versions');
     });
 
@@ -371,7 +380,7 @@ describe('buildIssueDescription', () => {
             versions: [makeVersion({ inCatalog: false, usedBy: manyUsedBy })],
         });
         const store = makeStore(pkg);
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('... and 5 more');
     });
 
@@ -380,7 +389,7 @@ describe('buildIssueDescription', () => {
         const store = makeStore(pkg, {
             compareUrl: 'https://github.com/example/test/compare/v1.0.0...v2.0.0',
         });
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('[View full diff on GitHub]');
         expect(result).toContain('compare/v1.0.0...v2.0.0');
     });
@@ -388,7 +397,7 @@ describe('buildIssueDescription', () => {
     it('handles empty versionsBetween', () => {
         const pkg = makePackage();
         const store = makeStore(pkg, { versionsBetween: [] });
-        const result = buildIssueDescription(pkg, store, '2.0.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '2.0.0', '2.0.0', testGetDetailUrl);
         expect(result).not.toContain('## Upgrade Path');
     });
 
@@ -409,7 +418,7 @@ describe('buildIssueDescription', () => {
                 ],
             },
         });
-        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', BASE_URL);
+        const result = buildIssueDescription(pkg, store, '1.1.0', '2.0.0', testGetDetailUrl);
         expect(result).toContain('[GitHub Release]');
     });
 });
@@ -428,7 +437,7 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(group, store, BASE_URL);
+        const result = buildGroupIssueDescription(group, store, testGetDetailUrl);
         expect(result).toContain('**react-group** package group');
         expect(result).toContain('**Group:** react-group');
         expect(result).toContain('**Packages:** 2');
@@ -451,7 +460,7 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(group, store, BASE_URL);
+        const result = buildGroupIssueDescription(group, store, testGetDetailUrl);
         expect(result).toContain('Tracked for awareness only');
         expect(result).not.toContain('Worst update type');
     });
@@ -469,7 +478,7 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(group, store, BASE_URL);
+        const result = buildGroupIssueDescription(group, store, testGetDetailUrl);
         expect(result).toContain('### @scope/pkg-a');
         expect(result).toContain('### pkg-b');
         expect(result).toContain('[Dependicus Detail]');
@@ -485,7 +494,7 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(group, store, BASE_URL);
+        const result = buildGroupIssueDescription(group, store, testGetDetailUrl);
         expect(result).toContain('```yaml');
         expect(result).toContain('catalog:');
         expect(result).toContain('react: "2.0.0"');
@@ -501,7 +510,7 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(group, store, BASE_URL);
+        const result = buildGroupIssueDescription(group, store, testGetDetailUrl);
         expect(result).toContain('PR title should be');
         expect(result).toContain('automatically created by Dependicus');
     });
