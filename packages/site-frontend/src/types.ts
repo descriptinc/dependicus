@@ -12,7 +12,7 @@ export interface RowData {
     Age: number; // days as number for sorting
     Notes: string;
     'Used By Count': number;
-    'Used By Packages': string;
+    'Used By': string;
     'Used By Grouped': Record<string, string[]> | null; // packages grouped by owner team
     'Deprecated Transitive Dependencies': string;
     'Detail Link': string; // relative path to detail page

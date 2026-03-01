@@ -32,7 +32,7 @@ function makeCell(value: unknown, rowData?: Partial<RowData>): TabulatorCell {
         Age: 365,
         Notes: '',
         'Used By Count': 0,
-        'Used By Packages': '',
+        'Used By': '',
         'Used By Grouped': null,
         'Deprecated Transitive Dependencies': '',
         'Detail Link': '',
@@ -238,7 +238,7 @@ describe('formatters', () => {
         it('renders flat pills when Used By Grouped is null', () => {
             const cell = makeCell('', {
                 'Used By Grouped': null,
-                'Used By Packages': 'pkg-a; pkg-b; pkg-c',
+                'Used By': 'pkg-a; pkg-b; pkg-c',
             });
             const html = usedByFormatter(cell);
             expect(html).toContain('dep-package-pill');
@@ -251,7 +251,7 @@ describe('formatters', () => {
         it('returns empty when Used By Grouped is null and no packages', () => {
             const cell = makeCell('', {
                 'Used By Grouped': null,
-                'Used By Packages': '',
+                'Used By': '',
             });
             const html = usedByFormatter(cell);
             expect(html).toBe('');

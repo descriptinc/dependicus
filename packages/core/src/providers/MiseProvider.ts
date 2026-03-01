@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import type { PackageInfo, DependencyInfo } from '../types';
 import type { CacheService } from '../services/CacheService';
 import type { DependencyProvider } from './DependencyProvider';
@@ -59,36 +59,44 @@ export class MiseProvider implements DependencyProvider {
 
         const tools: Record<string, MiseToolEntry[]> = JSON.parse(output);
 
-        // Filter to tools whose source path is under rootDir (excludes global config)
-        const dependencies: Record<string, DependencyInfo> = {};
+        // Group tools by their config file path (e.g. mise.toml, backend/.mise.toml)
+        const byConfigFile = new Map<string, Record<string, DependencyInfo>>();
+        let toolCount = 0;
         for (const [toolName, entries] of Object.entries(tools)) {
             for (const entry of entries) {
                 if (!entry.source?.path) continue;
-                // Only include tools configured in this project's mise.toml (or .tool-versions, etc.)
                 if (!entry.source.path.startsWith(this.rootDir)) continue;
 
-                dependencies[toolName] = {
+                const relPath = relative(this.rootDir, entry.source.path);
+                let deps = byConfigFile.get(relPath);
+                if (!deps) {
+                    deps = {};
+                    byConfigFile.set(relPath, deps);
+                }
+                deps[toolName] = {
                     from: toolName,
                     version: entry.version,
                     resolved: entry.install_path,
                     path: entry.install_path,
                 };
+                toolCount++;
                 break; // Take the first matching entry per tool
             }
         }
 
-        // Create a single synthetic package representing the mise project
-        const packages: PackageInfo[] = [
-            {
-                name: 'mise-tools',
+        // Create one package per config file
+        const packages: PackageInfo[] = [];
+        for (const [configPath, dependencies] of byConfigFile) {
+            packages.push({
+                name: configPath,
                 version: '0.0.0',
                 path: this.rootDir,
-                dependencies: Object.keys(dependencies).length > 0 ? dependencies : undefined,
-            },
-        ];
+                dependencies,
+            });
+        }
 
         this.cachedPackages = packages;
-        process.stderr.write(`Found ${Object.keys(dependencies).length} mise tools\n`);
+        process.stderr.write(`Found ${toolCount} mise tools\n`);
         return packages;
     }
 

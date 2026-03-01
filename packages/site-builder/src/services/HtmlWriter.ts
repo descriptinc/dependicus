@@ -241,7 +241,7 @@ export class HtmlWriter {
                     Notes: notes,
                     ...this.buildCustomColumnData(dep.packageName, versionInfo, scoped),
                     'Used By Count': versionInfo.usedBy.length,
-                    'Used By Packages': versionInfo.usedBy.join('; '),
+                    'Used By': versionInfo.usedBy.join('; '),
                     'Used By Grouped': this.groupPackagesByMeta(
                         versionInfo.usedBy,
                         dep.packageName,
@@ -615,12 +615,19 @@ export class HtmlWriter {
             };
         });
 
+        const hasPublishDates = versions.some((v) => v.formattedPublishDate != null);
+        const hasSizes = versions.some((v) => v.formattedSize);
+        const hasLinks = versions.some((v) => v.registryUrl || v.githubUrl);
+
         return {
             hasVersionsBetween: true,
             currentVersion,
             latestVersion,
             versionCount: versionsBetween.length,
             compareUrl,
+            hasPublishDates,
+            hasSizes,
+            hasLinks,
             versions,
         };
     }

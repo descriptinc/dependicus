@@ -356,7 +356,7 @@ main tbody tr {
 /* Version history grid */
 .dep-version-history-grid {
     display: grid;
-    grid-template-columns: auto auto auto 1fr;
+    grid-template-columns: var(--grid-cols, auto auto auto 1fr);
     gap: var(--size-2) var(--size-3);
     margin-top: var(--size-3);
 }

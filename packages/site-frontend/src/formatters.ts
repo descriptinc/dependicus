@@ -34,7 +34,7 @@ export function notesFormatter(cell: TabulatorCell): string {
 }
 
 /**
- * Custom formatter for "Used By Packages" - show pills grouped by team in a collapsible details element
+ * Custom formatter for "Used By" - show pills grouped by team in a collapsible details element
  */
 export function usedByFormatter(cell: TabulatorCell): string {
     const rowData = cell.getRow().getData();
@@ -42,7 +42,7 @@ export function usedByFormatter(cell: TabulatorCell): string {
 
     if (!grouped) {
         // No ownership grouping configured — render flat pill list
-        const packages = String(rowData['Used By Packages'] || '')
+        const packages = String(rowData['Used By'] || '')
             .split('; ')
             .filter(Boolean);
         if (packages.length === 0) return '';

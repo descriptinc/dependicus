@@ -10,18 +10,19 @@
 
     <details class="dep-plain-details" open>
         <summary>Version History ({{versionCount}} versions)</summary>
-        <div class="dep-version-history-grid">
+        <div class="dep-version-history-grid" style="--grid-cols: auto{{#if hasPublishDates}} auto{{/if}}{{#if hasSizes}} auto{{/if}}{{#if hasLinks}} 1fr{{/if}};">
             <div class="dep-version-header">Version</div>
-            <div class="dep-version-header">Released</div>
-            <div class="dep-version-header">Size</div>
-            <div class="dep-version-header">Links</div>
+            {{#if hasPublishDates}}<div class="dep-version-header">Released</div>{{/if}}
+            {{#if hasSizes}}<div class="dep-version-header">Size</div>{{/if}}
+            {{#if hasLinks}}<div class="dep-version-header">Links</div>{{/if}}
 
             {{#each versions}}
             <div class="dep-version-cell">
                 <code>{{version}}</code>
                 {{#if isLatest}} <strong>(latest)</strong>{{/if}}
             </div>
-            <div class="dep-version-cell">{{formattedPublishDate}}</div>
+            {{#if ../hasPublishDates}}<div class="dep-version-cell">{{formattedPublishDate}}</div>{{/if}}
+            {{#if ../hasSizes}}
             <div class="dep-version-cell">
                 {{#if formattedSize}}
                     {{formattedSize}}
@@ -32,10 +33,13 @@
                     {{/if}}
                 {{/if}}
             </div>
+            {{/if}}
+            {{#if ../hasLinks}}
             <div class="dep-version-cell">
                 {{#if registryUrl}}<a href="{{registryUrl}}">Registry</a>{{/if}}
                 {{#if githubUrl}} | <a href="{{githubUrl}}">GitHub</a>{{/if}}
             </div>
+            {{/if}}
 
             {{#if releaseNotes}}
             <div class="dep-version-notes">

@@ -28,7 +28,7 @@ describe('MiseProvider', () => {
         expect(provider.supportsCatalog).toBe(false);
     });
 
-    it('parses mise ls output into packages', async () => {
+    it('parses mise ls output into per-config-file packages', async () => {
         const miseOutput = JSON.stringify({
             node: [
                 {
@@ -60,13 +60,47 @@ describe('MiseProvider', () => {
         const provider = new MiseProvider(mockCacheService, rootDir);
         const packages = await provider.getPackages();
 
+        // One package per config file; jq excluded (global config, not under rootDir)
         expect(packages).toHaveLength(1);
-        expect(packages[0]!.name).toBe('mise-tools');
-        // jq should be excluded (global config, not under rootDir)
+        expect(packages[0]!.name).toBe('mise.toml');
         expect(packages[0]!.dependencies).toBeDefined();
         expect(Object.keys(packages[0]!.dependencies!)).toEqual(['node', 'bun']);
         expect(packages[0]!.dependencies!['node']!.version).toBe('22.12.0');
         expect(packages[0]!.dependencies!['bun']!.version).toBe('1.3.0');
+    });
+
+    it('groups tools by config file when multiple configs exist', async () => {
+        const miseOutput = JSON.stringify({
+            node: [
+                {
+                    version: '22.12.0',
+                    install_path: '/home/.local/share/mise/installs/node/22.12.0',
+                    source: { type: 'mise.toml', path: '/project/mise.toml' },
+                },
+            ],
+            python: [
+                {
+                    version: '3.12.0',
+                    install_path: '/home/.local/share/mise/installs/python/3.12.0',
+                    source: { type: 'mise.toml', path: '/project/backend/.mise.toml' },
+                },
+            ],
+        });
+
+        vi.mocked(execSync).mockReturnValueOnce(miseOutput);
+
+        const provider = new MiseProvider(mockCacheService, rootDir);
+        const packages = await provider.getPackages();
+
+        expect(packages).toHaveLength(2);
+        const names = packages.map((p) => p.name).sort();
+        expect(names).toEqual(['backend/.mise.toml', 'mise.toml']);
+
+        const miseToml = packages.find((p) => p.name === 'mise.toml')!;
+        expect(Object.keys(miseToml.dependencies!)).toEqual(['node']);
+
+        const backendConfig = packages.find((p) => p.name === 'backend/.mise.toml')!;
+        expect(Object.keys(backendConfig.dependencies!)).toEqual(['python']);
     });
 
     it('resolves latest versions from mise outdated', async () => {

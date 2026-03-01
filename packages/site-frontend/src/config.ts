@@ -215,14 +215,14 @@ export function createColumnDefs(
             responsive: 1, // Collapse second
         },
         {
-            title: 'Used By Packages',
-            field: 'Used By Packages',
+            title: 'Used By',
+            field: 'Used By',
             width: 300,
             minWidth: 150,
             formatter: usedByFormatter,
             variableHeight: true,
             headerFilter: 'input',
-            headerFilterPlaceholder: 'Filter packages...',
+            headerFilterPlaceholder: 'Filter...',
             headerFilterFunc: 'like',
             responsive: 2, // Collapse first
             resizable: true,
