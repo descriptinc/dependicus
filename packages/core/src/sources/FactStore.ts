@@ -39,7 +39,7 @@ export const FactKeys = {
     GITHUB_DATA: 'githubData',
     /** Names of deprecated transitive dependencies. `string[]` */
     DEPRECATED_TRANSITIVE_DEPS: 'deprecatedTransitiveDeps',
-    /** URL patterns/links for this package. `Record<string, string>` (label -> URL or template with {name}/{version}) */
+    /** URL patterns/links for this package. `Record<string, string>` (label -> URL or template with {{name}}/{{version}}) */
     URLS: 'urls',
 } as const;
 

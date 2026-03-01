@@ -4,7 +4,13 @@ import { fileURLToPath } from 'node:url';
 import Handlebars from 'handlebars';
 import type { PackageVersionInfo, GitHubData, DetailUrlFn, ProviderInfo } from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
-import { FactKeys, findFirstVersionOfType, formatBytes, formatSizeChange } from '@dependicus/core';
+import {
+    FactKeys,
+    findFirstVersionOfType,
+    formatBytes,
+    formatSizeChange,
+    resolveUrlPatterns,
+} from '@dependicus/core';
 import { helpers } from './templates/helpers';
 import type { OutdatedPackage, OutdatedGroup } from './types';
 
@@ -116,12 +122,7 @@ export function buildIssueDescription(
     const supportsCatalog = providerInfo?.supportsCatalog ?? false;
     const urlPatterns =
         store.getPackageFact<Record<string, string>>(packageName, FactKeys.URLS) ?? {};
-    const urls = Object.entries(urlPatterns)
-        .map(([label, pattern]) => ({
-            label,
-            url: pattern.replace('{name}', packageName).replace('{version}', version.version),
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label));
+    const urls = resolveUrlPatterns(urlPatterns, { name: packageName, version: version.version });
 
     const context = {
         packageName,
@@ -219,14 +220,10 @@ export function buildGroupIssueDescription(
                 const pkgUrlPatterns =
                     scoped.getPackageFact<Record<string, string>>(pkg.packageName, FactKeys.URLS) ??
                     {};
-                const pkgUrls = Object.entries(pkgUrlPatterns)
-                    .map(([label, pattern]) => ({
-                        label,
-                        url: pattern
-                            .replace('{name}', pkg.packageName)
-                            .replace('{version}', version.version),
-                    }))
-                    .sort((a, b) => a.label.localeCompare(b.label));
+                const pkgUrls = resolveUrlPatterns(pkgUrlPatterns, {
+                    name: pkg.packageName,
+                    version: version.version,
+                });
 
                 const effectiveLatestVersion = pkg.targetVersion ?? version.latestVersion;
                 const pkgIsFyi = pkg.policy.type === 'fyi';

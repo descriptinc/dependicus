@@ -40,8 +40,8 @@ function makeProvider(
         supportsCatalog: true,
         installCommand: 'pnpm install',
         urlPatterns: {
-            'Dependency Graph': 'https://npmgraph.js.org/?q={name}@{version}',
-            Registry: 'https://www.npmjs.com/package/{name}/v/{version}',
+            'Dependency Graph': 'https://npmgraph.js.org/?q={{name}}@{{version}}',
+            Registry: 'https://www.npmjs.com/package/{{name}}/v/{{version}}',
         },
         dependencies: deps,
         ...overrides,
@@ -74,8 +74,8 @@ function makeMockStore(deps?: DirectDependency[]): FactStore {
         });
         scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
         scoped.setPackageFact(dep.packageName, FactKeys.URLS, {
-            'Dependency Graph': 'https://npmgraph.js.org/?q={name}@{version}',
-            Registry: 'https://www.npmjs.com/package/{name}/v/{version}',
+            'Dependency Graph': 'https://npmgraph.js.org/?q={{name}}@{{version}}',
+            Registry: 'https://www.npmjs.com/package/{{name}}/v/{{version}}',
         });
         scoped.setPackageFact(dep.packageName, 'testMeta', {
             surfaceId: 'test-surface',
@@ -180,7 +180,7 @@ describe('HtmlWriter', () => {
             const html = await writer.toHtml(providers, store);
 
             expect(html).toContain('data-tab="pnpm"');
-            expect(html).toContain('pnpm Duplicates');
+            expect(html).toContain('pnpm duplicates');
         });
 
         it('generates multi-version rows for packages with multiple versions', async () => {
@@ -214,7 +214,7 @@ describe('HtmlWriter', () => {
 
             // Duplicates tab should have data (multi-version dep goes in the duplicates tab)
             expect(html).toContain('"tabs"');
-            expect(html).toContain('pnpm Duplicates');
+            expect(html).toContain('pnpm duplicates');
         });
     });
 

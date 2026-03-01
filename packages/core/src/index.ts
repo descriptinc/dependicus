@@ -52,6 +52,8 @@ export {
 
 export { findReleaseForVersion, detectTagFormat } from './utils/releaseUtils';
 
+export { resolveUrl, resolveUrlPatterns } from './urls';
+
 export { createCoreServices, readDependicusJson } from './createCoreServices';
 export type { CoreServicesConfig, CoreServices } from './createCoreServices';
 

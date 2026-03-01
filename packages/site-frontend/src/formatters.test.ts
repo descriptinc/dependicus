@@ -38,7 +38,7 @@ function makeCell(value: unknown, rowData?: Partial<RowData>): TabulatorCell {
         'Deprecated Transitive Dependencies': '',
         'Detail Link': '',
         'Latest Version URL': 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
-        'Deprecated Dep URL Pattern': 'https://www.npmjs.com/package/{name}/v/{version}',
+        'Deprecated Dep URLs': [],
         ...rowData,
     };
 
@@ -172,17 +172,34 @@ describe('formatters', () => {
 
     describe('deprecatedFormatter', () => {
         it('renders deprecated deps as pills with links', () => {
-            const cell = makeCell('old-pkg@1.0.0; @scope/dep@2.0.0');
+            const cell = makeCell('old-pkg@1.0.0; @scope/dep@2.0.0', {
+                'Deprecated Dep URLs': [
+                    'https://www.npmjs.com/package/old-pkg/v/1.0.0',
+                    'https://www.npmjs.com/package/@scope/dep/v/2.0.0',
+                ],
+            });
             const html = deprecatedFormatter(cell);
             expect(html).toContain('dep-package-pill');
             expect(html).toContain('old-pkg@1.0.0');
             expect(html).toContain('@scope/dep@2.0.0');
+            expect(html).toContain('href="https://www.npmjs.com/package/old-pkg/v/1.0.0"');
         });
 
         it('generates correct npm links for scoped packages', () => {
-            const cell = makeCell('@scope/dep@2.0.0');
+            const cell = makeCell('@scope/dep@2.0.0', {
+                'Deprecated Dep URLs': ['https://www.npmjs.com/package/@scope/dep/v/2.0.0'],
+            });
             const html = deprecatedFormatter(cell);
             expect(html).toContain('href="https://www.npmjs.com/package/@scope/dep/v/2.0.0"');
+        });
+
+        it('renders plain spans when no URLs provided', () => {
+            const cell = makeCell('old-pkg@1.0.0', {
+                'Deprecated Dep URLs': [],
+            });
+            const html = deprecatedFormatter(cell);
+            expect(html).toContain('<span class="dep-package-pill">old-pkg@1.0.0</span>');
+            expect(html).not.toContain('<a ');
         });
 
         it('returns empty for no value', () => {

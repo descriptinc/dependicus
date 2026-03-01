@@ -26,6 +26,8 @@ import {
     formatSizeChange,
     findReleaseForVersion,
     detectTagFormat,
+    resolveUrl,
+    resolveUrlPatterns,
 } from '@dependicus/core';
 import { TemplateService } from './TemplateService';
 import type { BrowserColumnDef } from '@dependicus/site-frontend';
@@ -199,9 +201,11 @@ export class HtmlWriter {
         deps: DirectDependency[],
         store: FactStore,
         detailPrefix: string,
-    ): Array<Record<string, string | number | boolean | Record<string, string[]> | null>> {
+    ): Array<
+        Record<string, string | number | boolean | string[] | Record<string, string[]> | null>
+    > {
         const rows: Array<
-            Record<string, string | number | boolean | Record<string, string[]> | null>
+            Record<string, string | number | boolean | string[] | Record<string, string[]> | null>
         > = [];
         for (const dep of deps) {
             const scoped = store.scoped(dep.ecosystem);
@@ -233,11 +237,19 @@ export class HtmlWriter {
                     Notes: notes,
                     ...this.buildCustomColumnData(dep.packageName, versionInfo, scoped),
                     'Latest Version URL': registryPattern
-                        ? registryPattern
-                              .replace('{name}', dep.packageName)
-                              .replace('{version}', versionInfo.latestVersion)
+                        ? resolveUrl(registryPattern, {
+                              name: dep.packageName,
+                              version: versionInfo.latestVersion,
+                          })
                         : '',
-                    'Deprecated Dep URL Pattern': registryPattern ?? '',
+                    'Deprecated Dep URLs': deprecatedTransitiveDeps.map((dep_) => {
+                        if (!registryPattern) return '';
+                        const lastAt = dep_.lastIndexOf('@');
+                        return resolveUrl(registryPattern, {
+                            name: dep_.substring(0, lastAt),
+                            version: dep_.substring(lastAt + 1),
+                        });
+                    }),
                     'Used By Count': versionInfo.usedBy.length,
                     'Used By': versionInfo.usedBy.join('; '),
                     'Used By Grouped': this.groupPackagesByMeta(
@@ -263,7 +275,10 @@ export class HtmlWriter {
             id: string;
             label: string;
             data: Array<
-                Record<string, string | number | boolean | Record<string, string[]> | null>
+                Record<
+                    string,
+                    string | number | boolean | string[] | Record<string, string[]> | null
+                >
             >;
             groupBy?: string;
             supportsCatalog: boolean;
@@ -292,7 +307,7 @@ export class HtmlWriter {
             });
             tabs.push({
                 id: `${provider.name}-duplicates`,
-                label: `${provider.name} Duplicates`,
+                label: `${provider.name} duplicates`,
                 data: duplicateRows,
                 groupBy: 'Package Name',
                 supportsCatalog: provider.supportsCatalog,
@@ -444,14 +459,10 @@ export class HtmlWriter {
         );
         const urlPatterns =
             store.getPackageFact<Record<string, string>>(packageName, FactKeys.URLS) ?? {};
-        const urls = Object.entries(urlPatterns)
-            .map(([label, pattern]) => ({
-                label,
-                url: pattern
-                    .replace('{name}', packageName)
-                    .replace('{version}', versionInfo.version),
-            }))
-            .sort((a, b) => a.label.localeCompare(b.label));
+        const urls = resolveUrlPatterns(urlPatterns, {
+            name: packageName,
+            version: versionInfo.version,
+        });
 
         // Get GitHub data from FactStore
         const githubData = store.getPackageFact<GitHubData>(packageName, FactKeys.GITHUB_DATA);

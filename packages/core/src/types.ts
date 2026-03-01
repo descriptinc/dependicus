@@ -86,7 +86,7 @@ export interface ProviderInfo {
     ecosystem: string;
     supportsCatalog: boolean;
     installCommand: string;
-    urlPatterns: Record<string, string>; // label -> URL template with {name}, {version}
+    urlPatterns: Record<string, string>; // label -> URL template with {{name}}, {{version}}
 }
 
 /**

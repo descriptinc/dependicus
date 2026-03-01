@@ -199,14 +199,11 @@ export function deprecatedFormatter(cell: TabulatorCell): string {
     const deps = String(value).split('; ').filter(Boolean);
     if (deps.length === 0) return '';
 
-    const pattern = cell.getRow().getData()['Deprecated Dep URL Pattern'] as string;
+    const urls = (cell.getRow().getData()['Deprecated Dep URLs'] ?? []) as string[];
     return deps
-        .map((dep) => {
-            if (pattern) {
-                const lastAtIndex = dep.lastIndexOf('@');
-                const packageName = dep.substring(0, lastAtIndex);
-                const version = dep.substring(lastAtIndex + 1);
-                const url = pattern.replace('{name}', packageName).replace('{version}', version);
+        .map((dep, i) => {
+            const url = urls[i];
+            if (url) {
                 return `<a href="${url}" target="_blank" rel="noopener" class="dep-package-pill">${dep}</a>`;
             }
             return `<span class="dep-package-pill">${dep}</span>`;

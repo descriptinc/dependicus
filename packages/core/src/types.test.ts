@@ -257,7 +257,7 @@ describe('buildProviderInfoMap', () => {
             name: 'pnpm',
             ecosystem: 'npm',
             installCommand: 'pnpm install',
-            urlPatterns: { Registry: 'https://npmjs.com/{name}' },
+            urlPatterns: { Registry: 'https://npmjs.com/{{name}}' },
         });
         const p2 = makeProviderOutput({
             name: 'bun',
@@ -268,7 +268,7 @@ describe('buildProviderInfoMap', () => {
             name: 'mise',
             ecosystem: 'mise',
             installCommand: 'mise install',
-            urlPatterns: { Registry: 'https://mise-versions.jdx.dev/tools/{name}' },
+            urlPatterns: { Registry: 'https://mise-versions.jdx.dev/tools/{{name}}' },
         });
 
         const map = buildProviderInfoMap([p1, p2, p3]);

@@ -137,8 +137,8 @@ function makeStore(
 
     // Set URL patterns as package-level fact
     store.setPackageFact(pkg.packageName, FactKeys.URLS, {
-        'Dependency Graph': 'https://npmgraph.js.org/?q={name}@{version}',
-        Registry: 'https://www.npmjs.com/package/{name}/v/{version}',
+        'Dependency Graph': 'https://npmgraph.js.org/?q={{name}}@{{version}}',
+        Registry: 'https://www.npmjs.com/package/{{name}}/v/{{version}}',
     });
 
     return root;
@@ -165,8 +165,8 @@ function makeGroupStore(group: OutdatedGroup, descriptions?: Record<string, stri
         );
         // Set URL patterns per package
         scoped.setPackageFact(pkg.packageName, FactKeys.URLS, {
-            'Dependency Graph': 'https://npmgraph.js.org/?q={name}@{version}',
-            Registry: 'https://www.npmjs.com/package/{name}/v/{version}',
+            'Dependency Graph': 'https://npmgraph.js.org/?q={{name}}@{{version}}',
+            Registry: 'https://www.npmjs.com/package/{{name}}/v/{{version}}',
         });
     }
     return root;
@@ -184,8 +184,8 @@ const npmProviderInfo = {
     supportsCatalog: true,
     installCommand: 'pnpm install',
     urlPatterns: {
-        'Dependency Graph': 'https://npmgraph.js.org/?q={name}@{version}',
-        Registry: 'https://www.npmjs.com/package/{name}/v/{version}',
+        'Dependency Graph': 'https://npmgraph.js.org/?q={{name}}@{{version}}',
+        Registry: 'https://www.npmjs.com/package/{{name}}/v/{{version}}',
     },
 };
 

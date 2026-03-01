@@ -17,7 +17,7 @@ export interface RowData {
     'Used By Grouped': Record<string, string[]> | null; // packages grouped by owner team
     'Deprecated Transitive Dependencies': string;
     'Detail Link': string; // relative path to detail page
-    [key: string]: string | number | boolean | Record<string, string[]> | null;
+    [key: string]: string | number | boolean | string[] | Record<string, string[]> | null;
 }
 
 /**
