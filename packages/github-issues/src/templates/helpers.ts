@@ -7,9 +7,12 @@
  * intentionally NOT registered as helpers.
  */
 export const helpers = {
-    /** Format ISO date string as YYYY-MM-DD. */
+    /** Format ISO date string as YYYY-MM-DD. Returns empty string for missing or invalid dates. */
     formatDateShort: (dateStr: string): string => {
-        return new Date(dateStr).toISOString().slice(0, 10);
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        return d.toISOString().slice(0, 10);
     },
 
     /** Equality comparison. */

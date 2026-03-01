@@ -28,7 +28,7 @@ Our workspace packages use `workspace:*` as the canonical specifier for inter-pa
 
 This is the correct specifier for pnpm, bun, and yarn. For npm, `scripts/switch-pm.sh` and CI both run a sed preprocessing step that rewrites `"workspace:*"` to `"*"` in all `packages/*/package.json` files before `npm install` or `npm ci`. The non-npm switch commands run a reverse transformation to restore `"workspace:*"` in case the previous session was npm. This keeps the committed source of truth as `workspace:*` while maintaining npm compatibility at install time.
 
-npm also has the side effect of overwriting `yarn.lock` with a v1-format lockfile during install. The switch script restores it from git afterward, and CI deletes it before `npm ci` since the npm jobs don't need it.
+npm also has the side effect of overwriting `yarn.lock` with a v1-format lockfile during install. The switch script restores it from git after install so it doesn't negatively affect other tools.
 
 ## Workspace declaration format
 

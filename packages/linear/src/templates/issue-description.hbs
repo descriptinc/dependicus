@@ -105,7 +105,7 @@ A major version (`{{availableMajorVersion}}`) is available but not required by t
 
 {{/if}}
 {{#each versionsToShow}}
-- {{#if this.isLatest}}**{{this.version}}** (latest){{else}}{{this.version}}{{/if}} ({{formatDateShort this.publishDate}}){{#if this.formattedSize}} — {{this.formattedSize}}{{#if this.sizeChange}} ({{this.sizeChange}}){{/if}}{{/if}}
+- {{#if this.isLatest}}**{{this.version}}** (latest){{else}}{{this.version}}{{/if}}{{#if this.publishDate}} ({{formatDateShort this.publishDate}}){{/if}}{{#if this.formattedSize}} — {{this.formattedSize}}{{#if this.sizeChange}} ({{this.sizeChange}}){{/if}}{{/if}}
   - {{#if this.registryUrl}}[Registry]({{this.registryUrl}}){{/if}}{{#if this.releaseUrl}} | [GitHub Release]({{this.releaseUrl}}){{/if}}
 {{/each}}
 {{#if versionsOverflow}}

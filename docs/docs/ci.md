@@ -26,7 +26,7 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            # Set up Node and pnpm however you normally do
+            # Set up Node and your package manager however you normally do
 
             - name: Cache Dependicus
               uses: actions/cache@v4
@@ -54,7 +54,7 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            # Set up Node and pnpm however you normally do
+            # Set up Node and your package manager however you normally do
 
             - uses: actions/download-artifact@v4
               with:
@@ -76,7 +76,7 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            # Set up Node and pnpm however you normally do
+            # Set up Node and your package manager however you normally do
 
             - uses: actions/download-artifact@v4
               with:
@@ -94,7 +94,7 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            # Set up Node and pnpm however you normally do
+            # Set up Node and your package manager however you normally do
 
             - uses: actions/download-artifact@v4
               with:
@@ -111,66 +111,30 @@ Replace `your-dependicus-script.js` with whatever script calls `dependicusCli()`
 
 ### Provider detection in CI
 
-When your script is launched by pnpm, bun, or yarn, Dependicus auto-detects the provider from the runtime. If you invoke your script with bare `node`, auto-detection falls back to lockfile presence. To be explicit, pass `--provider`:
+When your script is launched by a package manager, Dependicus auto-detects the provider from the runtime. If you invoke your script with bare `node`, auto-detection falls back to lockfile presence. To be explicit, pass `--provider`:
 
 ```sh
 node your-dependicus-script.js update --provider pnpm
 ```
 
-### Bun variant
+### Other package managers
 
-If your project uses bun, the workflow looks the same with minor differences in setup:
+The workflow above uses pnpm as an example, but the structure is the same for any package manager. Just swap in the appropriate run command:
 
-```yaml
-dependicus-update:
-    runs-on: ubuntu-latest
-    steps:
-        - uses: actions/checkout@v4
+```sh
+# bun
+bun run your-dependicus-script.js update
 
-        # Set up Node and bun however you normally do
+# yarn
+yarn run your-dependicus-script.js update
 
-        - name: Cache Dependicus
-          uses: actions/cache@v4
-          with:
-              path: .dependicus-cache
-              key: dependicus
-              restore-keys: dependicus
-
-        - name: Collect dependency data
-          run: bun run your-dependicus-script.js update
-          env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# npm
+npx your-dependicus-script.js update
 ```
 
-The rest of the jobs (HTML generation, ticket creation) are the same since they only read `dependencies.json`.
+The rest of the jobs (HTML generation, ticket creation) are identical regardless of package manager since they only read `dependencies.json`.
 
-### Yarn variant
-
-If your project uses yarn, the workflow is similar. Note that yarn does not natively support the `catalog:` protocol, so if your Dependicus script references catalog data, you may need to resolve it beforehand with a helper script like `node scripts/resolve-catalog.mjs`.
-
-```yaml
-dependicus-update:
-    runs-on: ubuntu-latest
-    steps:
-        - uses: actions/checkout@v4
-
-        # Set up Node and yarn however you normally do
-
-        - name: Cache Dependicus
-          uses: actions/cache@v4
-          with:
-              path: .dependicus-cache
-              key: dependicus
-              restore-keys: dependicus
-
-        - name: Resolve catalog (if needed)
-          run: node scripts/resolve-catalog.mjs
-
-        - name: Collect dependency data
-          run: yarn run your-dependicus-script.js update
-          env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
+Note that yarn does not natively support the `catalog:` protocol, so if your Dependicus script references catalog data under yarn, you may need to resolve it beforehand with a helper script.
 
 On pull requests, you probably want to skip the Linear tickets and GitHub Issues jobs, or set `allowNewIssues: false` / `allowNewIssues: false` in your config.
 

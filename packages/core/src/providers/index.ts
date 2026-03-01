@@ -3,6 +3,7 @@ export { PnpmProvider } from './PnpmProvider';
 export { BunProvider } from './BunProvider';
 export { YarnProvider } from './YarnProvider';
 export { MiseProvider } from './MiseProvider';
+export { NpmProvider } from './NpmProvider';
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -12,6 +13,7 @@ import { PnpmProvider } from './PnpmProvider';
 import { BunProvider } from './BunProvider';
 import { YarnProvider } from './YarnProvider';
 import { MiseProvider } from './MiseProvider';
+import { NpmProvider } from './NpmProvider';
 
 /**
  * Detect the active package manager from the runtime environment.
@@ -19,7 +21,7 @@ import { MiseProvider } from './MiseProvider';
  * - pnpm sets `npm_config_user_agent` starting with "pnpm/"
  * - yarn sets `npm_config_user_agent` starting with "yarn/"
  */
-export function detectRuntime(): 'bun' | 'pnpm' | 'yarn' | undefined {
+export function detectRuntime(): 'bun' | 'pnpm' | 'yarn' | 'npm' | undefined {
     if (process.versions.bun) {
         return 'bun';
     }
@@ -28,6 +30,9 @@ export function detectRuntime(): 'bun' | 'pnpm' | 'yarn' | undefined {
     }
     if (process.env.npm_config_user_agent?.startsWith('yarn/')) {
         return 'yarn';
+    }
+    if (process.env.npm_config_user_agent?.startsWith('npm/')) {
+        return 'npm';
     }
     return undefined;
 }
@@ -53,12 +58,15 @@ export function detectProviders(cacheService: CacheService, rootDir: string): De
     if (existsSync(join(rootDir, 'yarn.lock'))) {
         providers.push(new YarnProvider(cacheService, rootDir));
     }
+    if (existsSync(join(rootDir, 'package-lock.json'))) {
+        providers.push(new NpmProvider(cacheService, rootDir));
+    }
     if (existsSync(join(rootDir, 'mise.toml'))) {
         providers.push(new MiseProvider(cacheService, rootDir));
     }
     if (providers.length === 0) {
         throw new Error(
-            'No supported lockfile found. Expected pnpm-lock.yaml, bun.lock, yarn.lock, or mise.toml in ' +
+            'No supported lockfile found. Expected pnpm-lock.yaml, bun.lock, yarn.lock, package-lock.json, or mise.toml in ' +
                 rootDir,
         );
     }
@@ -85,11 +93,14 @@ export function createProvidersByName(
             case 'yarn':
                 providers.push(new YarnProvider(cacheService, rootDir));
                 break;
+            case 'npm':
+                providers.push(new NpmProvider(cacheService, rootDir));
+                break;
             case 'mise':
                 providers.push(new MiseProvider(cacheService, rootDir));
                 break;
             default:
-                throw new Error(`Unknown provider: ${name}. Supported: pnpm, bun, yarn, mise`);
+                throw new Error(`Unknown provider: ${name}. Supported: pnpm, bun, yarn, npm, mise`);
         }
     }
     return providers;

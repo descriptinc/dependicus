@@ -3,6 +3,6 @@
 Since this issue was last updated, {{versionCountText}} been released:
 
 {{#each versions}}
-- **{{this.version}}** ({{formatDateShort this.publishDate}}){{#if this.formattedSize}} — {{this.formattedSize}}{{/if}}
+- **{{this.version}}**{{#if this.publishDate}} ({{formatDateShort this.publishDate}}){{/if}}{{#if this.formattedSize}} — {{this.formattedSize}}{{/if}}
   - {{#if this.registryUrl}}[Registry]({{this.registryUrl}}){{/if}}{{#if this.releaseUrl}} | [GitHub Release]({{this.releaseUrl}}){{/if}}
 {{/each}}

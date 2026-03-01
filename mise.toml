@@ -26,7 +26,7 @@ run = "pnpm run typedoc"
 
 [tasks."docs:dependicus"]
 description = "Run dependicus on itself"
-run = "node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider mise"
+run = "node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise"
 
 [tasks."pnpm:build"]
 description = "Build all packages with pnpm"

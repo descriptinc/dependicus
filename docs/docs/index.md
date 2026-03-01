@@ -1,6 +1,6 @@
 # Dependicus
 
-Dependicus is a dependency governance tool for JavaScript monorepos. It pulls data from your pnpm, bun, or yarn lockfile, the npm registry, and GitHub, then produces an interactive dashboard, Linear tickets, and GitHub Issues so you can make informed decisions about your dependency graph at an organizational scale.
+Dependicus is a dependency governance tool for JavaScript monorepos. It pulls data from your lockfile, the npm registry, and GitHub, then produces an interactive dashboard, Linear tickets, and GitHub Issues so you can make informed decisions about your dependency graph at an organizational scale.
 
 If you maintain a monorepo with multiple teams, dozens of workspace packages, and hundreds of dependencies, Dependicus gives you the visibility that automated-PR tools donâ€™t: which packages are behind, by how much, who owns them, and where teams have drifted to different versions of the same dependency. You can see our [own dashboard](../dependencies/index.html) for a sense of what it looks like in practice.
 
@@ -8,7 +8,7 @@ Dependicus has a plugin system so you can customize it to your unique needs. Itâ
 
 ```mermaid
 graph LR
-    lockfile["pnpm / bun / yarn"] --> dependicus-update["<tt>dependicus update</tt><br>&rarr; <tt>dependencies.json</tt>"]
+    lockfile["your lockfile"] --> dependicus-update["<tt>dependicus update</tt><br>&rarr; <tt>dependencies.json</tt>"]
     GitHub --> dependicus-update
     npmjs.org --> dependicus-update
     dependicus-update --> dependicus-html["<tt>dependicus html</tt>"]
@@ -20,7 +20,7 @@ graph LR
     dependicus-make-github-issues --> github-issues["GitHub Issues"]
 ```
 
-Dependicus supports pnpm, bun, and yarn, with auto-detection of the active package manager. See [Package Managers](./package-managers.md) for details.
+Dependicus supports all major Node.js package managers, with auto-detection of the active one. See [Package Managers](./package-managers.md) for details.
 
 ## Quickstart
 
@@ -37,6 +37,9 @@ bunx dependicus@latest update --html
 
 # yarn
 yarn dlx dependicus@latest update --html
+
+# npm
+npx dependicus@latest update --html
 
 # open ./dependicus-out/index.html
 ```
@@ -58,6 +61,11 @@ bunx dependicus@latest make-linear-issues \
 
 # yarn
 yarn dlx dependicus@latest make-linear-issues \
+    --linear-team-id=<uuid of a Linear team> \
+    --dry-run
+
+# npm
+npx dependicus@latest make-linear-issues \
     --linear-team-id=<uuid of a Linear team> \
     --dry-run
 ```

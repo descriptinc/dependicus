@@ -6,7 +6,7 @@ Dependicus is a tool that combines many data sources, then builds a dashboard an
 
 ```mermaid
 graph LR
-    pnpm --> dependicus-update["<tt>dependicus update</tt><br>&rarr; <tt>dependencies.json</tt>"]
+    lockfile["your lockfile"] --> dependicus-update["<tt>dependicus update</tt><br>&rarr; <tt>dependencies.json</tt>"]
     GitHub --> dependicus-update
     npmjs.org --> dependicus-update
     dependicus-update --> dependicus-html["<tt>dependicus html</tt>"]
@@ -18,7 +18,7 @@ graph LR
     dependicus-make-github-issues --> github-issues["GitHub Issues"]
 ```
 
-Dependicus supports pnpm, bun, and yarn, with auto-detection of the active package manager.
+Dependicus supports all major Node.js package managers, with auto-detection of the active one.
 
 ## Quickstart
 

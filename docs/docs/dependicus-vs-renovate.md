@@ -16,7 +16,7 @@ Renovate also provides Merge Confidence badges that show adoption rate, age, and
 
 ## What Dependicus does
 
-Dependicus takes a different approach. Rather than opening pull requests, it collects data about your dependencies from multiple sources (your pnpm, bun, or yarn lockfile, the npm registry, and GitHub), then produces two outputs: an interactive dashboard and (optionally) tickets in Linear or GitHub Issues.
+Dependicus takes a different approach. Rather than opening pull requests, it collects data about your dependencies from multiple sources (your lockfile, the npm registry, and GitHub), then produces two outputs: an interactive dashboard and (optionally) tickets in Linear or GitHub Issues.
 
 The dashboard gives you a single view of every direct dependency in your monorepo: what version you're on, what's latest, how old your version is, who in your codebase uses it, whether it's in your catalog, and whether any of its transitive dependencies are deprecated. Dependicus enriches each package with changelog links, GitHub release URLs, and size comparisons between your version and the latest.
 
@@ -52,7 +52,7 @@ If you run both tools, the two dashboards complement each other. Use Dependicus'
 
 ## Where Renovate has more to offer
 
-Renovate's breadth of ecosystem support is unmatched. It handles npm, pip, Docker, Gradle, Maven, Cargo, Go modules, Helm charts, Terraform, and dozens more. Dependicus supports pnpm, bun, and yarn.
+Renovate's breadth of ecosystem support is unmatched. It handles npm, pip, Docker, Gradle, Maven, Cargo, Go modules, Helm charts, Terraform, and dozens more. Dependicus supports all major Node.js package managers and [mise](https://mise.jdx.dev/) (which Renovate also supports), but does not extend beyond that.
 
 Renovate also does the actual updating. It creates branches, modifies lockfiles, and opens PRs that you can merge. Dependicus tells you what needs updating and creates tickets, but the actual update is still a manual step.
 
@@ -90,7 +90,7 @@ In this model, Renovate handles the routine, low-risk updates automatically, whi
 | ----------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | Primary output          | Pull requests                                           | Dashboard and tickets                                                          |
 | Automation level        | High (creates branches, updates lockfiles)              | Low (surfaces information, creates tickets)                                    |
-| Ecosystem support       | 90+ package managers                                    | pnpm, bun, and yarn                                                            |
+| Ecosystem support       | 90+ package managers (including mise)                   | All major Node.js package managers + mise                                      |
 | Platform support        | GitHub, GitLab, Bitbucket, Azure DevOps, Gitea, Forgejo | Platform-agnostic (reads lockfile locally)                                     |
 | Dashboard               | GitHub issue listing pending PRs and update status      | Static site showing full dependency landscape with rich context                |
 | Ticket integration      | GitHub/GitLab issues                                    | Linear and GitHub Issues                                                       |
