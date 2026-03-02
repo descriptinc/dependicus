@@ -38,6 +38,7 @@ Or in a script:
 ```ts
 void dependicusCli({
     repoRoot,
+    dependicusBaseUrl: 'https://deps.example.com',
     providerNames: ['pnpm'],
 }).run(process.argv);
 ```
