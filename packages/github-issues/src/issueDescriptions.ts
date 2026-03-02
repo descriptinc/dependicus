@@ -109,7 +109,7 @@ export function buildIssueDescription(
 
     const installCommand = providerInfo?.installCommand ?? 'install';
     const supportsCatalog = providerInfo?.supportsCatalog ?? false;
-    const updatePrefix = providerInfo?.updatePrefix ?? 'Update the following workspace:';
+    const updatePrefix = providerInfo?.updatePrefix ?? 'Update the version in:';
     const updateSuffix =
         providerInfo?.updateSuffix ?? `Then, run \`${installCommand}\` to update the lockfile.`;
     const urlPatterns = store.getDependencyFact<Record<string, string>>(name, FactKeys.URLS) ?? {};
