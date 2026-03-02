@@ -90,6 +90,7 @@ __metadata:
     "@types/js-yaml": "npm:^4.0.9"
     "@types/node": "npm:^25.3.0"
     "@types/semver": "npm:^7.7.1"
+    handlebars: "npm:^4.7.8"
     js-yaml: "npm:^4.1.1"
     semver: "npm:^7.7.4"
     tsdown: "npm:^0.20.3"
