@@ -37,7 +37,7 @@ export {
     getUpdateType,
     isNewerThan,
     extractLatestVersionFromTitle,
-    extractPackageNameFromTitle,
+    extractDependencyNameFromTitle,
     extractGroupNameFromTitle,
     buildTicketTitle,
     buildGroupTicketTitle,

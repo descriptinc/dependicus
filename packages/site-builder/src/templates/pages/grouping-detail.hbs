@@ -7,7 +7,7 @@
         <section class="dep-detail-card">
             <h2>Statistics</h2>
             <dl class="dep-metadata-dl">
-                <dt>Total Packages</dt><dd>{{stats.totalPackages}}</dd>
+                <dt>Total Dependencies</dt><dd>{{stats.totalDependencies}}</dd>
                 <dt>Outdated</dt><dd>{{stats.outdatedCount}}</dd>
                 <dt>In Catalog</dt><dd>{{stats.catalogCount}}</dd>
             </dl>
@@ -29,13 +29,13 @@
 
     <div class="dep-detail-main">
         {{#each sections}}
-        {{#if flaggedPackages.length}}
+        {{#if flaggedDependencies.length}}
         <section>
             <h2>{{title}}</h2>
             <ul>
-                {{#each flaggedPackages}}
+                {{#each flaggedDependencies}}
                 <li>
-                    <a href="{{detailLink}}">{{packageName}}@{{version}}</a>
+                    <a href="{{detailLink}}">{{name}}@{{version}}</a>
                     <span class="dep-compliance-detail">{{label}}</span>
                 </li>
                 {{/each}}
@@ -54,14 +54,14 @@
         {{/each}}
 
         <section>
-            <h2>Packages ({{count}})</h2>
+            <h2>Dependencies ({{count}})</h2>
             <ul>
-            {{#each packages}}
+            {{#each dependencies}}
                 <li>
                     {{#if detailLink}}
-                    <a href="{{detailLink}}">{{packageName}}@{{version}}</a>
+                    <a href="{{detailLink}}">{{name}}@{{version}}</a>
                     {{else}}
-                    {{packageName}}
+                    {{name}}
                     {{/if}}
                     {{#if (ne version latestVersion)}}
                     <span> (latest: {{latestVersion}})</span>

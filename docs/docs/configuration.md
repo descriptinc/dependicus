@@ -40,7 +40,7 @@ Dependicus assumes you want fine-grained control over how tickets are created. T
 
 ### `linear.getLinearIssueSpec` (optional): `(context: VersionContext, store: FactStore) => LinearIssueSpec | undefined`
 
-For a given package version, return a `LinearIssueSpec` describing what ticket to create, or `undefined` to skip. See [Linear tickets](./linearissues.md) for details on the `LinearIssueSpec` fields.
+For a given dependency version, return a `LinearIssueSpec` describing what ticket to create, or `undefined` to skip. See [Linear tickets](./linearissues.md) for details on the `LinearIssueSpec` fields.
 
 This field is optional because [plugins](./plugins.md) can provide the same functionality. Depending on how complex your setup is, you might choose to write a plugin instead of providing a function for this parameter.
 
@@ -60,7 +60,7 @@ Dependicus can also create and manage GitHub Issues for outdated dependencies. L
 
 ### `github.getGitHubIssueSpec` (optional): `(context: VersionContext, store: FactStore) => GitHubIssueSpec | undefined`
 
-For a given package version, return a `GitHubIssueSpec` describing what issue to create, or `undefined` to skip. See [GitHub Issues](./githubissues.md) for details.
+For a given dependency version, return a `GitHubIssueSpec` describing what issue to create, or `undefined` to skip. See [GitHub Issues](./githubissues.md) for details.
 
 ### `github.cooldownDays` (optional, defaults to `0`)
 

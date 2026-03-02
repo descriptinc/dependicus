@@ -26,7 +26,7 @@ import type { DependicusPlugin } from './plugin';
  *
  * A policy with `thresholdDays` enforces SLA-style compliance: if an update
  * of a given type (major/minor/patch) has been available longer than the
- * threshold, the package is marked non-compliant.
+ * threshold, the dependency is marked non-compliant.
  *
  * A policy with `notificationsOnly: true` creates awareness tickets without
  * enforcement. `notificationRateLimitDays` prevents ticket noise by spacing
@@ -40,7 +40,7 @@ export interface CompliancePolicy {
     /** Optional description shown in ticket body and column tooltips. */
     description?: string;
     /**
-     * Maximum days an update can be available before the package is non-compliant.
+     * Maximum days an update can be available before the dependency is non-compliant.
      * Omit an update type to skip compliance checking for it (the column shows N/A).
      */
     thresholdDays?: { major?: number; minor?: number; patch?: number };
@@ -54,7 +54,7 @@ export interface CompliancePolicy {
  * Configuration for {@link BasicCompliancePlugin}.
  *
  * The plugin is intentionally agnostic about how you assign policies to
- * packages. You bring the policy definitions and a lookup function; the
+ * dependencies. You bring the policy definitions and a lookup function; the
  * plugin handles columns, sections, and issue spec generation.
  *
  * @group Compliance
@@ -63,20 +63,20 @@ export interface BasicComplianceConfig {
     /** Map of policy ID to policy definition. IDs are opaque strings you define. */
     policies: Record<string, CompliancePolicy>;
     /**
-     * Given a package name, return its policy ID (a key into `policies`).
-     * Return `undefined` if the package has no policy — it will show as N/A.
+     * Given a dependency name, return its policy ID (a key into `policies`).
+     * Return `undefined` if the dependency has no policy — it will show as N/A.
      *
      * The `store` parameter gives access to facts populated by data sources,
      * which is useful when the policy assignment lives in a custom data source
      * rather than a static lookup table.
      */
-    getPolicy: (packageName: string, store: FactStore) => string | undefined;
+    getPolicy: (name: string, store: FactStore) => string | undefined;
 }
 
 // ── Compliance evaluation ───────────────────────────────────────────
 
 /**
- * Whether a package version meets its update threshold.
+ * Whether a dependency version meets its update threshold.
  *
  * - `compliant` — the version is current, or the update hasn't exceeded its threshold yet.
  * - `not-applicable` — no threshold was provided, or the version can't be evaluated
@@ -86,7 +86,7 @@ export interface BasicComplianceConfig {
  *
  * @group Compliance
  */
-export type PackageComplianceStatus =
+export type ComplianceStatus =
     | { status: 'compliant' }
     | { status: 'not-applicable' }
     | {
@@ -104,12 +104,12 @@ export type PackageComplianceStatus =
  * @param versionsBetween - Versions between current and latest (oldest to newest)
  * @param thresholdDays - Threshold in days for this update
  */
-export function getPackageComplianceStatus(
+export function getComplianceStatus(
     currentVersion: string,
     latestVersion: string,
     versionsBetween: PackageVersionInfo[],
     thresholdDays: number | undefined,
-): PackageComplianceStatus {
+): ComplianceStatus {
     // No threshold means compliance is not applicable
     if (thresholdDays === undefined) {
         return { status: 'not-applicable' };
@@ -154,7 +154,7 @@ export function getPackageComplianceStatus(
 /**
  * Format compliance result as human-readable detail string.
  */
-export function formatComplianceDetail(result: PackageComplianceStatus): string {
+export function formatComplianceDetail(result: ComplianceStatus): string {
     if (result.status !== 'non-compliant') {
         return '';
     }
@@ -190,7 +190,7 @@ function formatThreshold(days: number): string {
 /**
  * Threshold-based compliance plugin.
  *
- * You provide policy definitions and a function that maps packages to policy
+ * You provide policy definitions and a function that maps dependencies to policy
  * IDs; the plugin handles columns, sections, and issue spec generation.
  * It composes with ownership plugins — each plugin contributes its own
  * fields to the merged `LinearIssueSpec`.
@@ -216,33 +216,28 @@ export class BasicCompliancePlugin implements DependicusPlugin {
         let compliantCount = 0;
         let nonCompliantCount = 0;
         let noPolicyCount = 0;
-        const flaggedPackages: NonNullable<GroupingSection['flaggedPackages']> = [];
+        const flaggedDependencies: NonNullable<GroupingSection['flaggedDependencies']> = [];
 
         for (const dep of dependencies) {
             for (const ver of dep.versions) {
-                const policy = this.resolvePolicy(dep.packageName, store);
+                const policy = this.resolvePolicy(dep.name, store);
                 if (!policy) {
                     noPolicyCount++;
                     continue;
                 }
-                const result = this.computeStatus(
-                    dep.packageName,
-                    ver.version,
-                    ver.latestVersion,
-                    store,
-                );
+                const result = this.computeStatus(dep.name, ver.version, ver.latestVersion, store);
                 if (result.status === 'non-compliant') {
                     nonCompliantCount++;
                     const detail = formatComplianceDetail(result);
-                    flaggedPackages.push({
-                        packageName: dep.packageName,
+                    flaggedDependencies.push({
+                        name: dep.name,
                         version: ver.version,
-                        detailLink: `../details/${getDetailFilename(dep.packageName, ver.version)}`,
+                        detailLink: `../details/${getDetailFilename(dep.name, ver.version)}`,
                         label: detail,
                     });
                 } else {
                     // Both 'compliant' and 'not-applicable' count as compliant
-                    // when the package has a policy assigned.
+                    // when the dependency has a policy assigned.
                     compliantCount++;
                 }
             }
@@ -259,10 +254,10 @@ export class BasicCompliancePlugin implements DependicusPlugin {
                 ],
             });
         }
-        if (flaggedPackages.length > 0) {
+        if (flaggedDependencies.length > 0) {
             sections.push({
-                title: 'Non-Compliant Packages',
-                flaggedPackages,
+                title: 'Non-Compliant Dependencies',
+                flaggedDependencies,
             });
         }
         return sections;
@@ -287,14 +282,14 @@ export class BasicCompliancePlugin implements DependicusPlugin {
         context: VersionContext,
         store: FactStore,
     ): Partial<LinearIssueSpec> | undefined => {
-        const policy = this.resolvePolicy(context.packageName, store);
+        const policy = this.resolvePolicy(context.name, store);
         if (!policy) return undefined;
 
         const isNotificationsOnly = policy.notificationsOnly ?? false;
         const thresholds = policy.thresholdDays;
         const versionsBetween =
             store.getVersionFact<PackageVersionInfo[]>(
-                context.packageName,
+                context.name,
                 context.currentVersion,
                 FactKeys.VERSIONS_BETWEEN,
             ) ?? [];
@@ -322,7 +317,7 @@ export class BasicCompliancePlugin implements DependicusPlugin {
                 ? thresholds[effectiveUpdateType]
                 : undefined;
 
-            const compliance = getPackageComplianceStatus(
+            const compliance = getComplianceStatus(
                 context.currentVersion,
                 targetVersion,
                 versionsBetween,
@@ -381,9 +376,9 @@ export class BasicCompliancePlugin implements DependicusPlugin {
     //
     // Pipeline: resolvePolicy → resolveThreshold → computeStatus
 
-    /** Look up the CompliancePolicy for a package via the consumer's getPolicy callback. */
-    private resolvePolicy(packageName: string, store: FactStore): CompliancePolicy | undefined {
-        const policyId = this.config.getPolicy(packageName, store);
+    /** Look up the CompliancePolicy for a dependency via the consumer's getPolicy callback. */
+    private resolvePolicy(name: string, store: FactStore): CompliancePolicy | undefined {
+        const policyId = this.config.getPolicy(name, store);
         if (!policyId) return undefined;
         return this.config.policies[policyId];
     }
@@ -394,33 +389,25 @@ export class BasicCompliancePlugin implements DependicusPlugin {
      * for the relevant update type.
      */
     private resolveThreshold(
-        packageName: string,
+        name: string,
         version: string,
         latestVersion: string,
         store: FactStore,
     ): number | undefined {
-        const policy = this.resolvePolicy(packageName, store);
+        const policy = this.resolvePolicy(name, store);
         if (!policy) return undefined;
         const updateType = getUpdateType(version, latestVersion);
         if (!updateType) return undefined;
         return policy.thresholdDays?.[updateType];
     }
 
-    /** Full compliance evaluation for one package version. */
-    private computeStatus(
-        packageName: string,
-        version: string,
-        latestVersion: string,
-        store: FactStore,
-    ) {
-        const threshold = this.resolveThreshold(packageName, version, latestVersion, store);
+    /** Full compliance evaluation for one dependency version. */
+    private computeStatus(name: string, version: string, latestVersion: string, store: FactStore) {
+        const threshold = this.resolveThreshold(name, version, latestVersion, store);
         const versionsBetween =
-            store.getVersionFact<PackageVersionInfo[]>(
-                packageName,
-                version,
-                FactKeys.VERSIONS_BETWEEN,
-            ) ?? [];
-        return getPackageComplianceStatus(version, latestVersion, versionsBetween, threshold);
+            store.getVersionFact<PackageVersionInfo[]>(name, version, FactKeys.VERSIONS_BETWEEN) ??
+            [];
+        return getComplianceStatus(version, latestVersion, versionsBetween, threshold);
     }
 
     /** Build a grouping page per compliance policy. */
@@ -430,8 +417,8 @@ export class BasicCompliancePlugin implements DependicusPlugin {
                 key: 'compliance-policy',
                 label: 'Compliance Policies',
                 slugPrefix: 'policies',
-                getValue: (packageName, store) => {
-                    const policy = this.resolvePolicy(packageName, store);
+                getValue: (name, store) => {
+                    const policy = this.resolvePolicy(name, store);
                     return policy?.name;
                 },
                 getSections: this.getSections,
@@ -448,31 +435,25 @@ export class BasicCompliancePlugin implements DependicusPlugin {
                 width: 140,
                 filter: 'list',
                 filterValues: STATUS_LABELS,
-                getValue: (packageName, version, store) => {
+                getValue: (name, version, store) => {
                     const { status } = this.computeStatus(
-                        packageName,
+                        name,
                         version.version,
                         version.latestVersion,
                         store,
                     );
                     return STATUS_LABELS[status] ?? status;
                 },
-                getFilterValue: (packageName, version, store) =>
-                    this.computeStatus(packageName, version.version, version.latestVersion, store)
-                        .status,
+                getFilterValue: (name, version, store) =>
+                    this.computeStatus(name, version.version, version.latestVersion, store).status,
             },
             {
                 key: 'complianceDetail',
                 header: 'Compliance Detail',
                 width: 200,
-                getValue: (packageName, version, store) =>
+                getValue: (name, version, store) =>
                     formatComplianceDetail(
-                        this.computeStatus(
-                            packageName,
-                            version.version,
-                            version.latestVersion,
-                            store,
-                        ),
+                        this.computeStatus(name, version.version, version.latestVersion, store),
                     ),
             },
         ];

@@ -4,7 +4,7 @@
 
 Linear issues are defined by `getLinearIssueSpec` functions, which take a [VersionContext](../api/interfaces/VersionContext.html) and a [FactStore](../api/classes/FactStore.html), and return a [LinearIssueSpec](../api/types/LinearIssueSpec.html).
 
-Here's an example that covers the basics: skipping packages, routing to different teams, choosing between notification-only and SLA-enforced issues, delegating simple updates, and reading from the `FactStore`.
+Here's an example that covers the basics: skipping dependencies, routing to different teams, choosing between notification-only and SLA-enforced issues, delegating simple updates, and reading from the `FactStore`.
 
 ```ts
 import { dependicusCli, getUpdateType, FactKeys } from 'dependicus';
@@ -14,14 +14,14 @@ void dependicusCli({
     dependicusBaseUrl: 'https://mycompany.internal/dependicus',
     linear: {
         getLinearIssueSpec: (context, store) => {
-            const { packageName, currentVersion, latestVersion } = context;
+            const { name, currentVersion, latestVersion } = context;
             const updateType = getUpdateType(currentVersion, latestVersion);
 
-            // Skip packages you don't want issues for
-            if (packageName === 'webpack') return undefined;
+            // Skip dependencies you don't want issues for
+            if (name === 'webpack') return undefined;
 
-            // Route different packages to different teams
-            const teamId = packageName.startsWith('@mycompany/')
+            // Route different dependencies to different teams
+            const teamId = name.startsWith('@mycompany/')
                 ? 'team-uuid-platform'
                 : 'team-uuid-frontend';
 
@@ -30,10 +30,10 @@ void dependicusCli({
                 return { teamId, policy: { type: 'fyi' } };
             }
 
-            // Read facts from the store — skip deprecated packages
+            // Read facts from the store — skip deprecated dependencies
             // rather than filing issues to update them
             const isDeprecated = store.getVersionFact<boolean>(
-                packageName,
+                name,
                 latestVersion,
                 FactKeys.IS_DEPRECATED,
             );
@@ -41,10 +41,10 @@ void dependicusCli({
 
             // SLA-enforced issues for minor/patch.
             // Auto-assign patch releases to a bot — but not if the
-            // package has local patches (pnpm patch), since those
+            // dependency has local patches (pnpm patch), since those
             // need human attention when updating.
             const isPatched = store.getVersionFact<boolean>(
-                packageName,
+                name,
                 currentVersion,
                 FactKeys.IS_PATCHED,
             );

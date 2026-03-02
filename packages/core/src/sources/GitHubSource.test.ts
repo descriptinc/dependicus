@@ -9,9 +9,9 @@ import type {
     ChangelogInfo,
 } from '../services/GitHubService';
 
-function makeDep(packageName: string, version: string, latestVersion: string): DirectDependency {
+function makeDep(name: string, version: string, latestVersion: string): DirectDependency {
     return {
-        packageName,
+        name,
         ecosystem: 'npm',
         versions: [
             {
@@ -110,7 +110,7 @@ describe('GitHubSource', () => {
 
         await source.fetch([makeDep('react', '18.2.0', '19.0.0')], store);
 
-        const githubData = scoped.getPackageFact<GitHubData>('react', FactKeys.GITHUB_DATA);
+        const githubData = scoped.getDependencyFact<GitHubData>('react', FactKeys.GITHUB_DATA);
         expect(githubData).toBeDefined();
         expect(githubData!.owner).toBe('facebook');
         expect(githubData!.repo).toBe('react');
@@ -180,7 +180,7 @@ describe('GitHubSource', () => {
         await source.fetch([makeDep('some-pkg', '1.0.0', '2.0.0')], store);
 
         expect(
-            store.scoped('npm').getPackageFact('some-pkg', FactKeys.GITHUB_DATA),
+            store.scoped('npm').getDependencyFact('some-pkg', FactKeys.GITHUB_DATA),
         ).toBeUndefined();
     });
 
@@ -217,8 +217,8 @@ describe('GitHubSource', () => {
 
         await source.fetch(deps, store);
 
-        const reactData = scoped.getPackageFact<GitHubData>('react', FactKeys.GITHUB_DATA);
-        const vueData = scoped.getPackageFact<GitHubData>('vue', FactKeys.GITHUB_DATA);
+        const reactData = scoped.getDependencyFact<GitHubData>('react', FactKeys.GITHUB_DATA);
+        const vueData = scoped.getDependencyFact<GitHubData>('vue', FactKeys.GITHUB_DATA);
 
         expect(reactData!.owner).toBe('facebook');
         expect(vueData!.owner).toBe('vuejs');

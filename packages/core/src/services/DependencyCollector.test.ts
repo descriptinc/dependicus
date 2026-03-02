@@ -15,7 +15,7 @@ function createMockProvider(packages: PackageInfo[] = []): DependencyProvider {
         urlPatterns: {},
         getPackages: vi.fn().mockResolvedValue(packages),
         isInCatalog: vi.fn().mockReturnValue(false),
-        hasPackageInCatalog: vi.fn().mockReturnValue(false),
+        hasInCatalog: vi.fn().mockReturnValue(false),
         isPatched: vi.fn().mockReturnValue(false),
         createSources: vi.fn().mockReturnValue([]),
     };
@@ -69,7 +69,7 @@ describe('DependencyCollector', () => {
             const result = await collector.collectDirectDependencies();
 
             expect(result[0]!.dependencies).toHaveLength(1);
-            expect(result[0]!.dependencies[0]!.packageName).toBe('react');
+            expect(result[0]!.dependencies[0]!.name).toBe('react');
             expect(result[0]!.dependencies[0]!.versions).toHaveLength(1);
             expect(result[0]!.dependencies[0]!.versions[0]!.version).toBe('18.2.0');
             expect(result[0]!.dependencies[0]!.versions[0]!.usedBy).toEqual(['@myapp/web']);
@@ -123,7 +123,7 @@ describe('DependencyCollector', () => {
             const result = await collector.collectDirectDependencies();
 
             expect(result[0]!.dependencies).toHaveLength(1);
-            expect(result[0]!.dependencies[0]!.packageName).toBe('react');
+            expect(result[0]!.dependencies[0]!.name).toBe('react');
         });
 
         it('deduplicates same dependency used across multiple packages', async () => {
@@ -187,7 +187,7 @@ describe('DependencyCollector', () => {
             const result = await collector.collectDirectDependencies();
 
             expect(result[0]!.dependencies).toHaveLength(1);
-            expect(result[0]!.dependencies[0]!.packageName).toBe('lodash');
+            expect(result[0]!.dependencies[0]!.name).toBe('lodash');
             expect(result[0]!.dependencies[0]!.versions).toHaveLength(2);
         });
 
@@ -239,11 +239,7 @@ describe('DependencyCollector', () => {
 
             const result = await collector.collectDirectDependencies();
 
-            expect(result[0]!.dependencies.map((d) => d.packageName)).toEqual([
-                'axios',
-                'moment',
-                'zod',
-            ]);
+            expect(result[0]!.dependencies.map((d) => d.name)).toEqual(['axios', 'moment', 'zod']);
         });
 
         it('includes catalog status from workspace service', async () => {

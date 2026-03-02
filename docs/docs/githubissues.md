@@ -4,7 +4,7 @@
 
 GitHub Issues are defined by `getGitHubIssueSpec` functions, which take a [VersionContext](../api/interfaces/VersionContext.html) and a [FactStore](../api/classes/FactStore.html), and return a [GitHubIssueSpec](../api/types/GitHubIssueSpec.html).
 
-Here's an example that covers the basics: skipping packages, routing to a repo, choosing between notification-only and SLA-enforced issues, assigning users, and reading from the `FactStore`.
+Here's an example that covers the basics: skipping dependencies, routing to a repo, choosing between notification-only and SLA-enforced issues, assigning users, and reading from the `FactStore`.
 
 ```ts
 import { dependicusCli, getUpdateType, FactKeys } from 'dependicus';
@@ -14,11 +14,11 @@ void dependicusCli({
     dependicusBaseUrl: 'https://mycompany.internal/dependicus',
     github: {
         getGitHubIssueSpec: (context, store) => {
-            const { packageName, currentVersion, latestVersion } = context;
+            const { name, currentVersion, latestVersion } = context;
             const updateType = getUpdateType(currentVersion, latestVersion);
 
-            // Skip packages you don't want issues for
-            if (packageName === 'webpack') return undefined;
+            // Skip dependencies you don't want issues for
+            if (name === 'webpack') return undefined;
 
             // All issues go to a single repo
             const owner = 'myorg';
@@ -31,7 +31,7 @@ void dependicusCli({
 
             // Read facts from the store
             const isDeprecated = store.getVersionFact<boolean>(
-                packageName,
+                name,
                 latestVersion,
                 FactKeys.IS_DEPRECATED,
             );

@@ -534,7 +534,7 @@ main tbody tr {
     color: var(--red-fg);
 }
 
-.dep-package-pill {
+.dep-pill {
     display: inline-block;
     padding: var(--size-1) var(--size-1);
     margin: var(--size-1);
@@ -612,7 +612,7 @@ main tbody tr {
     text-decoration: underline;
 }
 
-a.dep-package-pill {
+a.dep-pill {
     color: inherit;
 }
 

@@ -4,7 +4,7 @@ import {
     usedByFormatter,
     ageFormatter,
     versionsBehindFormatter,
-    packageNameFormatter,
+    nameFormatter,
     versionFormatter,
     latestVersionFormatter,
     deprecatedFormatter,
@@ -22,14 +22,14 @@ export function createColumnDefs(
     const hasCatalog = options?.hasCatalog ?? true;
     const columns: TabulatorColumn[] = [
         {
-            title: 'Package Name',
-            field: 'Package Name',
+            title: 'Dependency',
+            field: 'Dependency',
             frozen: true,
             width: 250,
             minWidth: 150,
-            formatter: packageNameFormatter,
+            formatter: nameFormatter,
             headerFilter: 'input',
-            headerFilterPlaceholder: 'Filter packages...',
+            headerFilterPlaceholder: 'Filter dependencies...',
             headerFilterFunc: 'like',
             responsive: 0, // Never collapse
         },
@@ -262,7 +262,7 @@ export function getTableConfig(
         pagination: false,
         initialSort: [
             { column: 'Used By Count', dir: 'desc' },
-            { column: 'Package Name', dir: 'asc' },
+            { column: 'Dependency', dir: 'asc' },
         ],
         headerSortTristate: true,
         virtualDom: true,

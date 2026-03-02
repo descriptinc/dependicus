@@ -58,7 +58,7 @@ export function createCoreServices(config: CoreServicesConfig): CoreServices {
                 if (Object.keys(po.urlPatterns).length > 0) {
                     const scoped = store.scoped(po.ecosystem);
                     for (const dep of po.dependencies) {
-                        scoped.setPackageFact(dep.packageName, FactKeys.URLS, {
+                        scoped.setDependencyFact(dep.name, FactKeys.URLS, {
                             ...po.urlPatterns,
                         });
                     }
@@ -121,7 +121,7 @@ export async function readDependicusJson(
         if (Object.keys(po.urlPatterns).length > 0) {
             const scoped = store.scoped(po.ecosystem);
             for (const dep of po.dependencies) {
-                scoped.setPackageFact(dep.packageName, FactKeys.URLS, { ...po.urlPatterns });
+                scoped.setDependencyFact(dep.name, FactKeys.URLS, { ...po.urlPatterns });
             }
         }
     }

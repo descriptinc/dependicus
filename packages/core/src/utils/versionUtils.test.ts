@@ -6,7 +6,7 @@ import {
     isNewerThan,
     isPrerelease,
     extractLatestVersionFromTitle,
-    extractPackageNameFromTitle,
+    extractDependencyNameFromTitle,
     extractGroupNameFromTitle,
     buildTicketTitle,
     buildGroupTicketTitle,
@@ -163,16 +163,16 @@ describe('extractLatestVersionFromTitle', () => {
     });
 });
 
-describe('extractPackageNameFromTitle', () => {
+describe('extractDependencyNameFromTitle', () => {
     it('extracts package name from update title', () => {
-        expect(extractPackageNameFromTitle('[Dependicus] Update react from 18.2.0 to 19.2.3')).toBe(
-            'react',
-        );
+        expect(
+            extractDependencyNameFromTitle('[Dependicus] Update react from 18.2.0 to 19.2.3'),
+        ).toBe('react');
     });
 
     it('extracts package name from FYI title', () => {
         expect(
-            extractPackageNameFromTitle(
+            extractDependencyNameFromTitle(
                 '[Dependicus] FYI: stytch 13.0.0 is available (currently on 12.19.0)',
             ),
         ).toBe('stytch');
@@ -180,30 +180,30 @@ describe('extractPackageNameFromTitle', () => {
 
     it('handles scoped packages', () => {
         expect(
-            extractPackageNameFromTitle('[Dependicus] Update @linear/sdk from 32.0.0 to 65.0.0'),
+            extractDependencyNameFromTitle('[Dependicus] Update @linear/sdk from 32.0.0 to 65.0.0'),
         ).toBe('@linear/sdk');
     });
 
     it('handles packages with hyphens', () => {
         expect(
-            extractPackageNameFromTitle('[Dependicus] Update react-dom from 18.2.0 to 19.0.0'),
+            extractDependencyNameFromTitle('[Dependicus] Update react-dom from 18.2.0 to 19.0.0'),
         ).toBe('react-dom');
     });
 
     it('differentiates similar package names', () => {
-        expect(extractPackageNameFromTitle('[Dependicus] Update react from 18.0.0 to 19.0.0')).toBe(
-            'react',
-        );
+        expect(
+            extractDependencyNameFromTitle('[Dependicus] Update react from 18.0.0 to 19.0.0'),
+        ).toBe('react');
 
         expect(
-            extractPackageNameFromTitle('[Dependicus] Update react-utils from 1.0.0 to 2.0.0'),
+            extractDependencyNameFromTitle('[Dependicus] Update react-utils from 1.0.0 to 2.0.0'),
         ).toBe('react-utils');
     });
 
     it('returns undefined for non-Dependicus titles', () => {
-        expect(extractPackageNameFromTitle('Update react to 19.0.0')).toBeUndefined();
-        expect(extractPackageNameFromTitle('Fix bug in react')).toBeUndefined();
-        expect(extractPackageNameFromTitle('[Dependicus] Update react')).toBeUndefined();
+        expect(extractDependencyNameFromTitle('Update react to 19.0.0')).toBeUndefined();
+        expect(extractDependencyNameFromTitle('Fix bug in react')).toBeUndefined();
+        expect(extractDependencyNameFromTitle('[Dependicus] Update react')).toBeUndefined();
     });
 });
 
@@ -488,23 +488,23 @@ describe('extractGroupNameFromTitle', () => {
 });
 
 describe('buildGroupTicketTitle', () => {
-    it('builds title for single package group', () => {
-        expect(buildGroupTicketTitle('sentry', 1)).toBe('Update sentry group (1 package)');
+    it('builds title for single dependency group', () => {
+        expect(buildGroupTicketTitle('sentry', 1)).toBe('Update sentry group (1 dependency)');
     });
 
-    it('builds title for multiple package group', () => {
-        expect(buildGroupTicketTitle('sentry', 5)).toBe('Update sentry group (5 packages)');
+    it('builds title for multiple dependency group', () => {
+        expect(buildGroupTicketTitle('sentry', 5)).toBe('Update sentry group (5 dependencies)');
     });
 
     it('builds FYI title for notifications-only groups', () => {
         expect(buildGroupTicketTitle('sentry', 3, { notificationsOnly: true })).toBe(
-            'FYI: sentry group updates available (3 packages)',
+            'FYI: sentry group updates available (3 dependencies)',
         );
     });
 
-    it('builds FYI title for single package notifications-only group', () => {
+    it('builds FYI title for single dependency notifications-only group', () => {
         expect(buildGroupTicketTitle('sentry', 1, { notificationsOnly: true })).toBe(
-            'FYI: sentry group updates available (1 package)',
+            'FYI: sentry group updates available (1 dependency)',
         );
     });
 });

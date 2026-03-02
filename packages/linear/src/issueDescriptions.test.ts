@@ -7,7 +7,7 @@ import type {
 } from '@dependicus/core';
 import { RootFactStore, FactKeys, getDetailFilename } from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
-import type { OutdatedPackage, OutdatedGroup } from './types';
+import type { OutdatedDependency, OutdatedGroup } from './types';
 import {
     buildIssueDescription,
     buildGroupIssueDescription,
@@ -41,9 +41,9 @@ function makeVersion(overrides: Partial<DependencyVersion> = {}): DependencyVers
     };
 }
 
-function makePackage(overrides: Partial<OutdatedPackage> = {}): OutdatedPackage {
+function makeDependency(overrides: Partial<OutdatedDependency> = {}): OutdatedDependency {
     return {
-        packageName: 'test-pkg',
+        name: 'test-pkg',
         ecosystem: 'npm',
         versions: [makeVersion()],
         worstCompliance: { updateType: 'major', daysOverdue: 30, thresholdDays: 360 },
@@ -51,12 +51,12 @@ function makePackage(overrides: Partial<OutdatedPackage> = {}): OutdatedPackage 
         policy: { type: 'dueDate' },
         assignment: { type: 'unassigned' },
         ...overrides,
-    } as OutdatedPackage;
+    } as OutdatedDependency;
 }
 
-/** Create a FactStore populated with facts for a package. */
+/** Create a FactStore populated with facts for a dependency. */
 function makeStore(
-    pkg: OutdatedPackage,
+    dep: OutdatedDependency,
     opts: {
         versionsBetween?: PackageVersionInfo[];
         description?: string;
@@ -71,72 +71,52 @@ function makeStore(
     } = {},
 ): FactStore {
     const root = new RootFactStore();
-    const store = root.scoped(pkg.ecosystem);
-    const version = pkg.versions[0]!;
+    const store = root.scoped(dep.ecosystem);
+    const version = dep.versions[0]!;
     const vb = opts.versionsBetween ?? defaultVersionsBetween;
 
-    store.setVersionFact(pkg.packageName, version.version, FactKeys.VERSIONS_BETWEEN, vb);
+    store.setVersionFact(dep.name, version.version, FactKeys.VERSIONS_BETWEEN, vb);
     if (opts.description !== undefined) {
-        store.setVersionFact(
-            pkg.packageName,
-            version.version,
-            FactKeys.DESCRIPTION,
-            opts.description,
-        );
+        store.setVersionFact(dep.name, version.version, FactKeys.DESCRIPTION, opts.description);
     } else {
-        store.setVersionFact(
-            pkg.packageName,
-            version.version,
-            FactKeys.DESCRIPTION,
-            'A test package',
-        );
+        store.setVersionFact(dep.name, version.version, FactKeys.DESCRIPTION, 'A test package');
     }
     if (opts.homepage !== undefined) {
-        store.setVersionFact(pkg.packageName, version.version, FactKeys.HOMEPAGE, opts.homepage);
+        store.setVersionFact(dep.name, version.version, FactKeys.HOMEPAGE, opts.homepage);
     }
     if (opts.repositoryUrl !== undefined) {
         store.setVersionFact(
-            pkg.packageName,
+            dep.name,
             version.version,
             FactKeys.REPOSITORY_URL,
             opts.repositoryUrl,
         );
     }
     if (opts.bugsUrl !== undefined) {
-        store.setVersionFact(pkg.packageName, version.version, FactKeys.BUGS_URL, opts.bugsUrl);
+        store.setVersionFact(dep.name, version.version, FactKeys.BUGS_URL, opts.bugsUrl);
     }
     if (opts.unpackedSize !== undefined) {
-        store.setVersionFact(
-            pkg.packageName,
-            version.version,
-            FactKeys.UNPACKED_SIZE,
-            opts.unpackedSize,
-        );
+        store.setVersionFact(dep.name, version.version, FactKeys.UNPACKED_SIZE, opts.unpackedSize);
     }
     if (opts.compareUrl !== undefined) {
-        store.setVersionFact(
-            pkg.packageName,
-            version.version,
-            FactKeys.COMPARE_URL,
-            opts.compareUrl,
-        );
+        store.setVersionFact(dep.name, version.version, FactKeys.COMPARE_URL, opts.compareUrl);
     }
     if (opts.github !== undefined) {
-        store.setPackageFact(pkg.packageName, FactKeys.GITHUB_DATA, opts.github);
+        store.setDependencyFact(dep.name, FactKeys.GITHUB_DATA, opts.github);
     }
     if (opts.deprecatedTransitiveDeps !== undefined) {
-        store.setPackageFact(
-            pkg.packageName,
+        store.setDependencyFact(
+            dep.name,
             FactKeys.DEPRECATED_TRANSITIVE_DEPS,
             opts.deprecatedTransitiveDeps,
         );
     }
     if (opts.isPatched) {
-        store.setVersionFact(pkg.packageName, version.version, FactKeys.IS_PATCHED, true);
+        store.setVersionFact(dep.name, version.version, FactKeys.IS_PATCHED, true);
     }
 
-    // Set URL patterns as package-level fact
-    store.setPackageFact(pkg.packageName, FactKeys.URLS, {
+    // Set URL patterns as dependency-level fact
+    store.setDependencyFact(dep.name, FactKeys.URLS, {
         'Dependency Graph': 'https://npmgraph.js.org/?q={{name}}@{{version}}',
         Registry: 'https://www.npmjs.com/package/{{name}}/v/{{version}}',
     });
@@ -144,27 +124,27 @@ function makeStore(
     return root;
 }
 
-/** Create a store for a group of packages (populates facts for all packages). */
+/** Create a store for a group of dependencies (populates facts for all dependencies). */
 function makeGroupStore(group: OutdatedGroup, descriptions?: Record<string, string>): FactStore {
     const root = new RootFactStore();
-    for (const pkg of group.packages) {
-        const version = pkg.versions[0];
+    for (const dep of group.dependencies) {
+        const version = dep.versions[0];
         if (!version) continue;
-        const scoped = root.scoped(pkg.ecosystem);
+        const scoped = root.scoped(dep.ecosystem);
         scoped.setVersionFact(
-            pkg.packageName,
+            dep.name,
             version.version,
             FactKeys.VERSIONS_BETWEEN,
             defaultVersionsBetween,
         );
         scoped.setVersionFact(
-            pkg.packageName,
+            dep.name,
             version.version,
             FactKeys.DESCRIPTION,
-            descriptions?.[pkg.packageName] ?? 'A test package',
+            descriptions?.[dep.name] ?? 'A test package',
         );
-        // Set URL patterns per package
-        scoped.setPackageFact(pkg.packageName, FactKeys.URLS, {
+        // Set URL patterns per dependency
+        scoped.setDependencyFact(dep.name, FactKeys.URLS, {
             'Dependency Graph': 'https://npmgraph.js.org/?q={{name}}@{{version}}',
             Registry: 'https://www.npmjs.com/package/{{name}}/v/{{version}}',
         });
@@ -173,8 +153,8 @@ function makeGroupStore(group: OutdatedGroup, descriptions?: Record<string, stri
 }
 
 const BASE_URL = 'https://example.com/dependicus';
-const testGetDetailUrl: DetailUrlFn = (_ecosystem, packageName, version) => {
-    const filename = getDetailFilename(packageName, version);
+const testGetDetailUrl: DetailUrlFn = (_ecosystem, dependencyName, version) => {
+    const filename = getDetailFilename(dependencyName, version);
     return `${BASE_URL}/npm/details/${filename}`;
 };
 
@@ -193,7 +173,7 @@ const npmProviderInfoMap = new Map([['npm', npmProviderInfo]]);
 
 describe('buildIssueDescription', () => {
     it('includes package description as blockquote', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg);
         const result = buildIssueDescription(
             pkg,
@@ -207,13 +187,13 @@ describe('buildIssueDescription', () => {
     });
 
     it('omits blockquote when no description', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg, { description: undefined });
         // Need to clear the description fact (through scoped store, since that's where it was written)
         store
             .scoped(pkg.ecosystem)
             .setVersionFact(
-                pkg.packageName,
+                pkg.name,
                 '1.0.0',
                 FactKeys.DESCRIPTION,
                 undefined as unknown as string,
@@ -230,7 +210,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('includes summary with version info', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg);
         const result = buildIssueDescription(
             pkg,
@@ -251,7 +231,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('hides latest version when target equals latest', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg);
         const result = buildIssueDescription(
             pkg,
@@ -265,7 +245,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('shows multi-version info', () => {
-        const pkg = makePackage({
+        const pkg = makeDependency({
             versions: [
                 makeVersion({ version: '1.0.0', usedBy: ['@app/web'] }),
                 makeVersion({ version: '0.9.0', usedBy: ['@app/desktop'] }),
@@ -273,12 +253,7 @@ describe('buildIssueDescription', () => {
         });
         const store = makeStore(pkg);
         // Also populate facts for the second version
-        store.setVersionFact(
-            pkg.packageName,
-            '0.9.0',
-            FactKeys.VERSIONS_BETWEEN,
-            defaultVersionsBetween,
-        );
+        store.setVersionFact(pkg.name, '0.9.0', FactKeys.VERSIONS_BETWEEN, defaultVersionsBetween);
         const result = buildIssueDescription(
             pkg,
             store,
@@ -293,7 +268,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('shows display label', () => {
-        const pkg = makePackage({ ownerLabel: 'Web App (Frontend)' });
+        const pkg = makeDependency({ ownerLabel: 'Web App (Frontend)' });
         const store = makeStore(pkg);
         const result = buildIssueDescription(
             pkg,
@@ -307,7 +282,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('shows catalog How to Update', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg);
         const result = buildIssueDescription(
             pkg,
@@ -322,7 +297,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('shows non-catalog How to Update for single consumer', () => {
-        const pkg = makePackage({
+        const pkg = makeDependency({
             versions: [makeVersion({ inCatalog: false, usedBy: ['@app/web'] })],
         });
         const store = makeStore(pkg);
@@ -339,7 +314,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('recommends catalog when multiple consumers', () => {
-        const pkg = makePackage({
+        const pkg = makeDependency({
             versions: [
                 makeVersion({
                     inCatalog: false,
@@ -361,7 +336,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('includes patch warning when patched', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg, { isPatched: true });
         const result = buildIssueDescription(
             pkg,
@@ -375,7 +350,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('renders consumer-provided description sections', () => {
-        const pkg = makePackage({
+        const pkg = makeDependency({
             descriptionSections: [{ title: 'Policy Info', body: 'Must comply within 90 days.' }],
         });
         const store = makeStore(pkg);
@@ -392,7 +367,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('includes major version available note', () => {
-        const pkg = makePackage({ availableMajorVersion: '3.0.0' });
+        const pkg = makeDependency({ availableMajorVersion: '3.0.0' });
         const store = makeStore(pkg);
         const result = buildIssueDescription(
             pkg,
@@ -407,7 +382,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('includes upgrade path with version list', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg);
         const result = buildIssueDescription(
             pkg,
@@ -424,7 +399,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('includes links section', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg, {
             description: 'Test',
             homepage: 'https://example.com',
@@ -455,7 +430,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('includes deprecated transitive deps warning', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg, { deprecatedTransitiveDeps: ['old-dep', 'ancient-lib'] });
         const result = buildIssueDescription(
             pkg,
@@ -471,7 +446,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('includes AI agent instructions and footer', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg);
         const result = buildIssueDescription(
             pkg,
@@ -486,7 +461,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('handles scoped package names in detail URL', () => {
-        const pkg = makePackage({ packageName: '@scope/my-pkg' });
+        const pkg = makeDependency({ name: '@scope/my-pkg' });
         const store = makeStore(pkg);
         const result = buildIssueDescription(
             pkg,
@@ -511,7 +486,7 @@ describe('buildIssueDescription', () => {
             registryUrl: `https://www.npmjs.com/package/test-pkg/v/1.${i + 1}.0`,
         }));
 
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg, { versionsBetween: manyVersions });
         const result = buildIssueDescription(
             pkg,
@@ -526,7 +501,7 @@ describe('buildIssueDescription', () => {
 
     it('shows overflow when more than 20 usedBy packages', () => {
         const manyUsedBy = Array.from({ length: 25 }, (_, i) => `@app/pkg-${i}`);
-        const pkg = makePackage({
+        const pkg = makeDependency({
             versions: [makeVersion({ inCatalog: false, usedBy: manyUsedBy })],
         });
         const store = makeStore(pkg);
@@ -542,7 +517,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('includes compareUrl in upgrade path when available', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg, {
             compareUrl: 'https://github.com/example/test/compare/v1.0.0...v2.0.0',
         });
@@ -559,7 +534,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('handles empty versionsBetween', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg, { versionsBetween: [] });
         const result = buildIssueDescription(
             pkg,
@@ -573,7 +548,7 @@ describe('buildIssueDescription', () => {
     });
 
     it('includes GitHub release links in upgrade path when available', () => {
-        const pkg = makePackage();
+        const pkg = makeDependency();
         const store = makeStore(pkg, {
             github: {
                 owner: 'example',
@@ -605,9 +580,9 @@ describe('buildGroupIssueDescription', () => {
     it('includes group intro and summary', () => {
         const group: OutdatedGroup = {
             groupName: 'react-group',
-            packages: [
-                makePackage({ packageName: 'react' }),
-                makePackage({ packageName: 'react-dom' }),
+            dependencies: [
+                makeDependency({ name: 'react' }),
+                makeDependency({ name: 'react-dom' }),
             ],
             teamId: 'team-123',
             policy: { type: 'dueDate' },
@@ -621,9 +596,9 @@ describe('buildGroupIssueDescription', () => {
             testGetDetailUrl,
             npmProviderInfoMap,
         );
-        expect(result).toContain('**react-group** package group');
+        expect(result).toContain('**react-group** dependency group');
         expect(result).toContain('**Group:** react-group');
-        expect(result).toContain('**Packages:** 2');
+        expect(result).toContain('**Dependencies:** 2');
         expect(result).not.toContain('**Team:**');
         expect(result).toContain('**Worst update type:** major');
         expect(result).toContain('**Days overdue:** 10');
@@ -632,7 +607,7 @@ describe('buildGroupIssueDescription', () => {
     it('shows notifications-only for awareness groups', () => {
         const group: OutdatedGroup = {
             groupName: 'test-group',
-            packages: [makePackage()],
+            dependencies: [makeDependency()],
             teamId: 'team-123',
             policy: { type: 'fyi' },
             worstCompliance: {
@@ -656,9 +631,9 @@ describe('buildGroupIssueDescription', () => {
     it('lists all packages with details', () => {
         const group: OutdatedGroup = {
             groupName: 'test-group',
-            packages: [
-                makePackage({ packageName: '@scope/pkg-a' }),
-                makePackage({ packageName: 'pkg-b' }),
+            dependencies: [
+                makeDependency({ name: '@scope/pkg-a' }),
+                makeDependency({ name: 'pkg-b' }),
             ],
             teamId: 'team-123',
             policy: { type: 'dueDate' },
@@ -680,7 +655,7 @@ describe('buildGroupIssueDescription', () => {
     it('includes catalog yaml in How to Update', () => {
         const group: OutdatedGroup = {
             groupName: 'test-group',
-            packages: [makePackage({ packageName: 'react' })],
+            dependencies: [makeDependency({ name: 'react' })],
             teamId: 'team-123',
             policy: { type: 'dueDate' },
             worstCompliance: { updateType: 'major', daysOverdue: 0, thresholdDays: 360 },
@@ -701,7 +676,7 @@ describe('buildGroupIssueDescription', () => {
     it('includes AI agent instructions and footer', () => {
         const group: OutdatedGroup = {
             groupName: 'test-group',
-            packages: [makePackage()],
+            dependencies: [makeDependency()],
             teamId: 'team-123',
             policy: { type: 'dueDate' },
             worstCompliance: { updateType: 'major', daysOverdue: 0, thresholdDays: 360 },

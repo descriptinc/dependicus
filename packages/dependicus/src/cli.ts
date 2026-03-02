@@ -39,7 +39,7 @@ export interface DependicusCliConfig {
     siteName?: string;
     /** Linear issue integration configuration. */
     linear?: {
-        /** Given information about a package and specific version, return the issue spec (policy, assignment, etc.) or undefined to skip. */
+        /** Given information about a dependency and specific version, return the issue spec (policy, assignment, etc.) or undefined to skip. */
         getLinearIssueSpec?: (
             context: VersionContext,
             store: FactStore,
@@ -51,7 +51,7 @@ export interface DependicusCliConfig {
     };
     /** GitHub Issues integration configuration. */
     github?: {
-        /** Given information about a package and specific version, return the issue spec or undefined to skip. */
+        /** Given information about a dependency and specific version, return the issue spec or undefined to skip. */
         getGitHubIssueSpec?: (
             context: GitHubVersionContext,
             store: FactStore,
@@ -171,11 +171,11 @@ export function dependicusCli(config: DependicusCliConfig): {
                     await mkdir(outputDir, { recursive: true });
                     await writeFile(jsonPath, JSON.stringify(output, undefined, 2), 'utf-8');
 
-                    const totalPackages = output.providers.reduce(
+                    const totalDeps = output.providers.reduce(
                         (sum, p) => sum + p.dependencies.length,
                         0,
                     );
-                    process.stderr.write(`Wrote ${totalPackages} packages to ${jsonPath}\n`);
+                    process.stderr.write(`Wrote ${totalDeps} dependencies to ${jsonPath}\n`);
 
                     if (options.html) {
                         await dependicus.generateSite(output.providers, store);

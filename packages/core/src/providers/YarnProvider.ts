@@ -93,18 +93,18 @@ export class YarnProvider implements DependencyProvider {
         return packages;
     }
 
-    isInCatalog(_packageName: string, _version: string): boolean {
+    isInCatalog(_name: string, _version: string): boolean {
         // Yarn has no catalog feature
         return false;
     }
 
-    hasPackageInCatalog(_packageName: string): boolean {
+    hasInCatalog(_name: string): boolean {
         // Yarn has no catalog feature
         return false;
     }
 
-    isPatched(packageName: string, version: string): boolean {
-        return this.patchedPackages.has(`${packageName}@${version}`);
+    isPatched(name: string, version: string): boolean {
+        return this.patchedPackages.has(`${name}@${version}`);
     }
 
     private buildPatchedSet(): Set<string> {

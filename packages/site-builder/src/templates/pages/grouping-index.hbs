@@ -4,7 +4,7 @@
 {{#each items}}
     <li>
         <a href="{{slug}}">{{value}}</a>
-        <span>({{count}} packages{{#if (gt outdatedCount 0)}}, {{outdatedCount}} outdated{{/if}})</span>
+        <span>({{count}} dependencies{{#if (gt outdatedCount 0)}}, {{outdatedCount}} outdated{{/if}})</span>
     </li>
 {{/each}}
 </ul>

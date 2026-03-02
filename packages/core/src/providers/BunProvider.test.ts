@@ -240,7 +240,7 @@ describe('BunProvider', () => {
         });
     });
 
-    describe('hasPackageInCatalog', () => {
+    describe('hasInCatalog', () => {
         it('returns true when package exists in catalog', () => {
             const dir = mkdtempSync(join(tmpdir(), 'bun-catalog-'));
             writeFileSync(
@@ -257,8 +257,8 @@ describe('BunProvider', () => {
             const cacheService = createMockCacheService();
             const provider = new BunProvider(cacheService, dir);
 
-            expect(provider.hasPackageInCatalog('react')).toBe(true);
-            expect(provider.hasPackageInCatalog('lodash')).toBe(true);
+            expect(provider.hasInCatalog('react')).toBe(true);
+            expect(provider.hasInCatalog('lodash')).toBe(true);
         });
 
         it('returns false when package is not in catalog', () => {
@@ -277,7 +277,7 @@ describe('BunProvider', () => {
             const cacheService = createMockCacheService();
             const provider = new BunProvider(cacheService, dir);
 
-            expect(provider.hasPackageInCatalog('express')).toBe(false);
+            expect(provider.hasInCatalog('express')).toBe(false);
         });
     });
 

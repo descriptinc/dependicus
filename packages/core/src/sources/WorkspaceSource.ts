@@ -16,20 +16,16 @@ export class WorkspaceSource implements DataSource {
         for (const dep of dependencies) {
             const scoped = store.scoped(dep.ecosystem);
             for (const ver of dep.versions) {
-                const isPatched = this.providers.some((p) =>
-                    p.isPatched(dep.packageName, ver.version),
-                );
-                scoped.setVersionFact(dep.packageName, ver.version, FactKeys.IS_PATCHED, isPatched);
+                const isPatched = this.providers.some((p) => p.isPatched(dep.name, ver.version));
+                scoped.setVersionFact(dep.name, ver.version, FactKeys.IS_PATCHED, isPatched);
 
-                const catalogProvider = this.providers.find((p) =>
-                    p.hasPackageInCatalog(dep.packageName),
-                );
+                const catalogProvider = this.providers.find((p) => p.hasInCatalog(dep.name));
                 scoped.setVersionFact(
-                    dep.packageName,
+                    dep.name,
                     ver.version,
                     FactKeys.HAS_CATALOG_MISMATCH,
                     catalogProvider !== undefined &&
-                        !catalogProvider.isInCatalog(dep.packageName, ver.version),
+                        !catalogProvider.isInCatalog(dep.name, ver.version),
                 );
             }
         }

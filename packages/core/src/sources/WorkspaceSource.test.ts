@@ -4,9 +4,9 @@ import { RootFactStore, FactKeys } from './FactStore';
 import type { DirectDependency } from '../types';
 import type { DependencyProvider } from '../providers/DependencyProvider';
 
-function makeDep(packageName: string, version: string): DirectDependency {
+function makeDep(name: string, version: string): DirectDependency {
     return {
-        packageName,
+        name,
         ecosystem: 'npm',
         versions: [
             {
@@ -32,7 +32,7 @@ function mockProvider(overrides: Partial<DependencyProvider> = {}): DependencyPr
         urlPatterns: {},
         getPackages: vi.fn().mockResolvedValue([]),
         isPatched: vi.fn(() => false),
-        hasPackageInCatalog: vi.fn(() => false),
+        hasInCatalog: vi.fn(() => false),
         isInCatalog: vi.fn(() => false),
         createSources: vi.fn().mockReturnValue([]),
         ...overrides,
@@ -73,7 +73,7 @@ describe('WorkspaceSource', () => {
 
     it('sets HAS_CATALOG_MISMATCH when package is in catalog but version does not match', async () => {
         const provider = mockProvider({
-            hasPackageInCatalog: vi.fn(() => true),
+            hasInCatalog: vi.fn(() => true),
             isInCatalog: vi.fn(() => false),
         });
         const source = new WorkspaceSource([provider]);
@@ -88,7 +88,7 @@ describe('WorkspaceSource', () => {
 
     it('sets HAS_CATALOG_MISMATCH=false when version matches catalog', async () => {
         const provider = mockProvider({
-            hasPackageInCatalog: vi.fn(() => true),
+            hasInCatalog: vi.fn(() => true),
             isInCatalog: vi.fn(() => true),
         });
         const source = new WorkspaceSource([provider]);
@@ -103,7 +103,7 @@ describe('WorkspaceSource', () => {
 
     it('sets HAS_CATALOG_MISMATCH=false when package is not in catalog', async () => {
         const provider = mockProvider({
-            hasPackageInCatalog: vi.fn(() => false),
+            hasInCatalog: vi.fn(() => false),
         });
         const source = new WorkspaceSource([provider]);
         const store = new RootFactStore();
@@ -118,7 +118,7 @@ describe('WorkspaceSource', () => {
     it('handles multiple dependencies and versions', async () => {
         const provider = mockProvider({
             isPatched: vi.fn((pkg, ver) => pkg === 'react' && ver === '18.2.0'),
-            hasPackageInCatalog: vi.fn(() => false),
+            hasInCatalog: vi.fn(() => false),
         });
         const source = new WorkspaceSource([provider]);
         const store = new RootFactStore();

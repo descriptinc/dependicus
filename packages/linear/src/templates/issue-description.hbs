@@ -35,7 +35,7 @@ This dependency is managed in the pnpm catalog. Edit `pnpm-workspace.yaml`:
 
 ```yaml
 catalog:
-  {{packageName}}: "{{effectiveLatestVersion}}"
+  {{name}}: "{{effectiveLatestVersion}}"
 ```
 
 Then, run `{{installCommand}}` to update the lockfile.
@@ -47,10 +47,10 @@ This dependency is used by {{usedByCount}} packages. Consider adding it to the c
 
 ```yaml
 catalog:
-  {{packageName}}: "{{effectiveLatestVersion}}"
+  {{name}}: "{{effectiveLatestVersion}}"
 ```
 
-2. **Update each package** to use `"{{packageName}}": "catalog:"` instead of the version number.
+2. **Update each package** to use `"{{name}}": "catalog:"` instead of the version number.
 
 3. **Run `{{installCommand}}`** to update the lockfile.
 
@@ -65,9 +65,9 @@ catalog:
 
 ---
 
-Alternatively, update each package to `"{{packageName}}": "{{effectiveLatestVersion}}"` individually.
+Alternatively, update each package to `"{{name}}": "{{effectiveLatestVersion}}"` individually.
 {{else}}
-This dependency is NOT in the catalog. Update the following package:
+This dependency is NOT in the catalog. Update the following workspace:
 
 {{#each usedByList}}
 - `{{this}}`
@@ -80,7 +80,7 @@ Then, run `{{installCommand}}` to update the lockfile.
 {{/if}}
 {{/if}}
 {{else}}
-Update the following package:
+Update the following workspace:
 
 {{#each usedByList}}
 - `{{this}}`
@@ -95,7 +95,7 @@ Then, run `{{installCommand}}` to update the lockfile.
 {{#if hasPatches}}
 ## ⚠️ Patch Applied
 
-This package has a patch applied in `pnpm-workspace.yaml`. When upgrading, check if the patch is still needed or should be removed.
+This dependency has a patch applied in `pnpm-workspace.yaml`. When upgrading, check if the patch is still needed or should be removed.
 
 {{/if}}
 {{#each descriptionSections}}
@@ -148,14 +148,14 @@ A major version (`{{availableMajorVersion}}`) is available but not required by t
 {{#if hasDeprecatedTransitiveDeps}}
 ## ⚠️ Deprecated Transitive Dependencies
 
-This package brings in the following deprecated dependencies:
+This dependency brings in the following deprecated transitive dependencies:
 
 {{#each deprecatedTransitiveDeps}}
 - `{{this}}`
 {{/each}}
 
 {{/if}}
-*PR title should be: "Update {{packageName}} from {{currentVersion}} to {{minVersion}}"*
+*PR title should be: "Update {{name}} from {{currentVersion}} to {{minVersion}}"*
 
 *If the PR body makes claims about the changes in the new version, include URL references to release notes, changelogs, or commit diffs that support those claims.*
 

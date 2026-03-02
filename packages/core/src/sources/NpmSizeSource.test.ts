@@ -4,13 +4,9 @@ import { RootFactStore, FactKeys } from './FactStore';
 import type { DirectDependency, PackageVersionInfo } from '../types';
 import type { NpmRegistryService } from '../services/NpmRegistryService';
 
-function makeDep(
-    packageName: string,
-    version = '1.0.0',
-    latestVersion = '2.0.0',
-): DirectDependency {
+function makeDep(name: string, version = '1.0.0', latestVersion = '2.0.0'): DirectDependency {
     return {
-        packageName,
+        name,
         ecosystem: 'npm',
         versions: [
             {
@@ -74,7 +70,7 @@ describe('NpmSizeSource', () => {
 
         await source.fetch([makeDep('react')], store);
 
-        const stored = store.getPackageFact<Record<string, number | undefined>>(
+        const stored = store.getDependencyFact<Record<string, number | undefined>>(
             'react',
             FactKeys.SIZE_MAP,
         );
@@ -97,8 +93,8 @@ describe('NpmSizeSource', () => {
 
         await source.fetch([makeDep('react'), makeDep('vue')], store);
 
-        expect(store.getPackageFact('react', FactKeys.SIZE_MAP)).toEqual({ '1.0.0': 50000 });
-        expect(store.getPackageFact('vue', FactKeys.SIZE_MAP)).toEqual({ '3.0.0': 30000 });
+        expect(store.getDependencyFact('react', FactKeys.SIZE_MAP)).toEqual({ '1.0.0': 50000 });
+        expect(store.getDependencyFact('vue', FactKeys.SIZE_MAP)).toEqual({ '3.0.0': 30000 });
     });
 
     it('handles empty size maps', async () => {
@@ -110,7 +106,7 @@ describe('NpmSizeSource', () => {
 
         await source.fetch([makeDep('react')], store);
 
-        const stored = store.getPackageFact<Record<string, number | undefined>>(
+        const stored = store.getDependencyFact<Record<string, number | undefined>>(
             'react',
             FactKeys.SIZE_MAP,
         );

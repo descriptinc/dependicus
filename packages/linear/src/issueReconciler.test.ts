@@ -53,8 +53,8 @@ const defaultVersionsBetween: PackageVersionInfo[] = [
     },
 ];
 
-function testTeamId(packageName: string): string | undefined {
-    if (packageName.includes('unknown-team')) return undefined;
+function testTeamId(dependencyName: string): string | undefined {
+    if (dependencyName.includes('unknown-team')) return undefined;
     return 'linear-team-123';
 }
 
@@ -62,9 +62,9 @@ const testGetLinearIssueSpec = (
     context: VersionContext,
     store: FactStore,
 ): LinearIssueSpec | undefined => {
-    const m = store.getPackageFact<TestMeta>(context.packageName, 'testMeta');
+    const m = store.getDependencyFact<TestMeta>(context.name, 'testMeta');
     if (!m || m.notificationOptOut) return undefined;
-    const teamId = testTeamId(context.packageName);
+    const teamId = testTeamId(context.name);
     if (!teamId) return undefined;
     if (m.policyId === 'awareness') {
         return {
@@ -107,14 +107,14 @@ function makeVersion(overrides: Partial<DependencyVersion> = {}): DependencyVers
     };
 }
 
-function makeDep(packageName: string, versions: DependencyVersion[]): DirectDependency {
-    return { packageName, ecosystem: 'npm', versions };
+function makeDep(name: string, versions: DependencyVersion[]): DirectDependency {
+    return { name, ecosystem: 'npm', versions };
 }
 
 /** Populate the FactStore with facts matching the old EnrichedVersion shape. */
 function populateFacts(
     store: FactStore,
-    packageName: string,
+    dependencyName: string,
     version: DependencyVersion,
     opts: {
         meta?: TestMeta;
@@ -124,18 +124,28 @@ function populateFacts(
 ): void {
     const scoped = store.scoped('npm');
     const vb = opts.versionsBetween ?? defaultVersionsBetween;
-    scoped.setVersionFact(packageName, version.version, FactKeys.VERSIONS_BETWEEN, vb);
+    scoped.setVersionFact(dependencyName, version.version, FactKeys.VERSIONS_BETWEEN, vb);
     if (opts.description !== undefined) {
-        scoped.setVersionFact(packageName, version.version, FactKeys.DESCRIPTION, opts.description);
+        scoped.setVersionFact(
+            dependencyName,
+            version.version,
+            FactKeys.DESCRIPTION,
+            opts.description,
+        );
     } else {
-        scoped.setVersionFact(packageName, version.version, FactKeys.DESCRIPTION, 'A test package');
+        scoped.setVersionFact(
+            dependencyName,
+            version.version,
+            FactKeys.DESCRIPTION,
+            'A test package',
+        );
     }
     // testMeta is consumer-facing metadata read by the getLinearIssueSpec callback,
     // which receives the root (unscoped) store. Write it unscoped.
     if (opts.meta !== undefined) {
-        store.setPackageFact(packageName, 'testMeta', opts.meta);
+        store.setDependencyFact(dependencyName, 'testMeta', opts.meta);
     } else {
-        store.setPackageFact(packageName, 'testMeta', defaultMeta);
+        store.setDependencyFact(dependencyName, 'testMeta', defaultMeta);
     }
 }
 
@@ -513,7 +523,7 @@ describe('reconcileIssues', () => {
             context: VersionContext,
             s: FactStore,
         ): LinearIssueSpec | undefined => {
-            const m = s.getPackageFact<TestMeta>(context.packageName, 'testMeta');
+            const m = s.getDependencyFact<TestMeta>(context.name, 'testMeta');
             if (!m || m.notificationOptOut) return undefined;
             const thresholdDaysMap: Record<string, number> = {
                 major: 360,
@@ -557,7 +567,7 @@ describe('reconcileIssues', () => {
             context: VersionContext,
             s: FactStore,
         ): LinearIssueSpec | undefined => {
-            const m = s.getPackageFact<TestMeta>(context.packageName, 'testMeta');
+            const m = s.getDependencyFact<TestMeta>(context.name, 'testMeta');
             if (!m || m.notificationOptOut) return undefined;
             return {
                 policy: { type: 'dueDate' },
@@ -602,7 +612,7 @@ describe('reconcileIssues', () => {
             context: VersionContext,
             s: FactStore,
         ): LinearIssueSpec | undefined => {
-            const m = s.getPackageFact<TestMeta>(context.packageName, 'testMeta');
+            const m = s.getDependencyFact<TestMeta>(context.name, 'testMeta');
             if (!m || m.notificationOptOut) return undefined;
             const thresholdDaysMap: Record<string, number> = {
                 major: 360,
@@ -728,7 +738,7 @@ describe('reconcileIssues', () => {
                 {
                     id: 'issue-1',
                     identifier: 'TEST-50',
-                    // This issue has a different packageName extraction but same title
+                    // This issue has a different dependencyName extraction but same title
                     title: '[Dependicus] Update other-pkg from 1.0.0 to 2.0.0',
                     dueDate: '2025-06-01',
                     updatedAt: new Date('2024-01-01'),
@@ -771,7 +781,7 @@ describe('reconcileIssues', () => {
             context: VersionContext,
             s: FactStore,
         ): LinearIssueSpec | undefined => {
-            const m = s.getPackageFact<TestMeta>(context.packageName, 'testMeta');
+            const m = s.getDependencyFact<TestMeta>(context.name, 'testMeta');
             if (!m || m.notificationOptOut) return undefined;
             // Simulate cooldown: plugin decides to skip this version
             return undefined;
@@ -1033,7 +1043,7 @@ describe('reconcileIssues', () => {
                 context: VersionContext,
                 s: FactStore,
             ): LinearIssueSpec | undefined => {
-                const m = s.getPackageFact<TestMeta>(context.packageName, 'testMeta');
+                const m = s.getDependencyFact<TestMeta>(context.name, 'testMeta');
                 if (!m || m.notificationOptOut) return undefined;
                 return {
                     policy: { type: 'dueDate' },
@@ -1076,7 +1086,7 @@ describe('reconcileIssues', () => {
                 context: VersionContext,
                 s: FactStore,
             ): LinearIssueSpec | undefined => {
-                const m = s.getPackageFact<TestMeta>(context.packageName, 'testMeta');
+                const m = s.getDependencyFact<TestMeta>(context.name, 'testMeta');
                 if (!m || m.notificationOptOut) return undefined;
                 return {
                     policy: { type: 'dueDate' },

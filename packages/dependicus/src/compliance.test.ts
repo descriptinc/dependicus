@@ -49,16 +49,16 @@ const policies: Record<string, CompliancePolicy> = {
 function makeConfig(): BasicComplianceConfig {
     return {
         policies,
-        getPolicy: (packageName, store) => {
-            return store.getPackageFact<string>(packageName, POLICY_KEY);
+        getPolicy: (name, store) => {
+            return store.getDependencyFact<string>(name, POLICY_KEY);
         },
     };
 }
 
-function makeStore(packageName: string, policyId: string | undefined): FactStore {
+function makeStore(dependencyName: string, policyId: string | undefined): FactStore {
     const store = new RootFactStore();
     if (policyId) {
-        store.setPackageFact(packageName, POLICY_KEY, policyId);
+        store.setDependencyFact(dependencyName, POLICY_KEY, policyId);
     }
     return store;
 }
@@ -76,7 +76,7 @@ function makeDependencyVersion(overrides: Partial<DependencyVersion> = {}): Depe
 }
 
 describe('compliance columns', () => {
-    it('returns non-compliant for overdue packages', () => {
+    it('returns non-compliant for overdue dependencies', () => {
         const config = makeConfig();
         const plugin = new BasicCompliancePlugin(config);
         const store = makeStore('test-pkg', 'tier1');
@@ -95,7 +95,7 @@ describe('compliance columns', () => {
         expect(complianceCol.getValue('test-pkg', version, store)).toBe('Non-Compliant');
     });
 
-    it('returns compliant for packages within threshold', () => {
+    it('returns compliant for dependencies within threshold', () => {
         const config = makeConfig();
         const plugin = new BasicCompliancePlugin(config);
         const store = makeStore('test-pkg', 'tier1');
@@ -120,7 +120,7 @@ describe('compliance columns', () => {
         expect(complianceCol.getValue('test-pkg', version, store)).toBe('N/A');
     });
 
-    it('returns detail text for non-compliant packages', () => {
+    it('returns detail text for non-compliant dependencies', () => {
         const config = makeConfig();
         const plugin = new BasicCompliancePlugin(config);
         const store = makeStore('test-pkg', 'tier1');
@@ -143,23 +143,23 @@ describe('compliance columns', () => {
 });
 
 describe('getSections', () => {
-    it('returns compliance stats and flagged packages', () => {
+    it('returns compliance stats and flagged dependencies', () => {
         const config: BasicComplianceConfig = {
             policies,
-            getPolicy: (pkg, s) => s.getPackageFact<string>(pkg, POLICY_KEY),
+            getPolicy: (pkg, s) => s.getDependencyFact<string>(pkg, POLICY_KEY),
         };
         const plugin = new BasicCompliancePlugin(config);
         const store = new RootFactStore();
 
-        // Compliant package
-        store.setPackageFact('compliant-pkg', POLICY_KEY, 'tier1');
+        // Compliant dependency
+        store.setDependencyFact('compliant-pkg', POLICY_KEY, 'tier1');
         const recentDate = new Date(Date.now() - 30 * 86400000).toISOString();
         store.setVersionFact('compliant-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
             { version: '2.0.0', publishDate: recentDate, isPrerelease: false, registryUrl: '' },
         ]);
 
-        // Non-compliant package
-        store.setPackageFact('overdue-pkg', POLICY_KEY, 'tier1');
+        // Non-compliant dependency
+        store.setDependencyFact('overdue-pkg', POLICY_KEY, 'tier1');
         store.setVersionFact('overdue-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
             {
                 version: '2.0.0',
@@ -173,12 +173,12 @@ describe('getSections', () => {
             groupValue: 'test-group',
             dependencies: [
                 {
-                    packageName: 'compliant-pkg',
+                    name: 'compliant-pkg',
                     ecosystem: 'npm',
                     versions: [makeDependencyVersion()],
                 },
                 {
-                    packageName: 'overdue-pkg',
+                    name: 'overdue-pkg',
                     ecosystem: 'npm',
                     versions: [makeDependencyVersion()],
                 },
@@ -195,16 +195,16 @@ describe('getSections', () => {
             value: 1,
         });
 
-        const flaggedSection = sections.find((s) => s.title === 'Non-Compliant Packages');
+        const flaggedSection = sections.find((s) => s.title === 'Non-Compliant Dependencies');
         expect(flaggedSection).toBeDefined();
-        expect(flaggedSection!.flaggedPackages).toHaveLength(1);
-        expect(flaggedSection!.flaggedPackages![0]!.packageName).toBe('overdue-pkg');
+        expect(flaggedSection!.flaggedDependencies).toHaveLength(1);
+        expect(flaggedSection!.flaggedDependencies![0]!.name).toBe('overdue-pkg');
     });
 
     it('returns empty sections when no dependencies', () => {
         const config: BasicComplianceConfig = {
             policies,
-            getPolicy: (pkg, s) => s.getPackageFact<string>(pkg, POLICY_KEY),
+            getPolicy: (pkg, s) => s.getDependencyFact<string>(pkg, POLICY_KEY),
         };
         const plugin = new BasicCompliancePlugin(config);
         const store = new RootFactStore();
@@ -218,10 +218,10 @@ describe('getSections', () => {
         expect(sections).toEqual([]);
     });
 
-    it('counts no-policy packages correctly', () => {
+    it('counts no-policy dependencies correctly', () => {
         const config: BasicComplianceConfig = {
             policies,
-            getPolicy: () => undefined, // no policy for any package
+            getPolicy: () => undefined, // no policy for any dependency
         };
         const plugin = new BasicCompliancePlugin(config);
         const store = new RootFactStore();
@@ -229,7 +229,7 @@ describe('getSections', () => {
             groupValue: 'test-group',
             dependencies: [
                 {
-                    packageName: 'no-policy-pkg',
+                    name: 'no-policy-pkg',
                     ecosystem: 'npm',
                     versions: [makeDependencyVersion()],
                 },
@@ -246,7 +246,7 @@ describe('getSections', () => {
 
 describe('getLinearIssueSpec', () => {
     const defaultContext: VersionContext = {
-        packageName: 'test-pkg',
+        name: 'test-pkg',
         currentVersion: '1.0.0',
         latestVersion: '2.0.0',
     };
@@ -293,7 +293,7 @@ describe('getLinearIssueSpec', () => {
         expect(result!.policy).toEqual({ type: 'skip' });
     });
 
-    it('includes daysOverdue and thresholdDays for non-compliant packages', () => {
+    it('includes daysOverdue and thresholdDays for non-compliant dependencies', () => {
         const config: BasicComplianceConfig = {
             policies,
             getPolicy: () => 'tier1',
@@ -354,7 +354,7 @@ describe('getLinearIssueSpec', () => {
         };
         const plugin = new BasicCompliancePlugin(config);
         const context: VersionContext = {
-            packageName: 'test-pkg',
+            name: 'test-pkg',
             currentVersion: '1.0.0',
             latestVersion: '1.5.0',
         };
@@ -449,24 +449,24 @@ describe('groupings', () => {
         expect(plugin.groupings[0]!.label).toBe('Compliance Policies');
     });
 
-    it('getValue returns the policy name for a package with a policy', () => {
+    it('getValue returns the policy name for a dependency with a policy', () => {
         const plugin = new BasicCompliancePlugin(makeConfig());
         const store = makeStore('test-pkg', 'tier1');
         const grouping = plugin.groupings[0]!;
         expect(grouping.getValue('test-pkg', store)).toBe('Tier 1');
     });
 
-    it('getValue returns undefined for a package with no policy', () => {
+    it('getValue returns undefined for a dependency with no policy', () => {
         const plugin = new BasicCompliancePlugin(makeConfig());
         const store = makeStore('test-pkg', undefined);
         const grouping = plugin.groupings[0]!;
         expect(grouping.getValue('test-pkg', store)).toBeUndefined();
     });
 
-    it('getSections returns compliance stats for the grouped packages', () => {
+    it('getSections returns compliance stats for the grouped dependencies', () => {
         const plugin = new BasicCompliancePlugin(makeConfig());
         const store = new RootFactStore();
-        store.setPackageFact('compliant-pkg', POLICY_KEY, 'tier1');
+        store.setDependencyFact('compliant-pkg', POLICY_KEY, 'tier1');
         store.setVersionFact('compliant-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
             {
                 version: '2.0.0',
@@ -475,7 +475,7 @@ describe('groupings', () => {
                 registryUrl: '',
             },
         ]);
-        store.setPackageFact('overdue-pkg', POLICY_KEY, 'tier1');
+        store.setDependencyFact('overdue-pkg', POLICY_KEY, 'tier1');
         store.setVersionFact('overdue-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
             {
                 version: '2.0.0',
@@ -490,12 +490,12 @@ describe('groupings', () => {
             groupValue: 'Tier 1',
             dependencies: [
                 {
-                    packageName: 'compliant-pkg',
+                    name: 'compliant-pkg',
                     ecosystem: 'npm',
                     versions: [makeDependencyVersion()],
                 },
                 {
-                    packageName: 'overdue-pkg',
+                    name: 'overdue-pkg',
                     ecosystem: 'npm',
                     versions: [makeDependencyVersion()],
                 },
@@ -508,8 +508,8 @@ describe('groupings', () => {
         expect(statsSection!.stats).toContainEqual({ label: 'Compliant', value: 1 });
         expect(statsSection!.stats).toContainEqual({ label: 'Out of Compliance', value: 1 });
 
-        const flaggedSection = sections.find((s) => s.title === 'Non-Compliant Packages');
+        const flaggedSection = sections.find((s) => s.title === 'Non-Compliant Dependencies');
         expect(flaggedSection).toBeDefined();
-        expect(flaggedSection!.flaggedPackages).toHaveLength(1);
+        expect(flaggedSection!.flaggedDependencies).toHaveLength(1);
     });
 });

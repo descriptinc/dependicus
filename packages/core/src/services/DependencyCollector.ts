@@ -55,12 +55,12 @@ export class NpmMetadataResolver implements MetadataResolver {
             string,
             { publishDate: string | undefined; latestVersion: string }
         >();
-        for (const [packageName, versionMap] of dependencyMap.entries()) {
-            const metadata = metadataMap.get(packageName);
+        for (const [depName, versionMap] of dependencyMap.entries()) {
+            const metadata = metadataMap.get(depName);
             const latestVersion = metadata?.['dist-tags']?.latest || '';
             for (const version of versionMap.keys()) {
                 const publishDate = metadata?.time?.[version];
-                resultMap.set(`${packageName}@${version}`, { publishDate, latestVersion });
+                resultMap.set(`${depName}@${version}`, { publishDate, latestVersion });
             }
         }
         return resultMap;
@@ -194,16 +194,16 @@ export class DependencyCollector {
             );
         }
 
-        for (const [packageName, versionMap] of dependencyMap.entries()) {
+        for (const [depName, versionMap] of dependencyMap.entries()) {
             const versions: DependencyVersion[] = [];
 
             for (const [version, entry] of versionMap.entries()) {
-                const key = `${packageName}@${version}`;
+                const key = `${depName}@${version}`;
                 const registryData = registryDataMap.get(key);
                 const publishDate = registryData?.publishDate;
                 const latestVersion = registryData?.latestVersion ?? '';
 
-                const inCatalog = entry.provider.isInCatalog(packageName, version);
+                const inCatalog = entry.provider.isInCatalog(depName, version);
                 const dependencyTypes = Array.from(entry.types).sort();
 
                 versions.push({
@@ -218,13 +218,13 @@ export class DependencyCollector {
 
             versions.sort((a, b) => b.usedBy.length - a.usedBy.length);
             result.push({
-                packageName,
+                name: depName,
                 ecosystem: provider.ecosystem,
                 versions,
             });
         }
 
-        result.sort((a, b) => a.packageName.localeCompare(b.packageName));
+        result.sort((a, b) => a.name.localeCompare(b.name));
         return result;
     }
 }

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { getPackageComplianceStatus, formatComplianceDetail } from './compliance';
+import { getComplianceStatus, formatComplianceDetail } from './compliance';
 import type { PackageVersionInfo } from '@dependicus/core';
 
-describe('getPackageComplianceStatus', () => {
+describe('getComplianceStatus', () => {
     const makeVersion = (version: string, publishDate: string): PackageVersionInfo => ({
         version,
         publishDate,
@@ -12,24 +12,24 @@ describe('getPackageComplianceStatus', () => {
 
     describe('not-applicable cases', () => {
         it('returns not-applicable when no threshold provided', () => {
-            const result = getPackageComplianceStatus('1.0.0', '2.0.0', [], undefined);
+            const result = getComplianceStatus('1.0.0', '2.0.0', [], undefined);
             expect(result.status).toBe('not-applicable');
         });
 
         it('returns not-applicable when latest is a prerelease', () => {
-            const result = getPackageComplianceStatus('1.0.0', '2.0.0-beta.1', [], 360);
+            const result = getComplianceStatus('1.0.0', '2.0.0-beta.1', [], 360);
             expect(result.status).toBe('not-applicable');
         });
 
         it('returns not-applicable when current >= latest', () => {
-            const result = getPackageComplianceStatus('2.0.0', '1.0.0', [], 360);
+            const result = getComplianceStatus('2.0.0', '1.0.0', [], 360);
             expect(result.status).toBe('not-applicable');
         });
     });
 
     describe('compliant cases', () => {
         it('returns compliant when already at latest version', () => {
-            const result = getPackageComplianceStatus('2.0.0', '2.0.0', [], 360);
+            const result = getComplianceStatus('2.0.0', '2.0.0', [], 360);
             expect(result.status).toBe('compliant');
         });
 
@@ -39,14 +39,14 @@ describe('getPackageComplianceStatus', () => {
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             const versions = [makeVersion('2.0.0', thirtyDaysAgo.toISOString())];
 
-            const result = getPackageComplianceStatus('1.0.0', '2.0.0', versions, 360);
+            const result = getComplianceStatus('1.0.0', '2.0.0', versions, 360);
             expect(result.status).toBe('compliant');
         });
 
         it('returns compliant when first required version not found', () => {
             // No major versions in versionsBetween
             const versions = [makeVersion('1.0.1', '2024-01-01')];
-            const result = getPackageComplianceStatus('1.0.0', '2.0.0', versions, 360);
+            const result = getComplianceStatus('1.0.0', '2.0.0', versions, 360);
             expect(result.status).toBe('compliant');
         });
     });
@@ -58,7 +58,7 @@ describe('getPackageComplianceStatus', () => {
             publishDate.setDate(publishDate.getDate() - 400);
             const versions = [makeVersion('2.0.0', publishDate.toISOString())];
 
-            const result = getPackageComplianceStatus('1.0.0', '2.0.0', versions, 360);
+            const result = getComplianceStatus('1.0.0', '2.0.0', versions, 360);
             if (result.status !== 'non-compliant') {
                 throw new Error('Expected non-compliant status');
             }
@@ -75,7 +75,7 @@ describe('getPackageComplianceStatus', () => {
             publishDate.setDate(publishDate.getDate() - 200);
             const versions = [makeVersion('1.1.0', publishDate.toISOString())];
 
-            const result = getPackageComplianceStatus('1.0.0', '1.1.0', versions, 180);
+            const result = getComplianceStatus('1.0.0', '1.1.0', versions, 180);
             if (result.status !== 'non-compliant') {
                 throw new Error('Expected non-compliant status');
             }
@@ -92,7 +92,7 @@ describe('getPackageComplianceStatus', () => {
             publishDate.setDate(publishDate.getDate() - 100);
             const versions = [makeVersion('1.0.1', publishDate.toISOString())];
 
-            const result = getPackageComplianceStatus('1.0.0', '1.0.1', versions, 90);
+            const result = getComplianceStatus('1.0.0', '1.0.1', versions, 90);
             if (result.status !== 'non-compliant') {
                 throw new Error('Expected non-compliant status');
             }
@@ -116,7 +116,7 @@ describe('getPackageComplianceStatus', () => {
                 makeVersion('2.0.5', new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()),
             ];
 
-            const result = getPackageComplianceStatus('1.0.0', '2.0.5', versions, 360);
+            const result = getComplianceStatus('1.0.0', '2.0.5', versions, 360);
             if (result.status !== 'non-compliant') {
                 throw new Error('Expected non-compliant status');
             }
@@ -127,12 +127,12 @@ describe('getPackageComplianceStatus', () => {
 
     describe('edge cases', () => {
         it('handles empty versionsBetween array', () => {
-            const result = getPackageComplianceStatus('1.0.0', '2.0.0', [], 360);
+            const result = getComplianceStatus('1.0.0', '2.0.0', [], 360);
             expect(result.status).toBe('compliant');
         });
 
         it('handles malformed versions', () => {
-            const result = getPackageComplianceStatus('invalid', '2.0.0', [], 360);
+            const result = getComplianceStatus('invalid', '2.0.0', [], 360);
             expect(result.status).toBe('not-applicable');
         });
 
@@ -151,7 +151,7 @@ describe('getPackageComplianceStatus', () => {
                     registryUrl: 'https://www.npmjs.com/package/test/v/2.0.0-beta.1',
                 },
             ];
-            const result = getPackageComplianceStatus('1.0.0', '2.0.0', versions, 360);
+            const result = getComplianceStatus('1.0.0', '2.0.0', versions, 360);
             expect(result.status).toBe('compliant');
         });
     });

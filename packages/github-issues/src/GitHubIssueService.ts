@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { extractPackageNameFromTitle, extractGroupNameFromTitle } from '@dependicus/core';
+import { extractDependencyNameFromTitle, extractGroupNameFromTitle } from '@dependicus/core';
 
 const DEPENDICUS_LABEL_NAME = 'dependicus';
 const TITLE_PREFIX = '[Dependicus]';
@@ -9,12 +9,12 @@ export interface DependicusIssue {
     number: number;
     title: string;
     /**
-     * For single-package issues: the package name (e.g., "react")
+     * For single-dependency issues: the dependency name (e.g., "react")
      * For group issues: the group name (e.g., "sentry")
      */
-    packageName: string;
+    dependencyName: string;
     /**
-     * True if this issue is for a group of packages rather than a single package.
+     * True if this issue is for a group of dependencies rather than a single dependency.
      */
     isGroup: boolean;
     /** ISO date string when the issue was last updated */
@@ -22,7 +22,7 @@ export interface DependicusIssue {
 }
 
 export interface CreateIssueParams {
-    packageName: string;
+    dependencyName: string;
     title: string;
     owner: string;
     repo: string;
@@ -105,13 +105,13 @@ export class GitHubIssueService {
                 if (issue.pull_request) continue;
 
                 const groupName = extractGroupNameFromTitle(issue.title);
-                const packageName = groupName ?? extractPackageNameFromTitle(issue.title);
-                if (!packageName) continue;
+                const dependencyName = groupName ?? extractDependencyNameFromTitle(issue.title);
+                if (!dependencyName) continue;
 
                 issues.push({
                     number: issue.number,
                     title: issue.title,
-                    packageName,
+                    dependencyName,
                     isGroup: groupName !== undefined,
                     updatedAt: issue.updated_at,
                 });
@@ -133,12 +133,12 @@ export class GitHubIssueService {
      * Returns the issue number or -1 in dry-run mode.
      */
     async createIssue(params: CreateIssueParams): Promise<number> {
-        const { packageName, title, owner, repo, description, labels, assignees } = params;
+        const { dependencyName, title, owner, repo, description, labels, assignees } = params;
 
         if (this.dryRun) {
             process.stderr.write('\n');
             process.stderr.write('='.repeat(80) + '\n');
-            process.stderr.write(`[DRY RUN] Would CREATE issue for ${packageName}\n`);
+            process.stderr.write(`[DRY RUN] Would CREATE issue for ${dependencyName}\n`);
             process.stderr.write('='.repeat(80) + '\n');
             process.stderr.write(`\nTitle: ${TITLE_PREFIX} ${title}\n\n`);
             process.stderr.write(`Description:\n${description}\n`);

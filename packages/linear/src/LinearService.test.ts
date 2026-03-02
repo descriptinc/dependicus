@@ -90,7 +90,7 @@ describe('LinearService', () => {
                 id: 'issue-1',
                 identifier: 'CORE-100',
                 title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
-                packageName: 'react',
+                dependencyName: 'react',
                 isGroup: false,
                 dueDate: '2025-06-01',
                 updatedAt: '2025-01-15T00:00:00.000Z',
@@ -124,7 +124,7 @@ describe('LinearService', () => {
             });
 
             const identifier = await service.createIssue({
-                packageName: 'react',
+                dependencyName: 'react',
                 title: 'Update react from 18.2.0 to 19.0.0',
                 teamId: 'team-1',
                 description: 'Test description',
@@ -251,7 +251,7 @@ describe('LinearService', () => {
 
             await expect(
                 service.createIssue({
-                    packageName: 'react',
+                    dependencyName: 'react',
                     title: 'Update react',
                     teamId: 'team-1',
                     description: 'desc',
@@ -268,7 +268,7 @@ describe('LinearService', () => {
             });
 
             await service.createIssue({
-                packageName: 'react',
+                dependencyName: 'react',
                 title: 'Update react',
                 teamId: 'team-1',
                 projectId: 'project-1',
@@ -292,7 +292,7 @@ describe('LinearService', () => {
             });
 
             await service.createIssue({
-                packageName: 'react',
+                dependencyName: 'react',
                 title: 'Update react',
                 teamId: 'team-1',
                 description: 'desc',
@@ -326,7 +326,7 @@ describe('LinearService', () => {
 
         it('createIssue returns DRY-RUN without calling API', async () => {
             const identifier = await dryRunService.createIssue({
-                packageName: 'react',
+                dependencyName: 'react',
                 title: 'Update react',
                 teamId: 'team-1',
                 description: 'desc',

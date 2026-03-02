@@ -18,43 +18,43 @@ export class NpmRegistrySource implements DataSource {
     constructor(private registryService: NpmRegistryService) {}
 
     async fetch(dependencies: DirectDependency[], store: FactStore): Promise<void> {
-        const packageNames = dependencies.map((d) => d.packageName);
+        const packageNames = dependencies.map((d) => d.name);
         await this.registryService.prefetchFullMetadata(packageNames);
 
         for (const dep of dependencies) {
             for (const ver of dep.versions) {
                 const metadata = await this.registryService.getPackageMetadata(
-                    dep.packageName,
+                    dep.name,
                     ver.version,
                 );
 
                 if (metadata) {
                     store.setVersionFact(
-                        dep.packageName,
+                        dep.name,
                         ver.version,
                         FactKeys.DESCRIPTION,
                         metadata.description,
                     );
                     store.setVersionFact(
-                        dep.packageName,
+                        dep.name,
                         ver.version,
                         FactKeys.HOMEPAGE,
                         metadata.homepage,
                     );
                     store.setVersionFact(
-                        dep.packageName,
+                        dep.name,
                         ver.version,
                         FactKeys.REPOSITORY_URL,
                         convertGitUrlToHttps(metadata.repository?.url),
                     );
                     store.setVersionFact(
-                        dep.packageName,
+                        dep.name,
                         ver.version,
                         FactKeys.BUGS_URL,
                         metadata.bugs?.url,
                     );
                     store.setVersionFact(
-                        dep.packageName,
+                        dep.name,
                         ver.version,
                         FactKeys.UNPACKED_SIZE,
                         metadata.dist?.unpackedSize,
@@ -62,7 +62,7 @@ export class NpmRegistrySource implements DataSource {
 
                     // Store raw repo URL for GitHubSource to consume
                     store.setVersionFact(
-                        dep.packageName,
+                        dep.name,
                         ver.version,
                         FactKeys.RAW_REPO_URL,
                         metadata.repository?.url,
@@ -70,12 +70,12 @@ export class NpmRegistrySource implements DataSource {
                 }
 
                 const versionsBetween = await this.registryService.getVersionsBetween(
-                    dep.packageName,
+                    dep.name,
                     ver.version,
                     ver.latestVersion,
                 );
                 store.setVersionFact(
-                    dep.packageName,
+                    dep.name,
                     ver.version,
                     FactKeys.VERSIONS_BETWEEN,
                     versionsBetween,

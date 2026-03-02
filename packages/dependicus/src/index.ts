@@ -25,7 +25,7 @@ export { BasicCompliancePlugin } from './compliance';
 export type { CompliancePolicy, BasicComplianceConfig } from './compliance';
 
 /** @group Compliance */
-export type { PackageComplianceStatus } from './compliance';
+export type { ComplianceStatus } from './compliance';
 
 // ── Core Types ───────────────────────────────────────────────────────
 

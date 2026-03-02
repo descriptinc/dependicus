@@ -36,9 +36,9 @@ const mockReconcileIssues = vi.mocked(reconcileIssues);
 const mockWriteFile = vi.mocked(writeFile);
 const mockMkdir = vi.mocked(mkdir);
 
-function makeDep(packageName: string): DirectDependency {
+function makeDep(name: string): DirectDependency {
     return {
-        packageName,
+        name,
         ecosystem: 'npm',
         versions: [
             {

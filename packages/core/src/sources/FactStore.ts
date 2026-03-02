@@ -24,14 +24,14 @@ export const FactKeys = {
     IS_DEPRECATED: 'isDeprecated',
     /** Whether the installed version has local patches (e.g. pnpm patch). `boolean` */
     IS_PATCHED: 'isPatched',
-    /** Whether the package is an internal fork—this value comes only from custom configuration. `boolean` */
+    /** Whether the dependency is an internal fork—this value comes only from custom configuration. `boolean` */
     IS_FORKED: 'isForked',
     /** Whether the installed version differs from the pnpm catalog pin. `boolean` */
     HAS_CATALOG_MISMATCH: 'hasCatalogMismatch',
     /** Raw repository URL before normalization (e.g. git+https://...). `string` */
     RAW_REPO_URL: 'rawRepoUrl',
 
-    // ── Package-level facts ──────────────────────────────────────────────
+    // ── Dependency-level facts ────────────────────────────────────────────
 
     /** Map of version string to unpacked size, for all known versions. `Record<string, number>` */
     SIZE_MAP: 'sizeMap',
@@ -39,77 +39,77 @@ export const FactKeys = {
     GITHUB_DATA: 'githubData',
     /** Names of deprecated transitive dependencies. `string[]` */
     DEPRECATED_TRANSITIVE_DEPS: 'deprecatedTransitiveDeps',
-    /** URL patterns/links for this package. `Record<string, string>` (label -> URL or template with {{name}}/{{version}}) */
+    /** URL patterns/links for this dependency. `Record<string, string>` (label -> URL or template with {{name}}/{{version}}) */
     URLS: 'urls',
 } as const;
 
 export interface SerializedFacts {
-    package: Record<string, Record<string, Record<string, unknown>>>;
+    dependency: Record<string, Record<string, Record<string, unknown>>>;
     version: Record<string, Record<string, Record<string, Record<string, unknown>>>>;
 }
 
 /** Read/write interface for fact storage. */
 export interface FactStore {
-    getPackageFact<T>(packageName: string, key: string): T | undefined;
-    setPackageFact(packageName: string, key: string, value: unknown): void;
-    getVersionFact<T>(packageName: string, version: string, key: string): T | undefined;
-    setVersionFact(packageName: string, version: string, key: string, value: unknown): void;
+    getDependencyFact<T>(name: string, key: string): T | undefined;
+    setDependencyFact(name: string, key: string, value: unknown): void;
+    getVersionFact<T>(name: string, version: string, key: string): T | undefined;
+    setVersionFact(name: string, version: string, key: string, value: unknown): void;
     scoped(ecosystem: string): FactStore;
 }
 
 /** Concrete root store backed by two flat Maps. */
 export class RootFactStore implements FactStore {
-    private readonly packageFacts = new Map<string, unknown>();
+    private readonly dependencyFacts = new Map<string, unknown>();
     private readonly versionFacts = new Map<string, unknown>();
 
-    setPackageFact(packageName: string, key: string, value: unknown): void {
-        this.packageFacts.set(`${packageName}::${key}`, value);
+    setDependencyFact(name: string, key: string, value: unknown): void {
+        this.dependencyFacts.set(`${name}::${key}`, value);
     }
 
-    getPackageFact<T>(packageName: string, key: string): T | undefined {
-        return this.packageFacts.get(`${packageName}::${key}`) as T | undefined;
+    getDependencyFact<T>(name: string, key: string): T | undefined {
+        return this.dependencyFacts.get(`${name}::${key}`) as T | undefined;
     }
 
-    setVersionFact(packageName: string, version: string, key: string, value: unknown): void {
-        this.versionFacts.set(`${packageName}::${version}::${key}`, value);
+    setVersionFact(name: string, version: string, key: string, value: unknown): void {
+        this.versionFacts.set(`${name}::${version}::${key}`, value);
     }
 
-    getVersionFact<T>(packageName: string, version: string, key: string): T | undefined {
-        return this.versionFacts.get(`${packageName}::${version}::${key}`) as T | undefined;
+    getVersionFact<T>(name: string, version: string, key: string): T | undefined {
+        return this.versionFacts.get(`${name}::${version}::${key}`) as T | undefined;
     }
 
     scoped(ecosystem: string): ScopedFactStore {
-        return new ScopedFactStore(this.packageFacts, this.versionFacts, ecosystem);
+        return new ScopedFactStore(this.dependencyFacts, this.versionFacts, ecosystem);
     }
 
     toJSON(): SerializedFacts {
-        const pkg: SerializedFacts['package'] = {};
-        for (const [compositeKey, value] of this.packageFacts) {
-            // Keys are either "pkgName::key" (unscoped) or "eco::pkgName::key" (scoped)
+        const pkg: SerializedFacts['dependency'] = {};
+        for (const [compositeKey, value] of this.dependencyFacts) {
+            // Keys are either "depName::key" (unscoped) or "eco::depName::key" (scoped)
             const firstSep = compositeKey.indexOf('::');
             const secondSep = compositeKey.indexOf('::', firstSep + 2);
 
-            let ecosystem: string, packageName: string, key: string;
+            let ecosystem: string, name: string, key: string;
             if (secondSep !== -1) {
-                // ecosystem::packageName::key
+                // ecosystem::depName::key
                 ecosystem = compositeKey.slice(0, firstSep);
-                packageName = compositeKey.slice(firstSep + 2, secondSep);
+                name = compositeKey.slice(firstSep + 2, secondSep);
                 key = compositeKey.slice(secondSep + 2);
             } else {
-                // packageName::key (unscoped, legacy — store under _root)
+                // depName::key (unscoped, legacy — store under _root)
                 ecosystem = '_root';
-                packageName = compositeKey.slice(0, firstSep);
+                name = compositeKey.slice(0, firstSep);
                 key = compositeKey.slice(firstSep + 2);
             }
 
             const ecoPkg = (pkg[ecosystem] ??= {});
-            const pkgFacts = (ecoPkg[packageName] ??= {});
-            pkgFacts[key] = value;
+            const depFacts = (ecoPkg[name] ??= {});
+            depFacts[key] = value;
         }
 
         const ver: SerializedFacts['version'] = {};
         for (const [compositeKey, value] of this.versionFacts) {
-            // Keys are "pkgName::ver::key" (unscoped) or "eco::pkgName::ver::key" (scoped)
+            // Keys are "depName::ver::key" (unscoped) or "eco::depName::ver::key" (scoped)
             const segments: string[] = [];
             let start = 0;
             let idx = compositeKey.indexOf('::', start);
@@ -120,54 +120,49 @@ export class RootFactStore implements FactStore {
             }
             segments.push(compositeKey.slice(start));
 
-            let ecosystem: string, packageName: string, version: string, key: string;
+            let ecosystem: string, name: string, version: string, key: string;
             if (segments.length === 4) {
-                [ecosystem, packageName, version, key] = segments as [
-                    string,
-                    string,
-                    string,
-                    string,
-                ];
+                [ecosystem, name, version, key] = segments as [string, string, string, string];
             } else {
                 ecosystem = '_root';
-                [packageName, version, key] = segments as [string, string, string];
+                [name, version, key] = segments as [string, string, string];
             }
 
             const ecoVer = (ver[ecosystem] ??= {});
-            const pkgVer = (ecoVer[packageName] ??= {});
-            const verFacts = (pkgVer[version] ??= {});
+            const depVer = (ecoVer[name] ??= {});
+            const verFacts = (depVer[version] ??= {});
             verFacts[key] = value;
         }
 
-        return { package: pkg, version: ver };
+        return { dependency: pkg, version: ver };
     }
 
     static fromJSON(data: unknown): RootFactStore {
         const store = new RootFactStore();
         const d = data as Record<string, unknown>;
-        const pkgData = (d.package ?? {}) as Record<string, unknown>;
+        const pkgData = (d.dependency ?? d.package ?? {}) as Record<string, unknown>;
         const verData = (d.version ?? {}) as Record<string, unknown>;
 
         const isOldPkgFormat = detectOldPackageFormat(pkgData);
 
         if (isOldPkgFormat) {
-            // Old format: { packageName: { key: value } }
-            for (const [packageName, facts] of Object.entries(pkgData)) {
+            // Old format: { name: { key: value } }
+            for (const [name, facts] of Object.entries(pkgData)) {
                 for (const [key, value] of Object.entries(facts as Record<string, unknown>)) {
-                    store.setPackageFact(packageName, key, value);
+                    store.setDependencyFact(name, key, value);
                 }
             }
         } else {
-            // New format: { ecosystem: { packageName: { key: value } } }
-            for (const [ecosystem, packages] of Object.entries(pkgData)) {
-                for (const [packageName, facts] of Object.entries(
-                    packages as Record<string, Record<string, unknown>>,
+            // New format: { ecosystem: { name: { key: value } } }
+            for (const [ecosystem, deps] of Object.entries(pkgData)) {
+                for (const [name, facts] of Object.entries(
+                    deps as Record<string, Record<string, unknown>>,
                 )) {
                     for (const [key, value] of Object.entries(facts)) {
                         if (ecosystem === '_root') {
-                            store.setPackageFact(packageName, key, value);
+                            store.setDependencyFact(name, key, value);
                         } else {
-                            store.scoped(ecosystem).setPackageFact(packageName, key, value);
+                            store.scoped(ecosystem).setDependencyFact(name, key, value);
                         }
                     }
                 }
@@ -177,30 +172,28 @@ export class RootFactStore implements FactStore {
         const isOldVerFormat = detectOldVersionFormat(verData);
 
         if (isOldVerFormat) {
-            // Old format: { packageName: { version: { key: value } } }
-            for (const [packageName, versions] of Object.entries(verData)) {
+            // Old format: { name: { version: { key: value } } }
+            for (const [name, versions] of Object.entries(verData)) {
                 for (const [version, facts] of Object.entries(
                     versions as Record<string, Record<string, unknown>>,
                 )) {
                     for (const [key, value] of Object.entries(facts)) {
-                        store.setVersionFact(packageName, version, key, value);
+                        store.setVersionFact(name, version, key, value);
                     }
                 }
             }
         } else {
-            // New format: { ecosystem: { packageName: { version: { key: value } } } }
-            for (const [ecosystem, packages] of Object.entries(verData)) {
-                for (const [packageName, versions] of Object.entries(
-                    packages as Record<string, Record<string, Record<string, unknown>>>,
+            // New format: { ecosystem: { name: { version: { key: value } } } }
+            for (const [ecosystem, deps] of Object.entries(verData)) {
+                for (const [name, versions] of Object.entries(
+                    deps as Record<string, Record<string, Record<string, unknown>>>,
                 )) {
                     for (const [version, facts] of Object.entries(versions)) {
                         for (const [key, value] of Object.entries(facts)) {
                             if (ecosystem === '_root') {
-                                store.setVersionFact(packageName, version, key, value);
+                                store.setVersionFact(name, version, key, value);
                             } else {
-                                store
-                                    .scoped(ecosystem)
-                                    .setVersionFact(packageName, version, key, value);
+                                store.scoped(ecosystem).setVersionFact(name, version, key, value);
                             }
                         }
                     }
@@ -212,7 +205,7 @@ export class RootFactStore implements FactStore {
     }
 }
 
-/** Detect whether package data uses the old flat format. */
+/** Detect whether dependency data uses the old flat format. */
 function detectOldPackageFormat(data: Record<string, unknown>): boolean {
     // New format always nests unscoped data under `_root`, so the presence of
     // `_root` is a reliable signal.  For purely scoped data the top-level keys
@@ -222,7 +215,7 @@ function detectOldPackageFormat(data: Record<string, unknown>): boolean {
     if ('_root' in data) return false;
 
     // If any top-level key maps to an object whose keys include a well-known
-    // FactKey value, the data is old format (packageName -> { factKey: value }).
+    // FactKey value, the data is old format (name -> { factKey: value }).
     const knownKeys: Set<string> = new Set(Object.values(FactKeys));
     for (const val of Object.values(data)) {
         if (typeof val !== 'object' || val === null || Array.isArray(val)) return true;
@@ -259,29 +252,29 @@ function detectOldVersionFormat(data: Record<string, unknown>): boolean {
 /** Ecosystem-scoped view into a RootFactStore's backing maps. */
 export class ScopedFactStore implements FactStore {
     constructor(
-        private readonly packageFacts: Map<string, unknown>,
+        private readonly dependencyFacts: Map<string, unknown>,
         private readonly versionFacts: Map<string, unknown>,
         private readonly ecosystem: string,
     ) {}
 
     scoped(ecosystem: string): FactStore {
-        return new ScopedFactStore(this.packageFacts, this.versionFacts, ecosystem);
+        return new ScopedFactStore(this.dependencyFacts, this.versionFacts, ecosystem);
     }
 
-    setPackageFact(packageName: string, key: string, value: unknown): void {
-        this.packageFacts.set(`${this.ecosystem}::${packageName}::${key}`, value);
+    setDependencyFact(name: string, key: string, value: unknown): void {
+        this.dependencyFacts.set(`${this.ecosystem}::${name}::${key}`, value);
     }
 
-    getPackageFact<T>(packageName: string, key: string): T | undefined {
-        return this.packageFacts.get(`${this.ecosystem}::${packageName}::${key}`) as T | undefined;
+    getDependencyFact<T>(name: string, key: string): T | undefined {
+        return this.dependencyFacts.get(`${this.ecosystem}::${name}::${key}`) as T | undefined;
     }
 
-    setVersionFact(packageName: string, version: string, key: string, value: unknown): void {
-        this.versionFacts.set(`${this.ecosystem}::${packageName}::${version}::${key}`, value);
+    setVersionFact(name: string, version: string, key: string, value: unknown): void {
+        this.versionFacts.set(`${this.ecosystem}::${name}::${version}::${key}`, value);
     }
 
-    getVersionFact<T>(packageName: string, version: string, key: string): T | undefined {
-        return this.versionFacts.get(`${this.ecosystem}::${packageName}::${version}::${key}`) as
+    getVersionFact<T>(name: string, version: string, key: string): T | undefined {
+        return this.versionFacts.get(`${this.ecosystem}::${name}::${version}::${key}`) as
             | T
             | undefined;
     }

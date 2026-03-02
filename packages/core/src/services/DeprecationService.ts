@@ -115,7 +115,7 @@ export class DeprecationService {
     }
 
     /**
-     * Check if a package@version is deprecated.
+     * Check if a dependency@version is deprecated.
      */
     async isDeprecated(packageName: string, version: string): Promise<boolean> {
         const deprecatedPackages = await this.getDeprecatedPackages();
@@ -172,8 +172,8 @@ export class DeprecationService {
     }
 
     /**
-     * Run pnpm -r why for a package and extract direct dependencies.
-     * Returns an array of package names that directly depend on this package.
+     * Run pnpm -r why for a dependency and extract direct dependencies.
+     * Returns an array of dependency names that directly depend on this dependency.
      * @param packageName - Package name (without version)
      * @param version - Package version (for cache key uniqueness)
      * @param pkgWithVersion - Full package@version string for progress reporting

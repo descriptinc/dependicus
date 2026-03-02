@@ -1,5 +1,5 @@
 import { LinearClient, LinearDocument } from '@linear/sdk';
-import { extractPackageNameFromTitle, extractGroupNameFromTitle } from '@dependicus/core';
+import { extractDependencyNameFromTitle, extractGroupNameFromTitle } from '@dependicus/core';
 
 type IssueCreateInput = LinearDocument.IssueCreateInput;
 
@@ -11,12 +11,12 @@ export interface DependicusIssue {
     identifier: string; // e.g., "CORE-123"
     title: string;
     /**
-     * For single-package issues: the package name (e.g., "react")
+     * For single-dependency issues: the dependency name (e.g., "react")
      * For group issues: the group name (e.g., "sentry")
      */
-    packageName: string;
+    dependencyName: string;
     /**
-     * True if this issue is for a group of packages rather than a single package.
+     * True if this issue is for a group of dependencies rather than a single dependency.
      */
     isGroup: boolean;
     dueDate: string | undefined;
@@ -29,7 +29,7 @@ export interface DependicusIssue {
 }
 
 export interface CreateIssueParams {
-    packageName: string;
+    dependencyName: string;
     title: string;
     teamId: string;
     /** Optional - if omitted, issue is created without a project (just team + label) */
@@ -127,8 +127,8 @@ export class LinearService {
             for (const issue of issues.nodes) {
                 // Try to extract group name first, then fall back to package name
                 const groupName = extractGroupNameFromTitle(issue.title);
-                const packageName = groupName ?? extractPackageNameFromTitle(issue.title);
-                if (!packageName) continue;
+                const dependencyName = groupName ?? extractDependencyNameFromTitle(issue.title);
+                if (!dependencyName) continue;
 
                 const state = await issue.state;
 
@@ -136,7 +136,7 @@ export class LinearService {
                     id: issue.id,
                     identifier: issue.identifier,
                     title: issue.title,
-                    packageName,
+                    dependencyName,
                     isGroup: groupName !== undefined,
                     dueDate: issue.dueDate ?? undefined,
                     updatedAt: issue.updatedAt.toISOString(),
@@ -164,12 +164,13 @@ export class LinearService {
      * Returns the issue identifier (e.g., "BIX-1234") or "DRY-RUN" in dry-run mode.
      */
     async createIssue(params: CreateIssueParams): Promise<string> {
-        const { packageName, title, teamId, projectId, dueDate, description, delegateId } = params;
+        const { dependencyName, title, teamId, projectId, dueDate, description, delegateId } =
+            params;
 
         if (this.dryRun) {
             process.stderr.write('\n');
             process.stderr.write('='.repeat(80) + '\n');
-            process.stderr.write(`[DRY RUN] Would CREATE issue for ${packageName}\n`);
+            process.stderr.write(`[DRY RUN] Would CREATE issue for ${dependencyName}\n`);
             process.stderr.write('='.repeat(80) + '\n');
             process.stderr.write(`\nTitle: ${TITLE_PREFIX} ${title}\n\n`);
             process.stderr.write(`Description:\n${description}\n`);
@@ -201,7 +202,7 @@ export class LinearService {
         const issue = await result.issue;
 
         if (!issue) {
-            throw new Error(`Failed to create issue for ${packageName}`);
+            throw new Error(`Failed to create issue for ${dependencyName}`);
         }
 
         return issue.identifier;

@@ -12,7 +12,7 @@ import {
     resolveUrlPatterns,
 } from '@dependicus/core';
 import { helpers } from './templates/helpers';
-import type { OutdatedPackage, OutdatedGroup } from './types';
+import type { OutdatedDependency, OutdatedGroup } from './types';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const templatesDir = resolve(__dirname, 'templates');
@@ -41,62 +41,50 @@ const groupDescriptionTemplate = loadTemplate('group-description');
 const newVersionsCommentTemplate = loadTemplate('new-versions-comment');
 
 /**
- * Build the description for a single-package Linear issue.
+ * Build the description for a single-dependency Linear issue.
  */
 export function buildIssueDescription(
-    pkg: OutdatedPackage,
+    dep: OutdatedDependency,
     store: FactStore,
     minVersion: string,
     effectiveLatestVersion: string,
     getDetailUrl: DetailUrlFn,
     providerInfo?: ProviderInfo,
 ): string {
-    const { packageName, ecosystem, versions, worstCompliance } = pkg;
+    const { name, ecosystem, versions, worstCompliance } = dep;
     const version = versions[0];
     if (!version) {
-        throw new Error(`No versions found for package ${packageName}`);
+        throw new Error(`No versions found for dependency ${name}`);
     }
 
-    // Scope store reads to the package's ecosystem
+    // Scope store reads to the dependency's ecosystem
     store = store.scoped(ecosystem);
 
     // Read enriched data from FactStore
     const versionsBetween =
         store.getVersionFact<PackageVersionInfo[]>(
-            packageName,
+            name,
             version.version,
             FactKeys.VERSIONS_BETWEEN,
         ) ?? [];
-    const description = store.getVersionFact<string>(
-        packageName,
-        version.version,
-        FactKeys.DESCRIPTION,
-    );
-    const homepage = store.getVersionFact<string>(packageName, version.version, FactKeys.HOMEPAGE);
+    const description = store.getVersionFact<string>(name, version.version, FactKeys.DESCRIPTION);
+    const homepage = store.getVersionFact<string>(name, version.version, FactKeys.HOMEPAGE);
     const repositoryUrl = store.getVersionFact<string>(
-        packageName,
+        name,
         version.version,
         FactKeys.REPOSITORY_URL,
     );
-    const bugsUrl = store.getVersionFact<string>(packageName, version.version, FactKeys.BUGS_URL);
+    const bugsUrl = store.getVersionFact<string>(name, version.version, FactKeys.BUGS_URL);
     const unpackedSize = store.getVersionFact<number>(
-        packageName,
+        name,
         version.version,
         FactKeys.UNPACKED_SIZE,
     );
-    const compareUrl = store.getVersionFact<string>(
-        packageName,
-        version.version,
-        FactKeys.COMPARE_URL,
-    );
-    const github = store.getPackageFact<GitHubData>(packageName, FactKeys.GITHUB_DATA);
+    const compareUrl = store.getVersionFact<string>(name, version.version, FactKeys.COMPARE_URL);
+    const github = store.getDependencyFact<GitHubData>(name, FactKeys.GITHUB_DATA);
     const deprecatedTransitiveDeps =
-        store.getPackageFact<string[]>(packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS) ?? [];
-    const isPatched = store.getVersionFact<boolean>(
-        packageName,
-        version.version,
-        FactKeys.IS_PATCHED,
-    );
+        store.getDependencyFact<string[]>(name, FactKeys.DEPRECATED_TRANSITIVE_DEPS) ?? [];
+    const isPatched = store.getVersionFact<boolean>(name, version.version, FactKeys.IS_PATCHED);
 
     const targetVersionInfo = versionsBetween.find((v) => v.version === minVersion);
     const latestVersionInfo = versionsBetween.find((v) => v.version === effectiveLatestVersion);
@@ -107,7 +95,7 @@ export function buildIssueDescription(
     const versionsReversed = [...versionsBetween].reverse();
     const versionsToShow = versionsReversed.slice(0, 15).map((v) => {
         const release = github?.releases.find((r) =>
-            [v.version, `v${v.version}`, `${packageName}@${v.version}`].includes(r.tagName),
+            [v.version, `v${v.version}`, `${name}@${v.version}`].includes(r.tagName),
         );
         return {
             ...v,
@@ -120,15 +108,14 @@ export function buildIssueDescription(
 
     const installCommand = providerInfo?.installCommand ?? 'install';
     const supportsCatalog = providerInfo?.supportsCatalog ?? false;
-    const urlPatterns =
-        store.getPackageFact<Record<string, string>>(packageName, FactKeys.URLS) ?? {};
-    const urls = resolveUrlPatterns(urlPatterns, { name: packageName, version: version.version });
+    const urlPatterns = store.getDependencyFact<Record<string, string>>(name, FactKeys.URLS) ?? {};
+    const urls = resolveUrlPatterns(urlPatterns, { name, version: version.version });
 
     const context = {
-        packageName,
+        name,
         description,
         formattedInstalledSize: formatBytes(unpackedSize),
-        ownerLabel: pkg.ownerLabel,
+        ownerLabel: dep.ownerLabel,
         multiVersion: versions.length > 1,
         versions: versions.map((v) => ({
             version: v.version,
@@ -155,13 +142,13 @@ export function buildIssueDescription(
         usedByList: usedBy.slice(0, 20),
         usedByOverflow: usedBy.length > 20 ? usedBy.length - 20 : 0,
         hasPatches: isPatched,
-        descriptionSections: pkg.descriptionSections,
-        availableMajorVersion: pkg.availableMajorVersion,
+        descriptionSections: dep.descriptionSections,
+        availableMajorVersion: dep.availableMajorVersion,
         hasVersionsBetween: versionsBetween.length > 0,
         compareUrl,
         versionsToShow,
         versionsOverflow: versionsBetween.length > 15 ? versionsBetween.length - 15 : 0,
-        detailUrl: getDetailUrl(ecosystem, packageName, version.version),
+        detailUrl: getDetailUrl(ecosystem, name, version.version),
         homepage,
         repositoryUrl,
         changelogUrl: github?.changelogUrl,
@@ -182,70 +169,69 @@ export function buildGroupIssueDescription(
     getDetailUrl: DetailUrlFn,
     providerInfoMap?: Map<string, ProviderInfo>,
 ): string {
-    const { groupName, packages, worstCompliance } = group;
+    const { groupName, dependencies, worstCompliance } = group;
 
     const notificationsOnly = group.policy.type === 'fyi';
 
-    const firstPkg = packages[0];
-    const groupProviderInfo = firstPkg ? providerInfoMap?.get(firstPkg.ecosystem) : undefined;
+    const firstDep = dependencies[0];
+    const groupProviderInfo = firstDep ? providerInfoMap?.get(firstDep.ecosystem) : undefined;
     const installCommand = groupProviderInfo?.installCommand ?? 'install';
     const supportsCatalog = groupProviderInfo?.supportsCatalog ?? false;
 
     const context = {
         groupName,
-        packageCount: packages.length,
+        dependencyCount: dependencies.length,
         notificationsOnly,
         updateType: worstCompliance.updateType,
         hasOverdue: worstCompliance.daysOverdue > 0,
         daysOverdue: worstCompliance.daysOverdue,
         installCommand,
         supportsCatalog,
-        packages: packages
-            .map((pkg) => {
-                const version = pkg.versions[0];
+        dependencies: dependencies
+            .map((dep) => {
+                const version = dep.versions[0];
                 if (!version) return undefined;
 
-                const scoped = store.scoped(pkg.ecosystem);
+                const scoped = store.scoped(dep.ecosystem);
                 const versionsBetween =
                     scoped.getVersionFact<PackageVersionInfo[]>(
-                        pkg.packageName,
+                        dep.name,
                         version.version,
                         FactKeys.VERSIONS_BETWEEN,
                     ) ?? [];
-                const pkgDescription = scoped.getVersionFact<string>(
-                    pkg.packageName,
+                const depDescription = scoped.getVersionFact<string>(
+                    dep.name,
                     version.version,
                     FactKeys.DESCRIPTION,
                 );
-                const pkgUrlPatterns =
-                    scoped.getPackageFact<Record<string, string>>(pkg.packageName, FactKeys.URLS) ??
-                    {};
-                const pkgUrls = resolveUrlPatterns(pkgUrlPatterns, {
-                    name: pkg.packageName,
+                const depUrlPatterns =
+                    scoped.getDependencyFact<Record<string, string>>(dep.name, FactKeys.URLS) ?? {};
+                const depUrls = resolveUrlPatterns(depUrlPatterns, {
+                    name: dep.name,
                     version: version.version,
                 });
 
-                const effectiveLatestVersion = pkg.targetVersion ?? version.latestVersion;
-                const pkgIsFyi = pkg.policy.type === 'fyi';
-                const minVersion = pkgIsFyi
+                const effectiveLatestVersion = dep.targetVersion ?? version.latestVersion;
+                const depIsFyi = dep.policy.type === 'fyi';
+                const minVersion = depIsFyi
                     ? effectiveLatestVersion
                     : (findFirstVersionOfType(
                           version.version,
                           versionsBetween,
-                          pkg.worstCompliance.updateType,
+                          dep.worstCompliance.updateType,
                       )?.version ?? effectiveLatestVersion);
 
                 return {
-                    packageName: pkg.packageName,
-                    description: pkgDescription,
+                    name: dep.name,
+                    description: depDescription,
                     currentVersion: version.version,
                     minVersion,
                     showLatest: minVersion !== effectiveLatestVersion,
                     effectiveLatestVersion,
-                    updateType: pkg.worstCompliance.updateType,
+                    updateType: dep.worstCompliance.updateType,
                     inCatalog: version.inCatalog,
-                    detailUrl: getDetailUrl(pkg.ecosystem, pkg.packageName, version.version),
-                    urls: pkgUrls,
+                    detailUrl: getDetailUrl(dep.ecosystem, dep.name, version.version),
+                    urls: depUrls,
                 };
             })
             .filter(Boolean),
@@ -258,7 +244,7 @@ export function buildGroupIssueDescription(
  * Build a comment describing new versions that were released.
  */
 export function buildNewVersionsComment(
-    packageName: string,
+    name: string,
     _oldLatestVersion: string,
     newVersions: PackageVersionInfo[],
     github?: GitHubData,
@@ -266,14 +252,14 @@ export function buildNewVersionsComment(
     const versionsReversed = [...newVersions].reverse();
 
     const context = {
-        packageName,
+        name,
         versionCountText:
             newVersions.length === 1
                 ? 'a new version has'
                 : `${newVersions.length} new versions have`,
         versions: versionsReversed.map((v) => {
             const release = github?.releases.find((r) =>
-                [v.version, `v${v.version}`, `${packageName}@${v.version}`].includes(r.tagName),
+                [v.version, `v${v.version}`, `${name}@${v.version}`].includes(r.tagName),
             );
             return {
                 ...v,

@@ -20,7 +20,7 @@ To set the team, due date, content, or anything else supported by [LinearIssueSp
 For example, Dependicus comes with `BasicCompliancePlugin` for threshold-based compliance tracking. (See [Compliance](./compliance.md) for more on that). But compliance isn’t enough to make a ticket—you also need to put it somewhere. So one thing you could do would be to compose `BasicCompliancePlugin` with your own `OwnershipPlugin`, like this:
 
 ```ts
-const packageOwners = {
+const dependencyOwners = {
     react: 'devex',
     'react-dom': 'devex',
     express: 'api',
@@ -47,7 +47,7 @@ void dependicusCli({
         {
             name: 'Ownership',
             getLinearIssueSpec: (context, store) => {
-                const ownerId = packageOwners[context.packageName];
+                const ownerId = dependencyOwners[context.name];
                 const owner = teams[ownerId]!;
                 return {
                     teamId: owner.teamId,
@@ -58,11 +58,11 @@ void dependicusCli({
         {
             name: 'Grouping',
             getLinearIssueSpec: (context, store) => {
-                // Bonus example: batch all updates for packages of the form
+                // Bonus example: batch all updates for dependencies of the form
                 // @x/y into single tickets, so for example you get @react/*
                 // as just one ticket
-                if (context.packageName.startsWith('@') && context.packageName.includes('/')) {
-                    return { group: context.packageName.split('/')[0] };
+                if (context.name.startsWith('@') && context.name.includes('/')) {
+                    return { group: context.name.split('/')[0] };
                 } else {
                     return undefined;
                 }
@@ -88,7 +88,7 @@ const routingPlugin: DependicusPlugin = {
 const labelPlugin: DependicusPlugin = {
     name: 'github-labels',
     getGitHubIssueSpec: (context) => ({
-        labels: context.packageName.startsWith('@internal/') ? ['internal'] : ['external'],
+        labels: context.name.startsWith('@internal/') ? ['internal'] : ['external'],
     }),
 };
 ```
@@ -102,7 +102,7 @@ import type { DependicusPlugin } from 'dependicus';
 
 const ANIMALS = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🦁', '🐯', '🐮'];
 
-function animalForPackage(name: string): string {
+function animalForDependency(name: string): string {
     let hash = 0;
     for (const ch of name) hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0;
     return ANIMALS[Math.abs(hash) % ANIMALS.length]!;
@@ -115,7 +115,7 @@ const animalPlugin: DependicusPlugin = {
             key: 'animal',
             header: 'Animal',
             width: 80,
-            getValue: (packageName) => animalForPackage(packageName),
+            getValue: (name) => animalForDependency(name),
         },
     ],
 };
@@ -144,12 +144,9 @@ const cveSource: DataSource = {
         for (const dep of dependencies) {
             const cvesByVersion: Record<string, number> = {};
             for (const version of dep.versions) {
-                cvesByVersion[version.version] = await getCveCount(
-                    dep.packageName,
-                    version.version,
-                );
+                cvesByVersion[version.version] = await getCveCount(dep.name, version.version);
             }
-            store.setPackageFact(dep.packageName, CVE_FACT, cvesByVersion);
+            store.setDependencyFact(dep.name, CVE_FACT, cvesByVersion);
         }
     },
 };
@@ -164,11 +161,8 @@ class CvePlugin implements DependicusPlugin {
                 key: 'cves',
                 header: 'CVEs',
                 width: 80,
-                getValue: (packageName, version, store) => {
-                    const counts = store.getPackageFact<Record<string, number>>(
-                        packageName,
-                        CVE_FACT,
-                    );
+                getValue: (name, version, store) => {
+                    const counts = store.getDependencyFact<Record<string, number>>(name, CVE_FACT);
                     return String(counts?.[version.version] ?? 0);
                 },
             },
@@ -179,7 +173,7 @@ class CvePlugin implements DependicusPlugin {
         context: VersionContext,
         store: FactStore,
     ): Partial<LinearIssueSpec> | undefined => {
-        const counts = store.getPackageFact<Record<string, number>>(context.packageName, CVE_FACT);
+        const counts = store.getDependencyFact<Record<string, number>>(context.name, CVE_FACT);
         const cveCount = counts?.[context.currentVersion] ?? 0;
         if (cveCount === 0) return undefined;
 
@@ -199,7 +193,7 @@ A source can declare `dependsOn: ['npm-registry']` to run after another source. 
 
 ## Grouping pages
 
-Groupings create rollup pages that aggregate packages by a shared key (e.g. team, policy tier). Each `GroupingConfig` provides `getValue` to extract the key from the store. The detail page for each group value shows that group's packages and any sections returned by `getSections`.
+Groupings create rollup pages that aggregate dependencies by a shared key (e.g. team, policy tier). Each `GroupingConfig` provides `getValue` to extract the key from the store. The detail page for each group value shows that group's dependencies and any sections returned by `getSections`.
 
 `BasicCompliancePlugin` creates a grouping page per compliance policy automatically. For a working example of `getValue` and `getSections` on a grouping, see `buildGroupings` in [`compliance.ts`](../api/classes/BasicCompliancePlugin.html).
 

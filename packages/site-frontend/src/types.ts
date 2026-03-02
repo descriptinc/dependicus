@@ -2,7 +2,7 @@
  * Row data structure matching the CSV/table format
  */
 export interface RowData {
-    'Package Name': string;
+    Dependency: string;
     Ecosystem: string;
     Type: string;
     Version: string;
@@ -14,7 +14,7 @@ export interface RowData {
     Notes: string;
     'Used By Count': number;
     'Used By': string;
-    'Used By Grouped': Record<string, string[]> | null; // packages grouped by owner team
+    'Used By Grouped': Record<string, string[]> | null; // dependencies grouped by owner team
     'Deprecated Transitive Dependencies': string;
     'Detail Link': string; // relative path to detail page
     [key: string]: string | number | boolean | string[] | Record<string, string[]> | null;
@@ -49,7 +49,7 @@ export interface DashboardTab {
     id: string;
     label: string;
     data: RowData[];
-    groupBy?: string; // column name for grouped tables (e.g. 'Package Name')
+    groupBy?: string; // column name for grouped tables (e.g. 'Dependency')
     supportsCatalog: boolean;
 }
 

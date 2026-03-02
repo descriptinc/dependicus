@@ -23,9 +23,9 @@ export class DeprecationSource implements DataSource {
         // Mark each version as deprecated or not
         for (const dep of dependencies) {
             for (const ver of dep.versions) {
-                const key = `${dep.packageName}@${ver.version}`;
+                const key = `${dep.name}@${ver.version}`;
                 store.setVersionFact(
-                    dep.packageName,
+                    dep.name,
                     ver.version,
                     FactKeys.IS_DEPRECATED,
                     deprecatedPackages.has(key),
@@ -34,7 +34,7 @@ export class DeprecationSource implements DataSource {
         }
 
         // Build the set of all direct dependency names for filtering
-        const allDirectDeps = new Set(dependencies.map((d) => d.packageName));
+        const allDirectDeps = new Set(dependencies.map((d) => d.name));
 
         const deprecationMap = await this.deprecationService.getDeprecationMap();
 
@@ -43,7 +43,7 @@ export class DeprecationSource implements DataSource {
             const transitiveDeps: string[] = [];
 
             for (const [deprecatedPkg, pulledInBy] of deprecationMap.entries()) {
-                if (pulledInBy.includes(dep.packageName)) {
+                if (pulledInBy.includes(dep.name)) {
                     // Extract the package name (without version) to check if it's direct
                     const atIndex = deprecatedPkg.lastIndexOf('@');
                     if (atIndex > 0) {
@@ -55,11 +55,7 @@ export class DeprecationSource implements DataSource {
                 }
             }
 
-            store.setPackageFact(
-                dep.packageName,
-                FactKeys.DEPRECATED_TRANSITIVE_DEPS,
-                transitiveDeps,
-            );
+            store.setDependencyFact(dep.name, FactKeys.DEPRECATED_TRANSITIVE_DEPS, transitiveDeps);
         }
     }
 }

@@ -152,8 +152,8 @@ export class BunProvider implements DependencyProvider {
         return result;
     }
 
-    isInCatalog(packageName: string, version: string): boolean {
-        const catalogRange = this.catalogVersions.get(packageName);
+    isInCatalog(name: string, version: string): boolean {
+        const catalogRange = this.catalogVersions.get(name);
         if (!catalogRange) {
             return false;
         }
@@ -167,14 +167,14 @@ export class BunProvider implements DependencyProvider {
         }
     }
 
-    hasPackageInCatalog(packageName: string): boolean {
-        return this.catalogVersions.has(packageName);
+    hasInCatalog(name: string): boolean {
+        return this.catalogVersions.has(name);
     }
 
-    isPatched(packageName: string, _version: string): boolean {
+    isPatched(name: string, _version: string): boolean {
         // Bun doesn't have a standard patch mechanism like pnpm
         void _version;
-        void packageName;
+        void name;
         return false;
     }
 

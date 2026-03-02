@@ -5,38 +5,38 @@ describe('RootFactStore', () => {
     describe('package-level facts', () => {
         it('round-trips a value', () => {
             const store = new RootFactStore();
-            store.setPackageFact('react', FactKeys.GITHUB_DATA, { owner: 'facebook' });
-            expect(store.getPackageFact('react', FactKeys.GITHUB_DATA)).toEqual({
+            store.setDependencyFact('react', FactKeys.GITHUB_DATA, { owner: 'facebook' });
+            expect(store.getDependencyFact('react', FactKeys.GITHUB_DATA)).toEqual({
                 owner: 'facebook',
             });
         });
 
         it('returns undefined for missing keys', () => {
             const store = new RootFactStore();
-            expect(store.getPackageFact('react', FactKeys.GITHUB_DATA)).toBeUndefined();
+            expect(store.getDependencyFact('react', FactKeys.GITHUB_DATA)).toBeUndefined();
         });
 
         it('overwrites existing values', () => {
             const store = new RootFactStore();
-            store.setPackageFact('react', 'customMeta', 'first');
-            store.setPackageFact('react', 'customMeta', 'second');
-            expect(store.getPackageFact('react', 'customMeta')).toBe('second');
+            store.setDependencyFact('react', 'customMeta', 'first');
+            store.setDependencyFact('react', 'customMeta', 'second');
+            expect(store.getDependencyFact('react', 'customMeta')).toBe('second');
         });
 
         it('isolates facts by package name', () => {
             const store = new RootFactStore();
-            store.setPackageFact('react', 'customMeta', 'react-meta');
-            store.setPackageFact('vue', 'customMeta', 'vue-meta');
-            expect(store.getPackageFact('react', 'customMeta')).toBe('react-meta');
-            expect(store.getPackageFact('vue', 'customMeta')).toBe('vue-meta');
+            store.setDependencyFact('react', 'customMeta', 'react-meta');
+            store.setDependencyFact('vue', 'customMeta', 'vue-meta');
+            expect(store.getDependencyFact('react', 'customMeta')).toBe('react-meta');
+            expect(store.getDependencyFact('vue', 'customMeta')).toBe('vue-meta');
         });
 
         it('isolates facts by key', () => {
             const store = new RootFactStore();
-            store.setPackageFact('react', FactKeys.GITHUB_DATA, 'gh');
-            store.setPackageFact('react', FactKeys.SIZE_MAP, 'sizes');
-            expect(store.getPackageFact('react', FactKeys.GITHUB_DATA)).toBe('gh');
-            expect(store.getPackageFact('react', FactKeys.SIZE_MAP)).toBe('sizes');
+            store.setDependencyFact('react', FactKeys.GITHUB_DATA, 'gh');
+            store.setDependencyFact('react', FactKeys.SIZE_MAP, 'sizes');
+            expect(store.getDependencyFact('react', FactKeys.GITHUB_DATA)).toBe('gh');
+            expect(store.getDependencyFact('react', FactKeys.SIZE_MAP)).toBe('sizes');
         });
     });
 
@@ -71,13 +71,13 @@ describe('RootFactStore', () => {
     describe('toJSON', () => {
         it('serializes package facts into nested objects', () => {
             const store = new RootFactStore();
-            store.setPackageFact('react', FactKeys.GITHUB_DATA, { owner: 'facebook' });
-            store.setPackageFact('react', FactKeys.SIZE_MAP, { '18.2.0': 50000 });
-            store.setPackageFact('vue', 'customMeta', 'vue-meta');
+            store.setDependencyFact('react', FactKeys.GITHUB_DATA, { owner: 'facebook' });
+            store.setDependencyFact('react', FactKeys.SIZE_MAP, { '18.2.0': 50000 });
+            store.setDependencyFact('vue', 'customMeta', 'vue-meta');
 
             const json = store.toJSON();
 
-            expect(json.package).toEqual({
+            expect(json.dependency).toEqual({
                 _root: {
                     react: {
                         [FactKeys.GITHUB_DATA]: { owner: 'facebook' },
@@ -114,7 +114,7 @@ describe('RootFactStore', () => {
         it('returns empty objects for empty store', () => {
             const store = new RootFactStore();
             const json = store.toJSON();
-            expect(json).toEqual({ package: {}, version: {} });
+            expect(json).toEqual({ dependency: {}, version: {} });
         });
     });
 
@@ -127,7 +127,7 @@ describe('RootFactStore', () => {
                 version: {},
             });
 
-            expect(store.getPackageFact('react', FactKeys.GITHUB_DATA)).toEqual({
+            expect(store.getDependencyFact('react', FactKeys.GITHUB_DATA)).toEqual({
                 owner: 'facebook',
             });
         });
@@ -147,18 +147,18 @@ describe('RootFactStore', () => {
 
         it('round-trips through toJSON/fromJSON', () => {
             const original = new RootFactStore();
-            original.setPackageFact('react', FactKeys.GITHUB_DATA, { owner: 'facebook' });
-            original.setPackageFact('react', FactKeys.SIZE_MAP, { '18.2.0': 50000 });
+            original.setDependencyFact('react', FactKeys.GITHUB_DATA, { owner: 'facebook' });
+            original.setDependencyFact('react', FactKeys.SIZE_MAP, { '18.2.0': 50000 });
             original.setVersionFact('react', '18.2.0', FactKeys.UNPACKED_SIZE, 12345);
             original.setVersionFact('react', '18.2.0', FactKeys.IS_DEPRECATED, false);
             original.setVersionFact('vue', '3.0.0', FactKeys.DESCRIPTION, 'Vue 3');
 
             const restored = RootFactStore.fromJSON(original.toJSON());
 
-            expect(restored.getPackageFact('react', FactKeys.GITHUB_DATA)).toEqual({
+            expect(restored.getDependencyFact('react', FactKeys.GITHUB_DATA)).toEqual({
                 owner: 'facebook',
             });
-            expect(restored.getPackageFact('react', FactKeys.SIZE_MAP)).toEqual({
+            expect(restored.getDependencyFact('react', FactKeys.SIZE_MAP)).toEqual({
                 '18.2.0': 50000,
             });
             expect(restored.getVersionFact('react', '18.2.0', FactKeys.UNPACKED_SIZE)).toBe(12345);
@@ -172,9 +172,9 @@ describe('RootFactStore', () => {
             const store = new RootFactStore();
             // A package fact with key "description" should not interfere
             // with a version fact for the same package and key
-            store.setPackageFact('react', FactKeys.DESCRIPTION, 'package-level');
+            store.setDependencyFact('react', FactKeys.DESCRIPTION, 'package-level');
             store.setVersionFact('react', '18.2.0', FactKeys.DESCRIPTION, 'version-level');
-            expect(store.getPackageFact('react', FactKeys.DESCRIPTION)).toBe('package-level');
+            expect(store.getDependencyFact('react', FactKeys.DESCRIPTION)).toBe('package-level');
             expect(store.getVersionFact('react', '18.2.0', FactKeys.DESCRIPTION)).toBe(
                 'version-level',
             );
@@ -188,11 +188,11 @@ describe('ScopedFactStore', () => {
         const npm = root.scoped('npm');
         const mise = root.scoped('mise');
 
-        npm.setPackageFact('node', 'description', 'npm node');
-        mise.setPackageFact('node', 'description', 'mise node');
+        npm.setDependencyFact('node', 'description', 'npm node');
+        mise.setDependencyFact('node', 'description', 'mise node');
 
-        expect(npm.getPackageFact('node', 'description')).toBe('npm node');
-        expect(mise.getPackageFact('node', 'description')).toBe('mise node');
+        expect(npm.getDependencyFact('node', 'description')).toBe('npm node');
+        expect(mise.getDependencyFact('node', 'description')).toBe('mise node');
     });
 
     it('isolates version facts by ecosystem', () => {
@@ -210,12 +210,12 @@ describe('ScopedFactStore', () => {
     it('scoped facts are visible in toJSON output', () => {
         const root = new RootFactStore();
         const npm = root.scoped('npm');
-        npm.setPackageFact('react', 'description', 'React lib');
+        npm.setDependencyFact('react', 'description', 'React lib');
         npm.setVersionFact('react', '18.2.0', 'size', 12345);
 
         const json = root.toJSON();
 
-        expect(json.package).toEqual({
+        expect(json.dependency).toEqual({
             npm: { react: { description: 'React lib' } },
         });
         expect(json.version).toEqual({
@@ -226,13 +226,13 @@ describe('ScopedFactStore', () => {
     it('scoped facts round-trip through JSON', () => {
         const root = new RootFactStore();
         const npm = root.scoped('npm');
-        npm.setPackageFact('react', 'description', 'React lib');
+        npm.setDependencyFact('react', 'description', 'React lib');
         npm.setVersionFact('react', '18.2.0', 'size', 12345);
 
         const restored = RootFactStore.fromJSON(root.toJSON());
         const restoredNpm = restored.scoped('npm');
 
-        expect(restoredNpm.getPackageFact('react', 'description')).toBe('React lib');
+        expect(restoredNpm.getDependencyFact('react', 'description')).toBe('React lib');
         expect(restoredNpm.getVersionFact('react', '18.2.0', 'size')).toBe(12345);
     });
 
@@ -247,7 +247,7 @@ describe('ScopedFactStore', () => {
             },
         };
         const store = RootFactStore.fromJSON(oldData);
-        expect(store.getPackageFact('react', 'description')).toBe('React');
+        expect(store.getDependencyFact('react', 'description')).toBe('React');
         expect(store.getVersionFact('react', '18.2.0', 'size')).toBe(12345);
     });
 
@@ -256,8 +256,8 @@ describe('ScopedFactStore', () => {
         const npm = root.scoped('npm');
         const other = npm.scoped('mise');
 
-        other.setPackageFact('node', 'desc', 'from mise');
-        expect(other.getPackageFact('node', 'desc')).toBe('from mise');
-        expect(npm.getPackageFact('node', 'desc')).toBeUndefined();
+        other.setDependencyFact('node', 'desc', 'from mise');
+        expect(other.getDependencyFact('node', 'desc')).toBe('from mise');
+        expect(npm.getDependencyFact('node', 'desc')).toBeUndefined();
     });
 });

@@ -21,36 +21,31 @@ export class NpmSizeSource implements DataSource {
     constructor(private registryService: NpmRegistryService) {}
 
     async fetch(dependencies: DirectDependency[], store: FactStore): Promise<void> {
-        const packageNames = dependencies.map((d) => d.packageName);
+        const packageNames = dependencies.map((d) => d.name);
         await this.registryService.prefetchUnpackedSizes(packageNames);
 
         for (const dep of dependencies) {
-            const sizeMap = await this.registryService.getUnpackedSizes(dep.packageName);
+            const sizeMap = await this.registryService.getUnpackedSizes(dep.name);
             const record: Record<string, number | undefined> = Object.fromEntries(sizeMap);
-            store.setPackageFact(dep.packageName, FactKeys.SIZE_MAP, record);
+            store.setDependencyFact(dep.name, FactKeys.SIZE_MAP, record);
 
             for (const ver of dep.versions) {
                 // Fallback: set UNPACKED_SIZE from sizeMap if not already set by NpmRegistrySource
                 const existing = store.getVersionFact<number>(
-                    dep.packageName,
+                    dep.name,
                     ver.version,
                     FactKeys.UNPACKED_SIZE,
                 );
                 if (existing === undefined) {
                     const size = sizeMap.get(ver.version);
                     if (size !== undefined) {
-                        store.setVersionFact(
-                            dep.packageName,
-                            ver.version,
-                            FactKeys.UNPACKED_SIZE,
-                            size,
-                        );
+                        store.setVersionFact(dep.name, ver.version, FactKeys.UNPACKED_SIZE, size);
                     }
                 }
 
                 // Augment VERSIONS_BETWEEN entries with unpackedSize from the sizeMap
                 const versionsBetween = store.getVersionFact<PackageVersionInfo[]>(
-                    dep.packageName,
+                    dep.name,
                     ver.version,
                     FactKeys.VERSIONS_BETWEEN,
                 );
@@ -60,7 +55,7 @@ export class NpmSizeSource implements DataSource {
                         unpackedSize: v.unpackedSize ?? sizeMap.get(v.version),
                     }));
                     store.setVersionFact(
-                        dep.packageName,
+                        dep.name,
                         ver.version,
                         FactKeys.VERSIONS_BETWEEN,
                         augmented,

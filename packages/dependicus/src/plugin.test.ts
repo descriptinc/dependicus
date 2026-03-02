@@ -173,7 +173,7 @@ describe('resolvePlugins', () => {
 
         it('merges getLinearIssueSpec results from multiple plugins', () => {
             const fn1 = (ctx: VersionContext) =>
-                ctx.packageName === 'react' ? { teamId: 'team', group: 'react-group' } : undefined;
+                ctx.name === 'react' ? { teamId: 'team', group: 'react-group' } : undefined;
             const fn2 = () => ({ teamId: 'team', group: 'default-group' });
 
             const p1: DependicusPlugin = { name: 'p1', getLinearIssueSpec: fn1 };
@@ -182,11 +182,11 @@ describe('resolvePlugins', () => {
             const result = resolvePlugins([p1, p2], baseConfig());
             // Both plugins contribute for 'react': fn2 overrides fn1's group
             expect(
-                result.getLinearIssueSpec?.({ packageName: 'react' } as VersionContext, mockStore),
+                result.getLinearIssueSpec?.({ name: 'react' } as VersionContext, mockStore),
             ).toEqual({ teamId: 'team', group: 'default-group' });
             // Only fn2 contributes for 'vue'
             expect(
-                result.getLinearIssueSpec?.({ packageName: 'vue' } as VersionContext, mockStore),
+                result.getLinearIssueSpec?.({ name: 'vue' } as VersionContext, mockStore),
             ).toEqual({ teamId: 'team', group: 'default-group' });
         });
 

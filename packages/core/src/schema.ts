@@ -11,7 +11,7 @@ const dependencyVersionSchema = z.object({
 });
 
 const directDependencySchema = z.object({
-    packageName: z.string(),
+    name: z.string(),
     ecosystem: z.string().default('npm'),
     versions: z.array(dependencyVersionSchema),
 });
@@ -26,7 +26,7 @@ const providerOutputSchema = z.object({
 });
 
 const serializedFactsSchema = z.object({
-    package: z.record(z.string(), z.unknown()),
+    dependency: z.record(z.string(), z.unknown()),
     version: z.record(z.string(), z.unknown()),
 });
 

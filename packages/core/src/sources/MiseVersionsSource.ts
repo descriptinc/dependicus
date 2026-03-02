@@ -25,12 +25,12 @@ export class MiseVersionsSource implements DataSource {
                 if (ver.version === ver.latestVersion) continue;
 
                 const versionsBetween = await this.getVersionsBetween(
-                    dep.packageName,
+                    dep.name,
                     ver.version,
                     ver.latestVersion,
                 );
                 store.setVersionFact(
-                    dep.packageName,
+                    dep.name,
                     ver.version,
                     FactKeys.VERSIONS_BETWEEN,
                     versionsBetween,

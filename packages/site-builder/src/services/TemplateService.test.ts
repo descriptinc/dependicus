@@ -60,8 +60,8 @@ describe('TemplateService', () => {
 
     describe('helpers', () => {
         it('uses eq helper in templates', () => {
-            const html = service.render('pages/package-detail', {
-                packageName: 'test-pkg',
+            const html = service.render('pages/dependency-detail', {
+                name: 'test-pkg',
                 version: '1.0.0',
                 latestVersion: '1.0.0',
                 inCatalog: true,
@@ -137,8 +137,8 @@ describe('TemplateService', () => {
 
     describe('partials', () => {
         it('upgrade-path partial renders when hasVersionsBetween is true', () => {
-            const html = service.render('pages/package-detail', {
-                packageName: 'test',
+            const html = service.render('pages/dependency-detail', {
+                name: 'test',
                 version: '1.0.0',
                 latestVersion: '2.0.0',
                 usedByCount: 0,
@@ -165,8 +165,8 @@ describe('TemplateService', () => {
         });
 
         it('upgrade-path partial is hidden when hasVersionsBetween is false', () => {
-            const html = service.render('pages/package-detail', {
-                packageName: 'test',
+            const html = service.render('pages/dependency-detail', {
+                name: 'test',
                 version: '1.0.0',
                 latestVersion: '1.0.0',
                 usedByCount: 0,
@@ -213,16 +213,16 @@ describe('TemplateService', () => {
                 label: 'Teams',
                 value: 'Infrastructure',
                 count: 2,
-                packages: [
+                dependencies: [
                     {
-                        packageName: 'pkg-a',
+                        name: 'pkg-a',
                         version: '1.0.0',
                         latestVersion: '2.0.0',
                         detailLink: '../details/pkg-a@1.0.0.html',
                     },
                 ],
                 stats: {
-                    totalPackages: 2,
+                    totalDependencies: 2,
                     outdatedCount: 1,
                     catalogCount: 0,
                 },
@@ -230,9 +230,9 @@ describe('TemplateService', () => {
                     {
                         title: 'Compliance',
                         stats: [{ label: 'Non-Compliant', value: 1 }],
-                        flaggedPackages: [
+                        flaggedDependencies: [
                             {
-                                packageName: 'pkg-a',
+                                name: 'pkg-a',
                                 version: '1.0.0',
                                 detailLink: '../details/pkg-a@1.0.0.html',
                                 label: '1 major behind',
@@ -242,7 +242,7 @@ describe('TemplateService', () => {
                 ],
             });
             expect(html).toContain('Teams: Infrastructure');
-            expect(html).toContain('<dt>Total Packages</dt><dd>2</dd>');
+            expect(html).toContain('<dt>Total Dependencies</dt><dd>2</dd>');
             expect(html).toContain('Compliance');
             expect(html).toContain('<dt>Non-Compliant</dt><dd>1</dd>');
             expect(html).toContain('1 major behind');
@@ -253,16 +253,16 @@ describe('TemplateService', () => {
                 label: 'Teams',
                 value: 'Core',
                 count: 1,
-                packages: [
+                dependencies: [
                     {
-                        packageName: 'pkg-a',
+                        name: 'pkg-a',
                         version: '1.0.0',
                         latestVersion: '1.0.0',
                         detailLink: '../details/pkg-a@1.0.0.html',
                     },
                 ],
                 stats: {
-                    totalPackages: 1,
+                    totalDependencies: 1,
                     outdatedCount: 0,
                     catalogCount: 1,
                 },

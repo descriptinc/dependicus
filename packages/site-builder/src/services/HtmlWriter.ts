@@ -34,7 +34,7 @@ import type { BrowserColumnDef } from '@dependicus/site-frontend';
 import { browserEntryPath } from '@dependicus/site-frontend';
 
 interface GroupStats {
-    totalPackages: number;
+    totalDependencies: number;
     outdatedCount: number;
     catalogCount: number;
 }
@@ -59,7 +59,7 @@ export interface CustomColumn {
      */
     header: string;
     /** Extract the display value from the store. */
-    getValue: (packageName: string, version: DependencyVersion, store: FactStore) => string;
+    getValue: (name: string, version: DependencyVersion, store: FactStore) => string;
     /**
      * Column width in pixels.
      * Maps to Tabulator's [`width`](https://tabulator.info/docs/6.3/columns#width).
@@ -79,13 +79,13 @@ export interface CustomColumn {
      * Extract a tooltip string.
      * Maps to Tabulator's [`tooltip`](https://tabulator.info/docs/6.3/columns#tooltip).
      */
-    getTooltip?: (packageName: string, version: DependencyVersion, store: FactStore) => string;
+    getTooltip?: (name: string, version: DependencyVersion, store: FactStore) => string;
     /**
      * Extract a separate filter value.
      * When set, header filter matches against this value instead of the display value.
      * Implemented via a custom [`headerFilterFunc`](https://tabulator.info/docs/6.3/filter#header-function).
      */
-    getFilterValue?: (packageName: string, version: DependencyVersion, store: FactStore) => string;
+    getFilterValue?: (name: string, version: DependencyVersion, store: FactStore) => string;
 }
 
 export interface HtmlWriterOptions {
@@ -114,17 +114,17 @@ export class HtmlWriter {
     }
 
     /**
-     * Group packages by a key derived from the FactStore.
+     * Group dependencies by a key derived from the FactStore.
      */
-    private groupPackagesByMeta(
+    private groupDependenciesByMeta(
         packages: string[],
-        packageName: string,
+        name: string,
         version: DependencyVersion,
         store: FactStore,
     ): Record<string, string[]> | null {
         // eslint-disable-next-line no-null/no-null
         if (!this.getUsedByGroupKey) return null;
-        const groupKey = this.getUsedByGroupKey(packageName, version, store) || 'Unknown';
+        const groupKey = this.getUsedByGroupKey(name, version, store) || 'Unknown';
         return { [groupKey]: [...packages].sort() };
     }
 
@@ -132,18 +132,18 @@ export class HtmlWriter {
      * Build row data for custom columns from FactStore.
      */
     private buildCustomColumnData(
-        packageName: string,
+        name: string,
         version: DependencyVersion,
         store: FactStore,
     ): Record<string, string> {
         const data: Record<string, string> = {};
         for (const col of this.columns) {
-            data[col.key] = col.getValue(packageName, version, store);
+            data[col.key] = col.getValue(name, version, store);
             if (col.getTooltip) {
-                data[`${col.key}__tooltip`] = col.getTooltip(packageName, version, store);
+                data[`${col.key}__tooltip`] = col.getTooltip(name, version, store);
             }
             if (col.getFilterValue) {
-                data[`${col.key}__filterValue`] = col.getFilterValue(packageName, version, store);
+                data[`${col.key}__filterValue`] = col.getFilterValue(name, version, store);
             }
         }
         return data;
@@ -152,18 +152,18 @@ export class HtmlWriter {
     /**
      * Compose notes string from boolean FactStore facts.
      */
-    private composeNotes(packageName: string, version: string, store: FactStore): string {
+    private composeNotes(name: string, version: string, store: FactStore): string {
         const parts: string[] = [];
-        if (store.getVersionFact<boolean>(packageName, version, FactKeys.IS_PATCHED)) {
+        if (store.getVersionFact<boolean>(name, version, FactKeys.IS_PATCHED)) {
             parts.push('Patched');
         }
-        if (store.getVersionFact<boolean>(packageName, version, FactKeys.IS_FORKED)) {
+        if (store.getVersionFact<boolean>(name, version, FactKeys.IS_FORKED)) {
             parts.push('Forked');
         }
-        if (store.getVersionFact<boolean>(packageName, version, FactKeys.HAS_CATALOG_MISMATCH)) {
+        if (store.getVersionFact<boolean>(name, version, FactKeys.HAS_CATALOG_MISMATCH)) {
             parts.push('Catalog Mismatch');
         }
-        if (store.getVersionFact<boolean>(packageName, version, FactKeys.IS_DEPRECATED)) {
+        if (store.getVersionFact<boolean>(name, version, FactKeys.IS_DEPRECATED)) {
             parts.push('Deprecated');
         }
         return parts.join(', ');
@@ -195,7 +195,7 @@ export class HtmlWriter {
 
     /**
      * Build row data from a list of dependencies.
-     * Each row corresponds to a single package@version entry.
+     * Each row corresponds to a single dependency@version entry.
      */
     private buildRows(
         deps: DirectDependency[],
@@ -210,19 +210,18 @@ export class HtmlWriter {
         for (const dep of deps) {
             const scoped = store.scoped(dep.ecosystem);
             for (const versionInfo of dep.versions) {
-                const detailFilename = getDetailFilename(dep.packageName, versionInfo.version);
+                const detailFilename = getDetailFilename(dep.name, versionInfo.version);
                 const deprecatedTransitiveDeps =
-                    scoped.getPackageFact<string[]>(
-                        dep.packageName,
+                    scoped.getDependencyFact<string[]>(
+                        dep.name,
                         FactKeys.DEPRECATED_TRANSITIVE_DEPS,
                     ) ?? [];
-                const notes = this.composeNotes(dep.packageName, versionInfo.version, scoped);
+                const notes = this.composeNotes(dep.name, versionInfo.version, scoped);
                 const rowUrlPatterns =
-                    scoped.getPackageFact<Record<string, string>>(dep.packageName, FactKeys.URLS) ??
-                    {};
+                    scoped.getDependencyFact<Record<string, string>>(dep.name, FactKeys.URLS) ?? {};
                 const registryPattern = rowUrlPatterns['Registry'];
                 rows.push({
-                    'Package Name': dep.packageName,
+                    Dependency: dep.name,
                     Ecosystem: dep.ecosystem,
                     Type: versionInfo.dependencyTypes.join(', '),
                     Version: versionInfo.version,
@@ -235,10 +234,10 @@ export class HtmlWriter {
                     'Published Date': formatDate(versionInfo.publishDate) ?? '',
                     Age: getAgeDays(versionInfo.publishDate) ?? '',
                     Notes: notes,
-                    ...this.buildCustomColumnData(dep.packageName, versionInfo, scoped),
+                    ...this.buildCustomColumnData(dep.name, versionInfo, scoped),
                     'Latest Version URL': registryPattern
                         ? resolveUrl(registryPattern, {
-                              name: dep.packageName,
+                              name: dep.name,
                               version: versionInfo.latestVersion,
                           })
                         : '',
@@ -252,9 +251,9 @@ export class HtmlWriter {
                     }),
                     'Used By Count': versionInfo.usedBy.length,
                     'Used By': versionInfo.usedBy.join('; '),
-                    'Used By Grouped': this.groupPackagesByMeta(
+                    'Used By Grouped': this.groupDependenciesByMeta(
                         versionInfo.usedBy,
-                        dep.packageName,
+                        dep.name,
                         versionInfo,
                         scoped,
                     ),
@@ -291,8 +290,8 @@ export class HtmlWriter {
             const multiVersionDeps = provider.dependencies.filter((dep) => dep.versions.length > 1);
             const duplicateRows = this.buildRows(multiVersionDeps, store, detailPrefix).sort(
                 (a, b) => {
-                    const nameCompare = (a['Package Name'] as string).localeCompare(
-                        b['Package Name'] as string,
+                    const nameCompare = (a['Dependency'] as string).localeCompare(
+                        b['Dependency'] as string,
                     );
                     if (nameCompare !== 0) return nameCompare;
                     return (b['Used By Count'] as number) - (a['Used By Count'] as number);
@@ -309,7 +308,7 @@ export class HtmlWriter {
                 id: `${provider.name}-duplicates`,
                 label: `${provider.name} duplicates`,
                 data: duplicateRows,
-                groupBy: 'Package Name',
+                groupBy: 'Dependency',
                 supportsCatalog: provider.supportsCatalog,
             });
         }
@@ -387,7 +386,7 @@ export class HtmlWriter {
     }
 
     /**
-     * Generate detail HTML pages for each package@version combination.
+     * Generate detail HTML pages for each dependency@version combination.
      * Returns an array of DetailPage objects with provider-scoped filenames
      * (e.g. "pnpm/details/react@18.2.0.html").
      * All data is pre-enriched, so no network requests are made.
@@ -406,7 +405,7 @@ export class HtmlWriter {
             const scopedStore = store.scoped(provider.ecosystem);
             for (const dep of provider.dependencies) {
                 for (const versionInfo of dep.versions) {
-                    const detailFilename = getDetailFilename(dep.packageName, versionInfo.version);
+                    const detailFilename = getDetailFilename(dep.name, versionInfo.version);
                     const html = this.generateDetailPage(
                         dep,
                         versionInfo,
@@ -428,7 +427,7 @@ export class HtmlWriter {
     }
 
     /**
-     * Generate a single detail page for a package@version.
+     * Generate a single detail page for a dependency@version.
      * Uses pre-enriched data, no network requests.
      */
     private generateDetailPage(
@@ -438,53 +437,48 @@ export class HtmlWriter {
         baseHref = '../',
         providerPrefix = '',
     ): string {
-        const packageName = dep.packageName;
         const description =
-            store.getVersionFact<string>(packageName, versionInfo.version, FactKeys.DESCRIPTION) ??
-            '';
+            store.getVersionFact<string>(dep.name, versionInfo.version, FactKeys.DESCRIPTION) ?? '';
         const homepage =
-            store.getVersionFact<string>(packageName, versionInfo.version, FactKeys.HOMEPAGE) ?? '';
+            store.getVersionFact<string>(dep.name, versionInfo.version, FactKeys.HOMEPAGE) ?? '';
         const repositoryUrl =
-            store.getVersionFact<string>(
-                packageName,
-                versionInfo.version,
-                FactKeys.REPOSITORY_URL,
-            ) ?? '';
+            store.getVersionFact<string>(dep.name, versionInfo.version, FactKeys.REPOSITORY_URL) ??
+            '';
         const bugsUrl =
-            store.getVersionFact<string>(packageName, versionInfo.version, FactKeys.BUGS_URL) ?? '';
+            store.getVersionFact<string>(dep.name, versionInfo.version, FactKeys.BUGS_URL) ?? '';
         const unpackedSize = store.getVersionFact<number>(
-            packageName,
+            dep.name,
             versionInfo.version,
             FactKeys.UNPACKED_SIZE,
         );
         const urlPatterns =
-            store.getPackageFact<Record<string, string>>(packageName, FactKeys.URLS) ?? {};
+            store.getDependencyFact<Record<string, string>>(dep.name, FactKeys.URLS) ?? {};
         const urls = resolveUrlPatterns(urlPatterns, {
-            name: packageName,
+            name: dep.name,
             version: versionInfo.version,
         });
 
         // Get GitHub data from FactStore
-        const githubData = store.getPackageFact<GitHubData>(packageName, FactKeys.GITHUB_DATA);
+        const githubData = store.getDependencyFact<GitHubData>(dep.name, FactKeys.GITHUB_DATA);
         const changelogUrl = githubData?.changelogUrl;
         const releases = githubData?.releases ?? [];
 
         // Get upgrade path data from FactStore
         const versionsBetween =
             store.getVersionFact<PackageVersionInfo[]>(
-                packageName,
+                dep.name,
                 versionInfo.version,
                 FactKeys.VERSIONS_BETWEEN,
             ) ?? [];
         const compareUrl = store.getVersionFact<string>(
-            packageName,
+            dep.name,
             versionInfo.version,
             FactKeys.COMPARE_URL,
         );
 
         // Prepare upgrade path data for template
         const upgradePathData = this.prepareUpgradePathData(
-            packageName,
+            dep.name,
             versionInfo.version,
             versionInfo.latestVersion,
             versionsBetween,
@@ -494,10 +488,10 @@ export class HtmlWriter {
             unpackedSize,
         );
 
-        // Group usedBy packages
-        const usedByGrouped = this.groupPackagesByMeta(
+        // Group usedBy dependencies
+        const usedByGrouped = this.groupDependenciesByMeta(
             versionInfo.usedBy,
-            packageName,
+            dep.name,
             versionInfo,
             store,
         );
@@ -518,12 +512,12 @@ export class HtmlWriter {
                 : ' (up to date)';
 
         // Compose notes from boolean facts
-        const notes = this.composeNotes(packageName, versionInfo.version, store);
+        const notes = this.composeNotes(dep.name, versionInfo.version, store);
 
         // Build custom metadata for display on detail page
         const customMeta: Array<{ label: string; value: string }> = [];
         for (const col of this.columns) {
-            const value = col.getValue(packageName, versionInfo, store);
+            const value = col.getValue(dep.name, versionInfo, store);
             if (value) {
                 customMeta.push({ label: col.header, value });
             }
@@ -531,11 +525,11 @@ export class HtmlWriter {
 
         // Get deprecated transitive deps
         const deprecatedTransitiveDeps =
-            store.getPackageFact<string[]>(packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS) ?? [];
+            store.getDependencyFact<string[]>(dep.name, FactKeys.DEPRECATED_TRANSITIVE_DEPS) ?? [];
 
         // Render content using template
-        const content = this.templateService.render('pages/package-detail', {
-            packageName,
+        const content = this.templateService.render('pages/dependency-detail', {
+            name: dep.name,
             version: versionInfo.version,
             description,
             customMeta: customMeta.length > 0 ? customMeta : undefined,
@@ -562,7 +556,7 @@ export class HtmlWriter {
 
         // Render full page with base layout
         return this.templateService.render('layouts/base', {
-            title: `${packageName}@${versionInfo.version}`,
+            title: `${dep.name}@${versionInfo.version}`,
             siteName: this.siteName,
             content,
             baseHref,
@@ -579,7 +573,7 @@ export class HtmlWriter {
      * Prepare upgrade path data for template.
      */
     private prepareUpgradePathData(
-        packageName: string,
+        name: string,
         currentVersion: string,
         latestVersion: string,
         versionsBetween: PackageVersionInfo[],
@@ -596,7 +590,7 @@ export class HtmlWriter {
         const versionsNewestFirst = [...versionsBetween].reverse();
 
         const versions = versionsNewestFirst.map((v) => {
-            const release = findReleaseForVersion(releases, v.version, packageName);
+            const release = findReleaseForVersion(releases, v.version, name);
             const releaseNotes = release?.body ? marked.parse(release.body, { gfm: true }) : '';
 
             // Prepare GitHub URL
@@ -651,12 +645,12 @@ export class HtmlWriter {
     private computeGroupStats(deps: DirectDependency[]): GroupStats {
         let outdatedCount = 0;
         let catalogCount = 0;
-        const countedPackages = new Set<string>();
+        const countedDeps = new Set<string>();
 
         for (const dep of deps) {
             for (const version of dep.versions) {
-                if (!countedPackages.has(dep.packageName)) {
-                    countedPackages.add(dep.packageName);
+                if (!countedDeps.has(dep.name)) {
+                    countedDeps.add(dep.name);
                 }
 
                 if (version.version !== version.latestVersion) {
@@ -669,7 +663,7 @@ export class HtmlWriter {
         }
 
         return {
-            totalPackages: countedPackages.size,
+            totalDependencies: countedDeps.size,
             outdatedCount,
             catalogCount,
         };
@@ -693,7 +687,7 @@ export class HtmlWriter {
         // Collect all dependencies for each unique grouping value
         const grouped = new Map<string, DirectDependency[]>();
         for (const dep of dependencies) {
-            const value = grouping.getValue(dep.packageName, store);
+            const value = grouping.getValue(dep.name, store);
             if (!value) continue;
             const existing = grouped.get(value);
             if (existing) {
@@ -751,14 +745,14 @@ export class HtmlWriter {
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([value, deps]) => {
                 const stats = groupStats.get(value) as GroupStats;
-                const packages = deps.map((dep) => {
+                const dependencies = deps.map((dep) => {
                     const version = dep.versions[0];
                     return {
-                        packageName: dep.packageName,
+                        name: dep.name,
                         version: version?.version ?? '',
                         latestVersion: version?.latestVersion ?? '',
                         detailLink: version
-                            ? `../details/${getDetailFilename(dep.packageName, version.version)}`
+                            ? `../details/${getDetailFilename(dep.name, version.version)}`
                             : '',
                     };
                 });
@@ -775,7 +769,7 @@ export class HtmlWriter {
                 const detailContent = this.templateService.render('pages/grouping-detail', {
                     label: grouping.label,
                     value,
-                    packages,
+                    dependencies,
                     count: deps.length,
                     stats,
                     sections,

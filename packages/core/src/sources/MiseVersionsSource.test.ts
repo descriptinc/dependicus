@@ -43,7 +43,7 @@ describe('MiseVersionsSource', () => {
 
         const deps: DirectDependency[] = [
             {
-                packageName: 'node',
+                name: 'node',
                 ecosystem: 'mise',
                 versions: [
                     {
@@ -78,7 +78,7 @@ describe('MiseVersionsSource', () => {
 
         const deps: DirectDependency[] = [
             {
-                packageName: 'node',
+                name: 'node',
                 ecosystem: 'mise',
                 versions: [
                     {
@@ -112,7 +112,7 @@ describe('MiseVersionsSource', () => {
 
         const deps: DirectDependency[] = [
             {
-                packageName: 'node',
+                name: 'node',
                 ecosystem: 'mise',
                 versions: [
                     {
@@ -147,7 +147,7 @@ describe('MiseVersionsSource', () => {
 
         const deps: DirectDependency[] = [
             {
-                packageName: 'node',
+                name: 'node',
                 ecosystem: 'mise',
                 versions: [
                     {

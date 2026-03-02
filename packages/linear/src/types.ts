@@ -6,9 +6,9 @@ export type { DependicusIssue, CreateIssueParams } from './LinearService';
 // ── Zod schemas ──────────────────────────────────────────────────────
 
 /**
- * Policy controlling how the reconciler handles a package.
+ * Policy controlling how the reconciler handles a dependency.
  *
- * - `skip` — skip this package entirely
+ * - `skip` — skip this dependency entirely
  * - `fyi` — notification issue, no due date
  * - `dueDate` — mandatory issue with SLA-derived due date
  *
@@ -75,13 +75,13 @@ export type LinearIssueSpec = z.infer<typeof linearIssueSpecSchema>;
 // ── Context type ─────────────────────────────────────────────────────
 
 /**
- * Context passed to `getLinearIssueSpec` for each outdated package version.
+ * Context passed to `getLinearIssueSpec` for each outdated dependency version.
  * The plugin uses this to decide what kind of issue (if any) to create.
  * @group Issue Creation
  */
 export interface VersionContext {
-    /** npm package name (e.g. "react"). */
-    packageName: string;
+    /** Dependency name (e.g. "react"). */
+    name: string;
     /** Currently installed version. */
     currentVersion: string;
     /** Latest version available on the registry. */
@@ -90,18 +90,18 @@ export interface VersionContext {
 
 // ── Internal types (not plugin-facing) ───────────────────────────────
 
-export interface OutdatedPackage {
-    packageName: string;
+export interface OutdatedDependency {
+    name: string;
     ecosystem: string;
     versions: DependencyVersion[];
     worstCompliance: {
         updateType: 'major' | 'minor' | 'patch';
         daysOverdue: number;
-        /** Undefined for fyi packages (no mandatory update threshold) */
+        /** Undefined for fyi dependencies (no mandatory update threshold) */
         thresholdDays: number | undefined;
     };
     /**
-     * For packages where the SLA doesn't cover major updates, if a major version is
+     * For dependencies where the SLA doesn't cover major updates, if a major version is
      * available but not required by policy, this tracks the latest major version so
      * we can mention it in the issue.
      */
@@ -115,8 +115,8 @@ export interface OutdatedPackage {
     policy: LinearPolicy;
     assignment: IssueAssignment;
     /**
-     * Group name if this package belongs to a notification group.
-     * Packages in the same group will share a single Linear issue.
+     * Group name if this dependency belongs to a notification group.
+     * Dependencies in the same group will share a single Linear issue.
      */
     group?: string;
     /** Owner/surface label (shown in issue descriptions) */
@@ -126,15 +126,15 @@ export interface OutdatedPackage {
 }
 
 /**
- * A grouped set of outdated packages that share a single Linear issue.
+ * A grouped set of outdated dependencies that share a single Linear issue.
  */
 export interface OutdatedGroup {
     groupName: string;
-    packages: OutdatedPackage[];
+    dependencies: OutdatedDependency[];
     teamId: string;
     policy: LinearPolicy;
     /**
-     * Worst compliance across all packages in the group.
+     * Worst compliance across all dependencies in the group.
      * Used to determine due date and issue priority.
      */
     worstCompliance: {

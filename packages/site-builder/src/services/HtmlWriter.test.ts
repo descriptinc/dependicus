@@ -23,7 +23,7 @@ function makeMockVersion(overrides?: Partial<DependencyVersion>): DependencyVers
 
 function makeMockDependency(overrides?: Partial<DirectDependency>): DirectDependency {
     return {
-        packageName: '@scope/test-pkg',
+        name: '@scope/test-pkg',
         ecosystem: 'npm',
         versions: [makeMockVersion()],
         ...overrides,
@@ -57,8 +57,8 @@ function makeMockStore(deps?: DirectDependency[]): FactStore {
 
     for (const dep of allDeps) {
         const scoped = store.scoped(dep.ecosystem);
-        // Package-level facts
-        scoped.setPackageFact(dep.packageName, FactKeys.GITHUB_DATA, {
+        // Dependency-level facts
+        scoped.setDependencyFact(dep.name, FactKeys.GITHUB_DATA, {
             owner: 'test',
             repo: 'test-pkg',
             releases: [
@@ -72,43 +72,33 @@ function makeMockStore(deps?: DirectDependency[]): FactStore {
             ],
             changelogUrl: 'https://github.com/test/test-pkg/blob/main/CHANGELOG.md',
         });
-        scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
-        scoped.setPackageFact(dep.packageName, FactKeys.URLS, {
+        scoped.setDependencyFact(dep.name, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+        scoped.setDependencyFact(dep.name, FactKeys.URLS, {
             'Dependency Graph': 'https://npmgraph.js.org/?q={{name}}@{{version}}',
             Registry: 'https://www.npmjs.com/package/{{name}}/v/{{version}}',
         });
-        scoped.setPackageFact(dep.packageName, 'testMeta', {
+        scoped.setDependencyFact(dep.name, 'testMeta', {
             surfaceId: 'test-surface',
             teamName: 'TestTeam',
         });
 
         for (const ver of dep.versions) {
             // Version-level facts
+            scoped.setVersionFact(dep.name, ver.version, FactKeys.DESCRIPTION, 'A test package');
+            scoped.setVersionFact(dep.name, ver.version, FactKeys.HOMEPAGE, 'https://example.com');
             scoped.setVersionFact(
-                dep.packageName,
-                ver.version,
-                FactKeys.DESCRIPTION,
-                'A test package',
-            );
-            scoped.setVersionFact(
-                dep.packageName,
-                ver.version,
-                FactKeys.HOMEPAGE,
-                'https://example.com',
-            );
-            scoped.setVersionFact(
-                dep.packageName,
+                dep.name,
                 ver.version,
                 FactKeys.REPOSITORY_URL,
                 'https://github.com/test/test-pkg',
             );
             scoped.setVersionFact(
-                dep.packageName,
+                dep.name,
                 ver.version,
                 FactKeys.BUGS_URL,
                 'https://github.com/test/test-pkg/issues',
             );
-            scoped.setVersionFact(dep.packageName, ver.version, FactKeys.VERSIONS_BETWEEN, [
+            scoped.setVersionFact(dep.name, ver.version, FactKeys.VERSIONS_BETWEEN, [
                 {
                     version: '1.1.0',
                     publishDate: '2024-03-01T00:00:00.000Z',
@@ -123,7 +113,7 @@ function makeMockStore(deps?: DirectDependency[]): FactStore {
                 },
             ]);
             scoped.setVersionFact(
-                dep.packageName,
+                dep.name,
                 ver.version,
                 FactKeys.COMPARE_URL,
                 'https://github.com/test/test-pkg/compare/v1.0.0...v2.0.0',
@@ -204,9 +194,9 @@ describe('HtmlWriter', () => {
             const scoped = store.scoped(dep.ecosystem);
             // Set minimal facts for both versions
             for (const ver of dep.versions) {
-                scoped.setVersionFact(dep.packageName, ver.version, FactKeys.VERSIONS_BETWEEN, []);
+                scoped.setVersionFact(dep.name, ver.version, FactKeys.VERSIONS_BETWEEN, []);
             }
-            scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+            scoped.setDependencyFact(dep.name, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
             const providers: ProviderOutput[] = [makeProvider([dep])];
@@ -276,7 +266,10 @@ describe('HtmlWriter', () => {
                         key: 'surface',
                         header: 'Surface',
                         getValue: (pkg, _ver, s) => {
-                            const meta = s.getPackageFact<{ surfaceId: string }>(pkg, 'testMeta');
+                            const meta = s.getDependencyFact<{ surfaceId: string }>(
+                                pkg,
+                                'testMeta',
+                            );
                             return meta?.surfaceId ?? '';
                         },
                     },
@@ -284,7 +277,7 @@ describe('HtmlWriter', () => {
                         key: 'team',
                         header: 'Team',
                         getValue: (pkg, _ver, s) => {
-                            const meta = s.getPackageFact<{ teamName: string }>(pkg, 'testMeta');
+                            const meta = s.getDependencyFact<{ teamName: string }>(pkg, 'testMeta');
                             return meta?.teamName ?? '';
                         },
                     },
@@ -309,7 +302,10 @@ describe('HtmlWriter', () => {
                         key: 'surface',
                         header: 'Surface',
                         getValue: (pkg, _ver, s) => {
-                            const meta = s.getPackageFact<{ surfaceId: string }>(pkg, 'testMeta');
+                            const meta = s.getDependencyFact<{ surfaceId: string }>(
+                                pkg,
+                                'testMeta',
+                            );
                             return meta?.surfaceId ?? '';
                         },
                     },
@@ -319,8 +315,8 @@ describe('HtmlWriter', () => {
             // Store without META fact
             const store = new RootFactStore();
             const scoped = store.scoped(dep.ecosystem);
-            scoped.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
-            scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+            scoped.setVersionFact(dep.name, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
+            scoped.setDependencyFact(dep.name, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
             const providers: ProviderOutput[] = [makeProvider([dep])];
             const pages = writer.toDetailPages(providers, store);
 
@@ -335,8 +331,8 @@ describe('HtmlWriter', () => {
             key: 'team',
             label: 'Teams',
             slugPrefix: 'teams',
-            getValue: (packageName: string, store: FactStore) => {
-                const meta = store.getPackageFact<{ teamName: string }>(packageName, 'testMeta');
+            getValue: (name: string, store: FactStore) => {
+                const meta = store.getDependencyFact<{ teamName: string }>(name, 'testMeta');
                 return meta?.teamName ?? 'Unknown';
             },
         };
@@ -378,9 +374,9 @@ describe('HtmlWriter', () => {
                 key: 'surface',
                 label: 'Surfaces',
                 slugPrefix: 'surfaces',
-                getValue: (packageName: string, factStore: FactStore) => {
-                    const meta = factStore.getPackageFact<{ surfaceId: string }>(
-                        packageName,
+                getValue: (name: string, factStore: FactStore) => {
+                    const meta = factStore.getDependencyFact<{ surfaceId: string }>(
+                        name,
                         'testMeta',
                     );
                     return meta?.surfaceId ?? 'Unknown';
@@ -406,8 +402,8 @@ describe('HtmlWriter', () => {
         });
 
         it('groups multiple deps under the same grouping value', () => {
-            const dep1 = makeMockDependency({ packageName: 'pkg-a' });
-            const dep2 = makeMockDependency({ packageName: 'pkg-b' });
+            const dep1 = makeMockDependency({ name: 'pkg-a' });
+            const dep2 = makeMockDependency({ name: 'pkg-b' });
             const store = makeMockStore([dep1, dep2]);
 
             const writer = new HtmlWriter({
@@ -430,13 +426,13 @@ describe('HtmlWriter', () => {
                 key: 'team',
                 label: 'Teams',
                 slugPrefix: 'teams',
-                getValue: (packageName: string) => {
-                    return packageName === 'with-team' ? 'TeamA' : undefined;
+                getValue: (name: string) => {
+                    return name === 'with-team' ? 'TeamA' : undefined;
                 },
             };
 
-            const dep1 = makeMockDependency({ packageName: 'with-team' });
-            const dep2 = makeMockDependency({ packageName: 'no-team' });
+            const dep1 = makeMockDependency({ name: 'with-team' });
+            const dep2 = makeMockDependency({ name: 'no-team' });
             const store = makeMockStore([dep1, dep2]);
 
             const writer = new HtmlWriter({
@@ -602,7 +598,7 @@ describe('HtmlWriter', () => {
         it('handles dependencies with empty versions array', async () => {
             const writer = new HtmlWriter();
             const dep: DirectDependency = {
-                packageName: 'empty-pkg',
+                name: 'empty-pkg',
                 ecosystem: 'npm',
                 versions: [],
             };
@@ -624,7 +620,7 @@ describe('HtmlWriter', () => {
             const store = makeMockStore([dep]);
             store
                 .scoped(dep.ecosystem)
-                .setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, [
+                .setDependencyFact(dep.name, FactKeys.DEPRECATED_TRANSITIVE_DEPS, [
                     'old-dep@1.0.0',
                     '@scope/legacy@2.0.0',
                 ]);
@@ -663,8 +659,8 @@ describe('HtmlWriter', () => {
             });
             const store = new RootFactStore();
             const scoped = store.scoped(dep.ecosystem);
-            scoped.setVersionFact(dep.packageName, '2.0.0', FactKeys.VERSIONS_BETWEEN, []);
-            scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+            scoped.setVersionFact(dep.name, '2.0.0', FactKeys.VERSIONS_BETWEEN, []);
+            scoped.setDependencyFact(dep.name, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
             const providers: ProviderOutput[] = [makeProvider([dep])];
@@ -679,8 +675,8 @@ describe('HtmlWriter', () => {
             const dep = makeMockDependency();
             const store = new RootFactStore();
             const scoped = store.scoped(dep.ecosystem);
-            scoped.setVersionFact(dep.packageName, '1.0.0', FactKeys.UNPACKED_SIZE, 50_000);
-            scoped.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, [
+            scoped.setVersionFact(dep.name, '1.0.0', FactKeys.UNPACKED_SIZE, 50_000);
+            scoped.setVersionFact(dep.name, '1.0.0', FactKeys.VERSIONS_BETWEEN, [
                 {
                     version: '1.1.0',
                     publishDate: '2024-03-01T00:00:00.000Z',
@@ -696,7 +692,7 @@ describe('HtmlWriter', () => {
                     unpackedSize: 100_000,
                 },
             ]);
-            scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+            scoped.setDependencyFact(dep.name, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
             const providers: ProviderOutput[] = [makeProvider([dep])];
@@ -721,8 +717,8 @@ describe('HtmlWriter', () => {
             const store = new RootFactStore();
             const scoped = store.scoped(dep.ecosystem);
             // No GITHUB_DATA fact set
-            scoped.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
-            scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+            scoped.setVersionFact(dep.name, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
+            scoped.setDependencyFact(dep.name, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const writer = new HtmlWriter();
             const providers: ProviderOutput[] = [makeProvider([dep])];
@@ -740,7 +736,10 @@ describe('HtmlWriter', () => {
                         key: 'surface',
                         header: 'Surface',
                         getValue: (pkg, _ver, s) => {
-                            const meta = s.getPackageFact<{ surfaceId: string }>(pkg, 'testMeta');
+                            const meta = s.getDependencyFact<{ surfaceId: string }>(
+                                pkg,
+                                'testMeta',
+                            );
                             return meta?.surfaceId ?? '';
                         },
                     },
@@ -763,8 +762,8 @@ describe('HtmlWriter', () => {
             // Store without any boolean note facts
             const store = new RootFactStore();
             const scoped = store.scoped(dep.ecosystem);
-            scoped.setVersionFact(dep.packageName, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
-            scoped.setPackageFact(dep.packageName, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
+            scoped.setVersionFact(dep.name, '1.0.0', FactKeys.VERSIONS_BETWEEN, []);
+            scoped.setDependencyFact(dep.name, FactKeys.DEPRECATED_TRANSITIVE_DEPS, []);
 
             const providers: ProviderOutput[] = [makeProvider([dep])];
             const html = await writer.toHtml(providers, store);
@@ -785,7 +784,7 @@ describe('HtmlWriter', () => {
             expect(html).toContain('<!DOCTYPE html>');
         });
 
-        it('groupPackagesByMeta returns null when no getUsedByGroupKey', async () => {
+        it('groupDependenciesByMeta returns null when no getUsedByGroupKey', async () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
             const store = makeMockStore([dep]);
@@ -796,10 +795,10 @@ describe('HtmlWriter', () => {
             expect(html).toContain('"Used By Grouped":null');
         });
 
-        it('groupPackagesByMeta uses custom group key', async () => {
+        it('groupDependenciesByMeta uses custom group key', async () => {
             const writer = new HtmlWriter({
                 getUsedByGroupKey: (pkg, _ver, s) => {
-                    const meta = s.getPackageFact<{ teamName: string }>(pkg, 'testMeta');
+                    const meta = s.getDependencyFact<{ teamName: string }>(pkg, 'testMeta');
                     return meta?.teamName ?? 'Unknown';
                 },
             });

@@ -25,7 +25,7 @@ export class GitHubSource implements DataSource {
             const scoped = store.scoped(dep.ecosystem);
             for (const ver of dep.versions) {
                 const rawUrl = scoped.getVersionFact<string>(
-                    dep.packageName,
+                    dep.name,
                     ver.version,
                     FactKeys.RAW_REPO_URL,
                 );
@@ -44,7 +44,7 @@ export class GitHubSource implements DataSource {
             if (!firstVersion) continue;
 
             const rawUrl = scoped.getVersionFact<string>(
-                dep.packageName,
+                dep.name,
                 firstVersion.version,
                 FactKeys.RAW_REPO_URL,
             );
@@ -67,7 +67,7 @@ export class GitHubSource implements DataSource {
                 changelogUrl: changelogInfo?.url,
             };
 
-            scoped.setPackageFact(dep.packageName, FactKeys.GITHUB_DATA, githubData);
+            scoped.setDependencyFact(dep.name, FactKeys.GITHUB_DATA, githubData);
 
             for (const ver of dep.versions) {
                 if (ver.version !== ver.latestVersion) {
@@ -77,12 +77,7 @@ export class GitHubSource implements DataSource {
                         ver.latestVersion,
                         releases,
                     );
-                    scoped.setVersionFact(
-                        dep.packageName,
-                        ver.version,
-                        FactKeys.COMPARE_URL,
-                        compareUrl,
-                    );
+                    scoped.setVersionFact(dep.name, ver.version, FactKeys.COMPARE_URL, compareUrl);
                 }
             }
         }

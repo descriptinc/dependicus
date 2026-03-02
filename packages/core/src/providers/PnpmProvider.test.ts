@@ -144,7 +144,7 @@ catalog:
         });
     });
 
-    describe('hasPackageInCatalog', () => {
+    describe('hasInCatalog', () => {
         it('returns true for packages in catalog', () => {
             writeWorkspaceYaml(`
 catalog:
@@ -153,8 +153,8 @@ catalog:
 `);
             const provider = new PnpmProvider(createMockCacheService(), tempDir);
 
-            expect(provider.hasPackageInCatalog('react')).toBe(true);
-            expect(provider.hasPackageInCatalog('typescript')).toBe(true);
+            expect(provider.hasInCatalog('react')).toBe(true);
+            expect(provider.hasInCatalog('typescript')).toBe(true);
         });
 
         it('returns false for packages not in catalog', () => {
@@ -164,7 +164,7 @@ catalog:
 `);
             const provider = new PnpmProvider(createMockCacheService(), tempDir);
 
-            expect(provider.hasPackageInCatalog('vue')).toBe(false);
+            expect(provider.hasInCatalog('vue')).toBe(false);
         });
     });
 

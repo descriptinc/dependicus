@@ -4,9 +4,9 @@ import { RootFactStore, FactKeys } from './FactStore';
 import type { DirectDependency } from '../types';
 import type { DeprecationService } from '../services/DeprecationService';
 
-function makeDep(packageName: string, version: string, latestVersion = '2.0.0'): DirectDependency {
+function makeDep(name: string, version: string, latestVersion = '2.0.0'): DirectDependency {
     return {
-        packageName,
+        name,
         ecosystem: 'npm',
         versions: [
             {
@@ -80,7 +80,7 @@ describe('DeprecationSource', () => {
         await source.fetch([makeDep('react', '18.2.0')], store);
 
         expect(
-            store.getPackageFact<string[]>('react', FactKeys.DEPRECATED_TRANSITIVE_DEPS),
+            store.getDependencyFact<string[]>('react', FactKeys.DEPRECATED_TRANSITIVE_DEPS),
         ).toEqual(['deprecated-transitive@1.0.0']);
     });
 
@@ -101,7 +101,7 @@ describe('DeprecationSource', () => {
 
         // react should NOT list old-lib as a transitive dep since it's direct
         expect(
-            store.getPackageFact<string[]>('react', FactKeys.DEPRECATED_TRANSITIVE_DEPS),
+            store.getDependencyFact<string[]>('react', FactKeys.DEPRECATED_TRANSITIVE_DEPS),
         ).toEqual([]);
     });
 
@@ -120,7 +120,7 @@ describe('DeprecationSource', () => {
 
         await source.fetch([makeDep('my-pkg', '1.0.0')], store);
 
-        const transitives = store.getPackageFact<string[]>(
+        const transitives = store.getDependencyFact<string[]>(
             'my-pkg',
             FactKeys.DEPRECATED_TRANSITIVE_DEPS,
         );
@@ -138,7 +138,7 @@ describe('DeprecationSource', () => {
         await source.fetch([makeDep('react', '18.2.0')], store);
 
         expect(
-            store.getPackageFact<string[]>('react', FactKeys.DEPRECATED_TRANSITIVE_DEPS),
+            store.getDependencyFact<string[]>('react', FactKeys.DEPRECATED_TRANSITIVE_DEPS),
         ).toEqual([]);
     });
 
@@ -151,7 +151,7 @@ describe('DeprecationSource', () => {
         const store = new RootFactStore();
 
         const dep: DirectDependency = {
-            packageName: 'react',
+            name: 'react',
             ecosystem: 'npm',
             versions: [
                 {

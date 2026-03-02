@@ -6,9 +6,9 @@ export type { DependicusIssue, CreateIssueParams } from './GitHubIssueService';
 // ── Zod schemas ──────────────────────────────────────────────────────
 
 /**
- * Policy controlling how the reconciler handles a package.
+ * Policy controlling how the reconciler handles a dependency.
  *
- * - `skip` — skip this package entirely
+ * - `skip` — skip this dependency entirely
  * - `fyi` — notification issue, no due date
  * - `dueDate` — mandatory issue with SLA-derived due date
  *
@@ -77,13 +77,13 @@ export type GitHubIssueSpec = z.infer<typeof gitHubIssueSpecSchema>;
 // ── Context type ─────────────────────────────────────────────────────
 
 /**
- * Context passed to `getGitHubIssueSpec` for each outdated package version.
+ * Context passed to `getGitHubIssueSpec` for each outdated dependency version.
  * The plugin uses this to decide what kind of issue (if any) to create.
  * @group Issue Creation
  */
 export interface VersionContext {
-    /** npm package name (e.g. "react"). */
-    packageName: string;
+    /** Dependency name (e.g. "react"). */
+    name: string;
     /** Currently installed version. */
     currentVersion: string;
     /** Latest version available on the registry. */
@@ -92,14 +92,14 @@ export interface VersionContext {
 
 // ── Internal types (not plugin-facing) ───────────────────────────────
 
-export interface OutdatedPackage {
-    packageName: string;
+export interface OutdatedDependency {
+    name: string;
     ecosystem: string;
     versions: DependencyVersion[];
     worstCompliance: {
         updateType: 'major' | 'minor' | 'patch';
         daysOverdue: number;
-        /** Undefined for fyi packages (no mandatory update threshold) */
+        /** Undefined for fyi dependencies (no mandatory update threshold) */
         thresholdDays: number | undefined;
     };
     availableMajorVersion?: string;
@@ -117,7 +117,7 @@ export interface OutdatedPackage {
 
 export interface OutdatedGroup {
     groupName: string;
-    packages: OutdatedPackage[];
+    dependencies: OutdatedDependency[];
     owner: string;
     repo: string;
     policy: GitHubIssuePolicy;

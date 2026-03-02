@@ -62,14 +62,14 @@ catalog:
         });
     });
 
-    describe('hasPackageInCatalog', () => {
+    describe('hasInCatalog', () => {
         it('returns true for packages in catalog', () => {
             const filePath = createWorkspaceFile(`
 catalog:
   react: ^18.2.0
 `);
             const ws = new WorkspaceService(filePath);
-            expect(ws.hasPackageInCatalog('react')).toBe(true);
+            expect(ws.hasInCatalog('react')).toBe(true);
         });
 
         it('returns false for packages not in catalog', () => {
@@ -78,7 +78,7 @@ catalog:
   react: ^18.2.0
 `);
             const ws = new WorkspaceService(filePath);
-            expect(ws.hasPackageInCatalog('vue')).toBe(false);
+            expect(ws.hasInCatalog('vue')).toBe(false);
         });
     });
 
@@ -87,7 +87,7 @@ catalog:
             const ws = new WorkspaceService();
             expect(ws.isPatched('react', '18.2.0')).toBe(false);
             expect(ws.isInCatalog('react', '18.2.0')).toBe(false);
-            expect(ws.hasPackageInCatalog('react')).toBe(false);
+            expect(ws.hasInCatalog('react')).toBe(false);
         });
     });
 });

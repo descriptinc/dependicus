@@ -247,15 +247,15 @@ export class MiseProvider implements DependencyProvider {
         return [new MiseVersionsSource(ctx.cacheService, configPaths)];
     }
 
-    isInCatalog(_packageName: string, _version: string): boolean {
+    isInCatalog(_name: string, _version: string): boolean {
         return false;
     }
 
-    hasPackageInCatalog(_packageName: string): boolean {
+    hasInCatalog(_name: string): boolean {
         return false;
     }
 
-    isPatched(_packageName: string, _version: string): boolean {
+    isPatched(_name: string, _version: string): boolean {
         return false;
     }
 }

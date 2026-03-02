@@ -109,7 +109,7 @@ describe('runSources', () => {
     it('passes dependencies and store to each source', async () => {
         const deps: DirectDependency[] = [
             {
-                packageName: 'react',
+                name: 'react',
                 ecosystem: 'npm',
                 versions: [
                     {

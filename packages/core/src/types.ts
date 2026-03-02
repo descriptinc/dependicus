@@ -27,7 +27,7 @@ export interface DependencyVersion {
 }
 
 export interface DirectDependency {
-    packageName: string;
+    name: string;
     ecosystem: string;
     versions: DependencyVersion[];
 }
@@ -65,7 +65,7 @@ export interface PackageVersionInfo {
 }
 
 /**
- * GitHub data for a package (shared across versions)
+ * GitHub data for a dependency (shared across versions)
  */
 export interface GitHubData {
     owner: string;
@@ -125,16 +125,16 @@ export interface OutputMetadata {
 
 /**
  * Merge dependencies from multiple providers into a single deduplicated list.
- * Merges by (packageName, version), unioning usedBy and dependencyTypes.
+ * Merges by (name, version), unioning usedBy and dependencyTypes.
  * Useful for consumers that don't care about provider identity (tickets, issues).
  */
 export function mergeProviderDependencies(providers: ProviderOutput[]): DirectDependency[] {
-    // Map: "ecosystem::packageName" -> Map<version, merged entry>
+    // Map: "ecosystem::name" -> Map<version, merged entry>
     const depMap = new Map<
         string,
         {
             ecosystem: string;
-            packageName: string;
+            name: string;
             versionMap: Map<
                 string,
                 {
@@ -151,10 +151,10 @@ export function mergeProviderDependencies(providers: ProviderOutput[]): DirectDe
     for (const provider of providers) {
         for (const dep of provider.dependencies) {
             const ecosystem = dep.ecosystem ?? provider.ecosystem;
-            const key = `${ecosystem}::${dep.packageName}`;
+            const key = `${ecosystem}::${dep.name}`;
             let entry = depMap.get(key);
             if (!entry) {
-                entry = { ecosystem, packageName: dep.packageName, versionMap: new Map() };
+                entry = { ecosystem, name: dep.name, versionMap: new Map() };
                 depMap.set(key, entry);
             }
             for (const ver of dep.versions) {
@@ -177,7 +177,7 @@ export function mergeProviderDependencies(providers: ProviderOutput[]): DirectDe
     }
 
     const result: DirectDependency[] = [];
-    for (const { ecosystem, packageName, versionMap } of depMap.values()) {
+    for (const { ecosystem, name, versionMap } of depMap.values()) {
         const versions: DependencyVersion[] = [];
         for (const [version, entry] of versionMap) {
             versions.push({
@@ -190,21 +190,21 @@ export function mergeProviderDependencies(providers: ProviderOutput[]): DirectDe
             });
         }
         versions.sort((a, b) => b.usedBy.length - a.usedBy.length);
-        result.push({ packageName, ecosystem, versions });
+        result.push({ name, ecosystem, versions });
     }
-    result.sort((a, b) => a.packageName.localeCompare(b.packageName));
+    result.sort((a, b) => a.name.localeCompare(b.name));
     return result;
 }
 
-/** Build the filename for a package detail page (e.g., "scope-pkg@1.0.0.html"). */
-export function getDetailFilename(packageName: string, version: string): string {
-    const safeName = packageName.replace(/^@/, '').replace(/\//g, '-');
+/** Build the filename for a dependency detail page (e.g., "scope-pkg@1.0.0.html"). */
+export function getDetailFilename(name: string, version: string): string {
+    const safeName = name.replace(/^@/, '').replace(/\//g, '-');
     return `${safeName}@${version}.html`;
 }
 
-export type DetailUrlFn = (ecosystem: string, packageName: string, version: string) => string;
+export type DetailUrlFn = (ecosystem: string, name: string, version: string) => string;
 
-/** Build a function that returns the full detail page URL for a given package version. */
+/** Build a function that returns the full detail page URL for a given dependency version. */
 export function createDetailUrlBuilder(
     dependicusBaseUrl: string,
     providers: ProviderOutput[],
@@ -215,9 +215,9 @@ export function createDetailUrlBuilder(
             ecosystemToProvider.set(p.ecosystem, p.name);
         }
     }
-    return (ecosystem, packageName, version) => {
+    return (ecosystem, name, version) => {
         const provider = ecosystemToProvider.get(ecosystem);
-        const filename = getDetailFilename(packageName, version);
+        const filename = getDetailFilename(name, version);
         return provider
             ? `${dependicusBaseUrl}/${provider}/details/${filename}`
             : `${dependicusBaseUrl}/details/${filename}`;
@@ -225,7 +225,7 @@ export function createDetailUrlBuilder(
 }
 
 export type UsedByGroupKeyFn = (
-    packageName: string,
+    name: string,
     version: DependencyVersion,
     store: FactStore,
 ) => string;
@@ -243,7 +243,7 @@ export interface GroupingStat {
 
 /** @group Plugins */
 export interface GroupingFlag {
-    packageName: string;
+    name: string;
     version: string;
     detailLink: string;
     label: string;
@@ -253,7 +253,7 @@ export interface GroupingFlag {
 export interface GroupingSection {
     title: string;
     stats?: GroupingStat[];
-    flaggedPackages?: GroupingFlag[];
+    flaggedDependencies?: GroupingFlag[];
     html?: string;
 }
 
@@ -269,8 +269,8 @@ export interface GroupingConfig {
     key: string;
     label: string;
     slugPrefix?: string;
-    /** Extract the grouping value for a package. Returns undefined to exclude. */
-    getValue: (packageName: string, store: FactStore) => string | undefined;
+    /** Extract the grouping value for a dependency. Returns undefined to exclude. */
+    getValue: (name: string, store: FactStore) => string | undefined;
     /** Return sections to display on this grouping's detail pages. */
     getSections?: (context: GroupingDetailContext) => GroupingSection[];
 }

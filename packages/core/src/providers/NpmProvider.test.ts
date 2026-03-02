@@ -212,12 +212,12 @@ describe('NpmProvider', () => {
         });
     });
 
-    describe('hasPackageInCatalog', () => {
+    describe('hasInCatalog', () => {
         it('always returns false', () => {
             const cacheService = createMockCacheService();
             const provider = new NpmProvider(cacheService, tmpDir);
 
-            expect(provider.hasPackageInCatalog('react')).toBe(false);
+            expect(provider.hasInCatalog('react')).toBe(false);
         });
     });
 

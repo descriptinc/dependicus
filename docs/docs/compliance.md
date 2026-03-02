@@ -5,7 +5,7 @@ A common way to think about dependencies is to set an [SLO](https://en.wikipedia
 Dependicus ships with [BasicCompliancePlugin](../api/classes/BasicCompliancePlugin.html) to make this behavior easy to set up. You provide the constraints, and `BasicCompliancePlugin` will:
 
 - Set due dates, if needed
-- Mark packages as in compliance, out of compliance, or n/a, depending
+- Mark dependencies as in compliance, out of compliance, or n/a, depending
 - Display this data in the table and on detail pages
 
 The tickets will ask you to update to the oldest version that complies with your chosen policy. If newer versions exist, they will be mentioned.
@@ -18,7 +18,7 @@ Here’s a brief example.
 import { dependicusCli, BasicCompliancePlugin } from 'dependicus';
 
 // Map packages to policy IDs however you like.
-const packagePolicies: Record<string, string> = {
+const dependencyPolicies: Record<string, string> = {
     react: 'critical',
     'react-dom': 'critical',
     lodash: 'advisory',
@@ -45,12 +45,12 @@ void dependicusCli({
                     description: 'No mandatory updates, just notifications',
                 },
             },
-            getPolicy: (packageName) => packagePolicies[packageName],
+            getPolicy: (name) => dependencyPolicies[name],
         }),
     ],
 
     // BasicCompliancePlugin handles compliance status and due dates,
-    // but doesn't know which team owns which package.
+    // but doesn't know which team owns which dependency.
     getLinearIssueSpec: (context) => ({ teamId: 'your-team-uuid' }),
 }).run(process.argv);
 ```

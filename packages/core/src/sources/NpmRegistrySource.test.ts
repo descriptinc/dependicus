@@ -4,9 +4,9 @@ import { RootFactStore, FactKeys } from './FactStore';
 import type { DirectDependency, PackageVersionInfo } from '../types';
 import type { NpmRegistryService, PackageMetadata } from '../services/NpmRegistryService';
 
-function makeDep(packageName: string, version: string, latestVersion: string): DirectDependency {
+function makeDep(name: string, version: string, latestVersion: string): DirectDependency {
     return {
-        packageName,
+        name,
         ecosystem: 'npm',
         versions: [
             {
@@ -160,7 +160,7 @@ describe('NpmRegistrySource', () => {
         const store = new RootFactStore();
 
         const dep: DirectDependency = {
-            packageName: 'react',
+            name: 'react',
             ecosystem: 'npm',
             versions: [
                 {

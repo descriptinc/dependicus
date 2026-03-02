@@ -1,9 +1,9 @@
-This issue tracks updates for the **{{groupName}}** package group.
+This issue tracks updates for the **{{groupName}}** dependency group.
 
 ## Summary
 
 - **Group:** {{groupName}}
-- **Packages:** {{packageCount}}
+- **Dependencies:** {{dependencyCount}}
 {{#if notificationsOnly}}
 - *Tracked for awareness only (no mandatory updates)*
 {{else}}
@@ -13,10 +13,10 @@ This issue tracks updates for the **{{groupName}}** package group.
 {{/if}}
 {{/if}}
 
-## Packages to Update
+## Dependencies to Update
 
-{{#each packages}}
-### {{this.packageName}}
+{{#each dependencies}}
+### {{this.name}}
 
 {{#if this.description}}
 > {{this.description}}
@@ -35,21 +35,21 @@ This issue tracks updates for the **{{groupName}}** package group.
 ## How to Update
 
 {{#if supportsCatalog}}
-Update each package in `pnpm-workspace.yaml` catalog (if applicable) or individual package.json files:
+Update each dependency in `pnpm-workspace.yaml` catalog (if applicable) or individual package.json files:
 
 ```yaml
 catalog:
-{{#each packages}}
-  {{this.packageName}}: "{{this.effectiveLatestVersion}}"
+{{#each dependencies}}
+  {{this.name}}: "{{this.effectiveLatestVersion}}"
 {{/each}}
 ```
 
 Then run `{{installCommand}}` to update the lockfile.
 {{else}}
-Update each package's version in the appropriate config file, then run `{{installCommand}}`.
+Update each dependency's version in the appropriate config file, then run `{{installCommand}}`.
 {{/if}}
 
-*PR title should be: "Update {{groupName}} packages"*
+*PR title should be: "Update {{groupName}} dependencies"*
 
 *If the PR body makes claims about the changes in the new versions, include URL references to release notes, changelogs, or commit diffs that support those claims.*
 

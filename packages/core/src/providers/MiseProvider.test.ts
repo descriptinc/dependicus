@@ -326,7 +326,7 @@ describe('MiseProvider', () => {
     it('catalog methods return false', () => {
         const provider = new MiseProvider(mockCacheService, rootDir);
         expect(provider.isInCatalog('node', '22.0.0')).toBe(false);
-        expect(provider.hasPackageInCatalog('node')).toBe(false);
+        expect(provider.hasInCatalog('node')).toBe(false);
         expect(provider.isPatched('node', '22.0.0')).toBe(false);
     });
 });

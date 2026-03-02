@@ -16,7 +16,7 @@ function makeProviderOutput(overrides?: Partial<ProviderOutput>): ProviderOutput
 
 function makeDep(overrides?: Partial<DirectDependency>): DirectDependency {
     return {
-        packageName: 'test-pkg',
+        name: 'test-pkg',
         ecosystem: 'npm',
         versions: [
             {
@@ -49,7 +49,7 @@ describe('mergeProviderDependencies', () => {
 
     it('merges two providers with same package/version - unions usedBy and dependencyTypes', () => {
         const dep1 = makeDep({
-            packageName: 'lodash',
+            name: 'lodash',
             versions: [
                 {
                     version: '4.17.21',
@@ -63,7 +63,7 @@ describe('mergeProviderDependencies', () => {
         });
 
         const dep2 = makeDep({
-            packageName: 'lodash',
+            name: 'lodash',
             versions: [
                 {
                     version: '4.17.21',
@@ -89,7 +89,7 @@ describe('mergeProviderDependencies', () => {
         const result = mergeProviderDependencies([provider1, provider2]);
 
         expect(result).toHaveLength(1);
-        expect(result[0]!.packageName).toBe('lodash');
+        expect(result[0]!.name).toBe('lodash');
         expect(result[0]!.versions).toHaveLength(1);
         expect(result[0]!.versions[0]).toEqual({
             version: '4.17.21',
@@ -103,7 +103,7 @@ describe('mergeProviderDependencies', () => {
 
     it('merges two providers with different packages - includes both', () => {
         const dep1 = makeDep({
-            packageName: 'lodash',
+            name: 'lodash',
             versions: [
                 {
                     version: '4.17.21',
@@ -117,7 +117,7 @@ describe('mergeProviderDependencies', () => {
         });
 
         const dep2 = makeDep({
-            packageName: 'express',
+            name: 'express',
             versions: [
                 {
                     version: '4.18.0',
@@ -143,13 +143,13 @@ describe('mergeProviderDependencies', () => {
         const result = mergeProviderDependencies([provider1, provider2]);
 
         expect(result).toHaveLength(2);
-        expect(result[0]!.packageName).toBe('express');
-        expect(result[1]!.packageName).toBe('lodash');
+        expect(result[0]!.name).toBe('express');
+        expect(result[1]!.name).toBe('lodash');
     });
 
     it('sets inCatalog true if any provider has it true', () => {
         const dep1 = makeDep({
-            packageName: 'react',
+            name: 'react',
             versions: [
                 {
                     version: '18.0.0',
@@ -163,7 +163,7 @@ describe('mergeProviderDependencies', () => {
         });
 
         const dep2 = makeDep({
-            packageName: 'react',
+            name: 'react',
             versions: [
                 {
                     version: '18.0.0',
@@ -196,7 +196,7 @@ describe('mergeProviderDependencies', () => {
 
     it('results sorted by package name', () => {
         const dep1 = makeDep({
-            packageName: 'zebra',
+            name: 'zebra',
             versions: [
                 {
                     version: '1.0.0',
@@ -210,7 +210,7 @@ describe('mergeProviderDependencies', () => {
         });
 
         const dep2 = makeDep({
-            packageName: 'apple',
+            name: 'apple',
             versions: [
                 {
                     version: '1.0.0',
@@ -224,7 +224,7 @@ describe('mergeProviderDependencies', () => {
         });
 
         const dep3 = makeDep({
-            packageName: 'monkey',
+            name: 'monkey',
             versions: [
                 {
                     version: '1.0.0',
@@ -245,9 +245,9 @@ describe('mergeProviderDependencies', () => {
         const result = mergeProviderDependencies([provider]);
 
         expect(result).toHaveLength(3);
-        expect(result[0]!.packageName).toBe('apple');
-        expect(result[1]!.packageName).toBe('monkey');
-        expect(result[2]!.packageName).toBe('zebra');
+        expect(result[0]!.name).toBe('apple');
+        expect(result[1]!.name).toBe('monkey');
+        expect(result[2]!.name).toBe('zebra');
     });
 });
 

@@ -92,7 +92,7 @@ describe('GitHubIssueService', () => {
             expect(issues[0]).toEqual({
                 number: 42,
                 title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
-                packageName: 'react',
+                dependencyName: 'react',
                 isGroup: false,
                 updatedAt: '2025-01-15T00:00:00Z',
             });
@@ -167,7 +167,7 @@ describe('GitHubIssueService', () => {
 
             const issues = await service.searchDependicusIssues('owner', 'repo');
             expect(issues).toHaveLength(1);
-            expect(issues[0]!.packageName).toBe('sentry');
+            expect(issues[0]!.dependencyName).toBe('sentry');
             expect(issues[0]!.isGroup).toBe(true);
         });
     });
@@ -178,7 +178,7 @@ describe('GitHubIssueService', () => {
             mockOctokit.issues.create.mockResolvedValue({ data: { number: 42 } });
 
             const issueNumber = await service.createIssue({
-                packageName: 'react',
+                dependencyName: 'react',
                 title: 'Update react from 18.2.0 to 19.0.0',
                 owner: 'myorg',
                 repo: 'myrepo',
@@ -200,7 +200,7 @@ describe('GitHubIssueService', () => {
             mockOctokit.issues.create.mockResolvedValue({ data: { number: 43 } });
 
             await service.createIssue({
-                packageName: 'react',
+                dependencyName: 'react',
                 title: 'Update react',
                 owner: 'myorg',
                 repo: 'myrepo',
@@ -272,7 +272,7 @@ describe('GitHubIssueService', () => {
 
         it('createIssue returns -1 without calling API', async () => {
             const issueNumber = await dryRunService.createIssue({
-                packageName: 'react',
+                dependencyName: 'react',
                 title: 'Update react',
                 owner: 'myorg',
                 repo: 'myrepo',

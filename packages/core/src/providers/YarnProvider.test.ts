@@ -276,13 +276,13 @@ describe('YarnProvider', () => {
         });
     });
 
-    describe('hasPackageInCatalog', () => {
+    describe('hasInCatalog', () => {
         it('always returns false (yarn has no catalog feature)', () => {
             const cacheService = createMockCacheService();
             const provider = new YarnProvider(cacheService, tmpDir);
 
-            expect(provider.hasPackageInCatalog('react')).toBe(false);
-            expect(provider.hasPackageInCatalog('anything')).toBe(false);
+            expect(provider.hasInCatalog('react')).toBe(false);
+            expect(provider.hasInCatalog('anything')).toBe(false);
         });
     });
 

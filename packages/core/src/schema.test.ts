@@ -12,7 +12,7 @@ describe('schema', () => {
                 supportsCatalog: true,
                 dependencies: [
                     {
-                        packageName: 'react',
+                        name: 'react',
                         versions: [
                             {
                                 version: '18.2.0',
@@ -28,7 +28,7 @@ describe('schema', () => {
             },
         ],
         facts: {
-            package: {
+            dependency: {
                 react: {
                     githubData: { owner: 'facebook', repo: 'react', releases: [] },
                 },
@@ -49,7 +49,7 @@ describe('schema', () => {
             expect(result.metadata.generatedAt).toBe('2025-01-01T00:00:00.000Z');
             expect(result.providers).toHaveLength(1);
             expect(result.providers[0]?.name).toBe('pnpm');
-            expect(result.facts.package.react).toBeDefined();
+            expect(result.facts.dependency.react).toBeDefined();
         });
 
         it('accepts input with empty facts', () => {
@@ -59,7 +59,7 @@ describe('schema', () => {
                 },
                 providers: [],
                 facts: {
-                    package: {},
+                    dependency: {},
                     version: {},
                 },
             };
@@ -71,7 +71,7 @@ describe('schema', () => {
             expect(() =>
                 parseDependicusOutput({
                     providers: [],
-                    facts: { package: {}, version: {} },
+                    facts: { dependency: {}, version: {} },
                 }),
             ).toThrow();
         });
@@ -82,7 +82,7 @@ describe('schema', () => {
                     metadata: {
                         generatedAt: '2025-01-01',
                     },
-                    facts: { package: {}, version: {} },
+                    facts: { dependency: {}, version: {} },
                 }),
             ).toThrow();
         });
@@ -107,7 +107,7 @@ describe('schema', () => {
                         supportsCatalog: true,
                         dependencies: [
                             {
-                                packageName: 'react',
+                                name: 'react',
                                 versions: [
                                     {
                                         version: '18.2.0',

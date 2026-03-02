@@ -50,11 +50,16 @@ function makeVersion(overrides: Partial<DependencyVersion> = {}): DependencyVers
     };
 }
 
-function makeStore(packageName: string = 'test-pkg', version: string = '1.0.0'): FactStore {
+function makeStore(dependencyName: string = 'test-pkg', version: string = '1.0.0'): FactStore {
     const root = new RootFactStore();
     const scoped = root.scoped('npm');
-    scoped.setVersionFact(packageName, version, FactKeys.VERSIONS_BETWEEN, defaultVersionsBetween);
-    scoped.setVersionFact(packageName, version, FactKeys.DESCRIPTION, 'A test package');
+    scoped.setVersionFact(
+        dependencyName,
+        version,
+        FactKeys.VERSIONS_BETWEEN,
+        defaultVersionsBetween,
+    );
+    scoped.setVersionFact(dependencyName, version, FactKeys.DESCRIPTION, 'A test package');
     return root;
 }
 
@@ -92,7 +97,7 @@ describe('reconcileGitHubIssues', () => {
         setupMocks();
 
         const deps: DirectDependency[] = [
-            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
         ];
         const store = makeStore();
 
@@ -121,7 +126,7 @@ describe('reconcileGitHubIssues', () => {
         ]);
 
         const deps: DirectDependency[] = [
-            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
         ];
         const store = makeStore();
 
@@ -159,7 +164,7 @@ describe('reconcileGitHubIssues', () => {
         setupMocks();
 
         const deps: DirectDependency[] = [
-            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
         ];
         const store = makeStore();
 
@@ -173,7 +178,7 @@ describe('reconcileGitHubIssues', () => {
         setupMocks();
 
         const deps: DirectDependency[] = [
-            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
         ];
         const store = makeStore();
 
@@ -188,7 +193,7 @@ describe('reconcileGitHubIssues', () => {
         setupMocks();
 
         const deps: DirectDependency[] = [
-            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
         ];
         const store = makeStore();
 
@@ -217,7 +222,7 @@ describe('reconcileGitHubIssues', () => {
         ]);
 
         const deps: DirectDependency[] = [
-            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
         ];
         const store = makeStore();
 
@@ -232,7 +237,7 @@ describe('reconcileGitHubIssues', () => {
         setupMocks();
 
         const deps: DirectDependency[] = [
-            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
         ];
         const store = makeStore();
 
@@ -253,7 +258,7 @@ describe('reconcileGitHubIssues', () => {
         setupMocks();
 
         const deps: DirectDependency[] = [
-            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
         ];
         const store = makeStore();
 
@@ -276,8 +281,8 @@ describe('reconcileGitHubIssues', () => {
         setupMocks();
 
         const deps: DirectDependency[] = [
-            { packageName: 'pkg-a', ecosystem: 'npm', versions: [makeVersion()] },
-            { packageName: 'pkg-b', ecosystem: 'npm', versions: [makeVersion()] },
+            { name: 'pkg-a', ecosystem: 'npm', versions: [makeVersion()] },
+            { name: 'pkg-b', ecosystem: 'npm', versions: [makeVersion()] },
         ];
         const store = makeStore('pkg-a');
         store.setVersionFact('pkg-b', '1.0.0', FactKeys.VERSIONS_BETWEEN, defaultVersionsBetween);
@@ -296,7 +301,7 @@ describe('reconcileGitHubIssues', () => {
         setupMocks();
 
         const deps: DirectDependency[] = [
-            { packageName: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
         ];
         const store = makeStore();
 
@@ -316,7 +321,7 @@ describe('reconcileGitHubIssues', () => {
 
         const deps: DirectDependency[] = [
             {
-                packageName: 'test-pkg',
+                name: 'test-pkg',
                 ecosystem: 'npm',
                 versions: [makeVersion({ version: '2.0.0', latestVersion: '2.0.0' })],
             },

@@ -46,9 +46,7 @@ export function usedByFormatter(cell: TabulatorCell): string {
             .split('; ')
             .filter(Boolean);
         if (packages.length === 0) return '';
-        const pills = packages
-            .map((pkg) => `<span class="dep-package-pill">${pkg}</span>`)
-            .join('');
+        const pills = packages.map((pkg) => `<span class="dep-pill">${pkg}</span>`).join('');
         return `<div class="dep-used-by-content"><div class="dep-used-by-team-row">${pills}</div></div>`;
     }
 
@@ -66,9 +64,7 @@ export function usedByFormatter(cell: TabulatorCell): string {
         .map((team) => {
             const packages = grouped[team];
             if (!packages || packages.length === 0) return '';
-            const pills = packages
-                .map((pkg) => `<span class="dep-package-pill">${pkg}</span>`)
-                .join('');
+            const pills = packages.map((pkg) => `<span class="dep-pill">${pkg}</span>`).join('');
             return `<div class="dep-used-by-team-row"><span class="dep-team-label">${team}:</span>${pills}</div>`;
         })
         .filter(Boolean)
@@ -152,15 +148,15 @@ export function versionsBehindFormatter(cell: TabulatorCell): string {
 }
 
 /**
- * Custom formatter for package names - link to detail page
+ * Custom formatter for dependency names - link to detail page
  */
-export function packageNameFormatter(cell: TabulatorCell): string {
-    const packageName = cell.getValue();
+export function nameFormatter(cell: TabulatorCell): string {
+    const depName = cell.getValue();
     const detailLink = cell.getRow().getData()['Detail Link'];
     if (detailLink) {
-        return `<a href="${detailLink}">${packageName}</a>`;
+        return `<a href="${detailLink}">${depName}</a>`;
     }
-    return String(packageName);
+    return String(depName);
 }
 
 /**
@@ -204,9 +200,9 @@ export function deprecatedFormatter(cell: TabulatorCell): string {
         .map((dep, i) => {
             const url = urls[i];
             if (url) {
-                return `<a href="${url}" target="_blank" rel="noopener" class="dep-package-pill">${dep}</a>`;
+                return `<a href="${url}" target="_blank" rel="noopener" class="dep-pill">${dep}</a>`;
             }
-            return `<span class="dep-package-pill">${dep}</span>`;
+            return `<span class="dep-pill">${dep}</span>`;
         })
         .join('');
 }

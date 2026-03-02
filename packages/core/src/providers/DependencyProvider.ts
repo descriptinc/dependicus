@@ -18,9 +18,9 @@ export interface DependencyProvider {
     readonly installCommand: string;
     readonly urlPatterns: Record<string, string>;
     getPackages(): Promise<PackageInfo[]>;
-    isInCatalog(packageName: string, version: string): boolean;
-    hasPackageInCatalog(packageName: string): boolean;
-    isPatched(packageName: string, version: string): boolean;
+    isInCatalog(name: string, version: string): boolean;
+    hasInCatalog(name: string): boolean;
+    isPatched(name: string, version: string): boolean;
     createSources(ctx: SourceContext): DataSource[];
     resolveVersionMetadata?(
         packageNames: string[],

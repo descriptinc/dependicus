@@ -118,12 +118,12 @@ export function extractLatestVersionFromTitle(title: string): string | undefined
 }
 
 /**
- * Extract package name from a Dependicus ticket title.
+ * Extract dependency name from a Dependicus ticket title.
  * Expected formats:
- * - "[Dependicus] Update <package> from X to Y"
- * - "[Dependicus] FYI: <package> X.Y.Z is available"
+ * - "[Dependicus] Update <dependency> from X to Y"
+ * - "[Dependicus] FYI: <dependency> X.Y.Z is available"
  */
-export function extractPackageNameFromTitle(title: string): string | undefined {
+export function extractDependencyNameFromTitle(title: string): string | undefined {
     // Try standard "Update X from..." format
     const updateMatch = title.match(/^\[Dependicus\]\s+Update\s+(.+?)\s+from\s+/);
     if (updateMatch) {
@@ -142,8 +142,8 @@ export function extractPackageNameFromTitle(title: string): string | undefined {
 /**
  * Extract group name from a Dependicus group ticket title.
  * Expected formats:
- * - "[Dependicus] Update <group> group (N packages)"
- * - "[Dependicus] FYI: <group> group updates available (N packages)"
+ * - "[Dependicus] Update <group> group (N dependencies)"
+ * - "[Dependicus] FYI: <group> group updates available (N dependencies)"
  */
 export function extractGroupNameFromTitle(title: string): string | undefined {
     // Try standard group update format
@@ -163,47 +163,47 @@ export function extractGroupNameFromTitle(title: string): string | undefined {
 
 /**
  * Build the title for a grouped ticket.
- * Format: "Update <group> group (N packages)" or "FYI: <group> group updates available (N packages)"
+ * Format: "Update <group> group (N dependencies)" or "FYI: <group> group updates available (N dependencies)"
  */
 export function buildGroupTicketTitle(
     groupName: string,
-    packageCount: number,
+    count: number,
     options?: { notificationsOnly?: boolean },
 ): string {
-    const packageLabel = packageCount === 1 ? '1 package' : `${packageCount} packages`;
+    const countLabel = count === 1 ? '1 dependency' : `${count} dependencies`;
 
     if (options?.notificationsOnly) {
-        return `FYI: ${groupName} group updates available (${packageLabel})`;
+        return `FYI: ${groupName} group updates available (${countLabel})`;
     }
 
-    return `Update ${groupName} group (${packageLabel})`;
+    return `Update ${groupName} group (${countLabel})`;
 }
 
 /**
  * Build the title for a ticket.
- * Format: "Update <package> from X to Y" or "Update <package> from X to at least Y (latest: Z)"
+ * Format: "Update <dependency> from X to Y" or "Update <dependency> from X to at least Y (latest: Z)"
  *
- * For notifications-only packages, uses FYI-style title since no action is required.
+ * For notifications-only dependencies, uses FYI-style title since no action is required.
  */
 export function buildTicketTitle(
-    packageName: string,
+    name: string,
     currentVersion: string,
     minVersion: string,
     latestVersion: string,
     options?: { notificationsOnly?: boolean },
 ): string {
-    // Notifications-only packages get FYI-style titles since no update is mandatory
+    // Notifications-only dependencies get FYI-style titles since no update is mandatory
     if (options?.notificationsOnly) {
         if (currentVersion === minVersion || minVersion === latestVersion) {
-            return `FYI: ${packageName} ${latestVersion} is available (currently on ${currentVersion})`;
+            return `FYI: ${name} ${latestVersion} is available (currently on ${currentVersion})`;
         }
-        return `FYI: ${packageName} ${latestVersion} is available (currently on ${currentVersion})`;
+        return `FYI: ${name} ${latestVersion} is available (currently on ${currentVersion})`;
     }
 
     if (minVersion === latestVersion) {
-        return `Update ${packageName} from ${currentVersion} to ${latestVersion}`;
+        return `Update ${name} from ${currentVersion} to ${latestVersion}`;
     }
-    return `Update ${packageName} from ${currentVersion} to at least ${minVersion} (latest: ${latestVersion})`;
+    return `Update ${name} from ${currentVersion} to at least ${minVersion} (latest: ${latestVersion})`;
 }
 
 /**

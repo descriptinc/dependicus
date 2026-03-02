@@ -6,7 +6,7 @@ import {
     usedByFormatter,
     ageFormatter,
     versionsBehindFormatter,
-    packageNameFormatter,
+    nameFormatter,
     versionFormatter,
     latestVersionFormatter,
     deprecatedFormatter,
@@ -22,7 +22,7 @@ function makeFakeElement(): HTMLElement {
 
 function makeCell(value: unknown, rowData?: Partial<RowData>): TabulatorCell {
     const fullRowData: RowData = {
-        'Package Name': 'test-pkg',
+        Dependency: 'test-pkg',
         Ecosystem: 'npm',
         Type: 'prod',
         Version: '1.0.0',
@@ -136,16 +136,16 @@ describe('formatters', () => {
         });
     });
 
-    describe('packageNameFormatter', () => {
+    describe('nameFormatter', () => {
         it('renders link when detail link exists', () => {
             const cell = makeCell('test-pkg', { 'Detail Link': 'details/test.html' });
-            const html = packageNameFormatter(cell);
+            const html = nameFormatter(cell);
             expect(html).toContain('<a href="details/test.html">test-pkg</a>');
         });
 
         it('renders plain text without detail link', () => {
             const cell = makeCell('test-pkg', { 'Detail Link': '' });
-            const html = packageNameFormatter(cell);
+            const html = nameFormatter(cell);
             expect(html).toBe('test-pkg');
         });
     });
@@ -160,7 +160,7 @@ describe('formatters', () => {
 
     describe('latestVersionFormatter', () => {
         it('renders npm link', () => {
-            const cell = makeCell('2.0.0', { 'Package Name': 'test-pkg' });
+            const cell = makeCell('2.0.0', { Dependency: 'test-pkg' });
             const html = latestVersionFormatter(cell);
             expect(html).toContain('https://www.npmjs.com/package/test-pkg/v/2.0.0');
         });
@@ -179,7 +179,7 @@ describe('formatters', () => {
                 ],
             });
             const html = deprecatedFormatter(cell);
-            expect(html).toContain('dep-package-pill');
+            expect(html).toContain('dep-pill');
             expect(html).toContain('old-pkg@1.0.0');
             expect(html).toContain('@scope/dep@2.0.0');
             expect(html).toContain('href="https://www.npmjs.com/package/old-pkg/v/1.0.0"');
@@ -198,7 +198,7 @@ describe('formatters', () => {
                 'Deprecated Dep URLs': [],
             });
             const html = deprecatedFormatter(cell);
-            expect(html).toContain('<span class="dep-package-pill">old-pkg@1.0.0</span>');
+            expect(html).toContain('<span class="dep-pill">old-pkg@1.0.0</span>');
             expect(html).not.toContain('<a ');
         });
 
@@ -261,7 +261,7 @@ describe('formatters', () => {
                 'Used By': 'pkg-a; pkg-b; pkg-c',
             });
             const html = usedByFormatter(cell);
-            expect(html).toContain('dep-package-pill');
+            expect(html).toContain('dep-pill');
             expect(html).toContain('pkg-a');
             expect(html).toContain('pkg-b');
             expect(html).toContain('pkg-c');

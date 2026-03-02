@@ -45,25 +45,25 @@ export class WorkspaceService {
     }
 
     /**
-     * Check if a package@version is patched.
+     * Check if a dependency@version is patched.
      */
-    isPatched(packageName: string, version: string): boolean {
-        const key = `${packageName}@${version}`;
+    isPatched(name: string, version: string): boolean {
+        const key = `${name}@${version}`;
         return this.patchedDeps.has(key);
     }
 
     /**
-     * Check if a package is in the catalog (regardless of version).
+     * Check if a dependency is in the catalog (regardless of version).
      */
-    hasPackageInCatalog(packageName: string): boolean {
-        return this.catalogVersions.has(packageName);
+    hasInCatalog(name: string): boolean {
+        return this.catalogVersions.has(name);
     }
 
     /**
-     * Check if a package version satisfies the catalog range.
+     * Check if a dependency version satisfies the catalog range.
      */
-    isInCatalog(packageName: string, version: string): boolean {
-        const catalogRange = this.catalogVersions.get(packageName);
+    isInCatalog(name: string, version: string): boolean {
+        const catalogRange = this.catalogVersions.get(name);
         if (!catalogRange) {
             return false;
         }
