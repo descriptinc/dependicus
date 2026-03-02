@@ -109,6 +109,9 @@ export function buildIssueDescription(
 
     const installCommand = providerInfo?.installCommand ?? 'install';
     const supportsCatalog = providerInfo?.supportsCatalog ?? false;
+    const updatePrefix = providerInfo?.updatePrefix ?? 'Update the following workspace:';
+    const updateSuffix =
+        providerInfo?.updateSuffix ?? `Then, run \`${installCommand}\` to update the lockfile.`;
     const urlPatterns = store.getDependencyFact<Record<string, string>>(name, FactKeys.URLS) ?? {};
     const urls = resolveUrlPatterns(urlPatterns, { name, version: version.version });
 
@@ -138,6 +141,8 @@ export function buildIssueDescription(
         supportsCatalog,
         shouldRecommendCatalog,
         installCommand,
+        updatePrefix,
+        updateSuffix,
         urls,
         usedByCount: usedBy.length,
         usedByList: usedBy.slice(0, 20),
@@ -180,6 +185,9 @@ export function buildGroupIssueDescription(
     const groupProviderInfo = firstDep ? providerInfoMap?.get(firstDep.ecosystem) : undefined;
     const installCommand = groupProviderInfo?.installCommand ?? 'install';
     const supportsCatalog = groupProviderInfo?.supportsCatalog ?? false;
+    const updateInstructions =
+        groupProviderInfo?.updateInstructions ??
+        `Update each dependency's version in the appropriate config file, then run \`${installCommand}\`.`;
 
     const context = {
         groupName,
@@ -191,6 +199,7 @@ export function buildGroupIssueDescription(
         dueDate,
         installCommand,
         supportsCatalog,
+        updateInstructions,
         dependencies: dependencies
             .map((dep) => {
                 const version = dep.versions[0];

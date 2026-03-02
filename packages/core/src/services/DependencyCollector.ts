@@ -95,6 +95,15 @@ export class DependencyCollector {
                 supportsCatalog: provider.supportsCatalog,
                 installCommand: provider.installCommand,
                 urlPatterns: provider.urlPatterns,
+                ...(provider.updatePrefix !== undefined && {
+                    updatePrefix: provider.updatePrefix,
+                }),
+                ...(provider.updateSuffix !== undefined && {
+                    updateSuffix: provider.updateSuffix,
+                }),
+                ...(provider.updateInstructions !== undefined && {
+                    updateInstructions: provider.updateInstructions,
+                }),
                 dependencies,
             });
         }

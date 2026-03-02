@@ -17,6 +17,9 @@ export interface DependencyProvider {
     readonly supportsCatalog: boolean;
     readonly installCommand: string;
     readonly urlPatterns: Record<string, string>;
+    readonly updatePrefix?: string;
+    readonly updateSuffix?: string;
+    readonly updateInstructions?: string;
     getPackages(): Promise<PackageInfo[]>;
     isInCatalog(name: string, version: string): boolean;
     hasInCatalog(name: string): boolean;

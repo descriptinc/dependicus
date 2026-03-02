@@ -87,6 +87,9 @@ export interface ProviderInfo {
     supportsCatalog: boolean;
     installCommand: string;
     urlPatterns: Record<string, string>; // label -> URL template with {{name}}, {{version}}
+    updatePrefix?: string; // markdown shown before the usedBy list in issue templates
+    updateSuffix?: string; // markdown shown after the usedBy list in issue templates
+    updateInstructions?: string; // standalone update instructions for group issues (no usedBy list)
 }
 
 /**

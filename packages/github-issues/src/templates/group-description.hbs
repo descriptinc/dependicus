@@ -49,8 +49,10 @@ catalog:
 
 Then run `{{installCommand}}` to update the lockfile.
 {{else}}
-Update each dependency's version in the appropriate config file, then run `{{installCommand}}`.
+{{updateInstructions}}
 {{/if}}
+
+*Notes for coding agents*
 
 *PR title should be: "Update {{groupName}} dependencies"*
 

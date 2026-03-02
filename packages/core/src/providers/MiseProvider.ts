@@ -73,6 +73,10 @@ export class MiseProvider implements DependencyProvider {
     readonly urlPatterns = {
         Registry: 'https://mise-versions.jdx.dev/tools/{{name}}',
     };
+    readonly updatePrefix = 'Update the version in the following config file:';
+    readonly updateSuffix = 'Then, run `mise install`.';
+    readonly updateInstructions =
+        'Update each tool version in the appropriate config file, then run `mise install`.';
     readonly rootDir: string;
     readonly lockfilePath: string;
     private cachedPackages: PackageInfo[] | undefined = undefined;

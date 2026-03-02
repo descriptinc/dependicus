@@ -67,7 +67,7 @@ catalog:
 
 Alternatively, update each package to `"{{name}}": "{{effectiveLatestVersion}}"` individually.
 {{else}}
-This dependency is NOT in the catalog. Update the following workspace:
+This dependency is NOT in the catalog. {{updatePrefix}}
 
 {{#each usedByList}}
 - `{{this}}`
@@ -76,11 +76,11 @@ This dependency is NOT in the catalog. Update the following workspace:
 - ... and {{usedByOverflow}} more
 {{/if}}
 
-Then, run `{{installCommand}}` to update the lockfile.
+{{updateSuffix}}
 {{/if}}
 {{/if}}
 {{else}}
-Update the following workspace:
+{{updatePrefix}}
 
 {{#each usedByList}}
 - `{{this}}`
@@ -89,7 +89,7 @@ Update the following workspace:
 - ... and {{usedByOverflow}} more
 {{/if}}
 
-Then, run `{{installCommand}}` to update the lockfile.
+{{updateSuffix}}
 {{/if}}
 
 {{#if hasPatches}}
@@ -155,6 +155,8 @@ This dependency brings in the following deprecated transitive dependencies:
 {{/each}}
 
 {{/if}}
+*Notes for coding agents*
+
 *PR title should be: "Update {{name}} from {{currentVersion}} to {{minVersion}}"*
 
 *If the PR body makes claims about the changes in the new version, include URL references to release notes, changelogs, or commit diffs that support those claims.*
