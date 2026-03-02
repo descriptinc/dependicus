@@ -7,4 +7,5 @@ dependicus-out/
 hk.local.pkl
 .package-manager
 .yarn/install-state.gz
+.claude/settings.local.json
 .venv/
