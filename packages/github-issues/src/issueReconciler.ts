@@ -54,6 +54,7 @@ export interface IssueReconcilerConfig {
 export interface ReconciliationResult {
     created: number;
     updated: number;
+    skipped: number;
     closed: number;
     closedDuplicates: number;
 }
@@ -395,7 +396,7 @@ export async function reconcileGitHubIssues(
     const firstDep = outdatedDeps.values().next().value as OutdatedDependency | undefined;
     if (!firstDep && ungroupedDeps.size === 0 && outdatedGroups.size === 0) {
         process.stderr.write('No outdated dependencies to reconcile\n');
-        return { created: 0, updated: 0, closed: 0, closedDuplicates: 0 };
+        return { created: 0, updated: 0, skipped: 0, closed: 0, closedDuplicates: 0 };
     }
 
     const owner = firstDep?.owner ?? '';
@@ -403,7 +404,7 @@ export async function reconcileGitHubIssues(
 
     if (!owner || !repo) {
         process.stderr.write('No owner/repo found in issue specs\n');
-        return { created: 0, updated: 0, closed: 0, closedDuplicates: 0 };
+        return { created: 0, updated: 0, skipped: 0, closed: 0, closedDuplicates: 0 };
     }
 
     // Search for existing issues
@@ -455,6 +456,7 @@ export async function reconcileGitHubIssues(
     // Process non-compliant dependencies
     let created = 0;
     let updated = 0;
+    let skipped = 0;
 
     // Process ungrouped dependencies
     for (const dep of ungroupedDeps.values()) {
@@ -562,11 +564,18 @@ export async function reconcileGitHubIssues(
                 }
             }
 
-            // Update issue
-            await githubService.updateIssue(owner, repo, existingIssue.number, {
-                title,
-                description,
-            });
+            // Update issue (skip if title and body are unchanged)
+            const fullTitle = `[Dependicus] ${title}`;
+            const changed = existingIssue.title !== fullTitle || existingIssue.body !== description;
+            if (changed) {
+                await githubService.updateIssue(owner, repo, existingIssue.number, {
+                    title,
+                    description,
+                });
+                updated++;
+            } else {
+                skipped++;
+            }
             if (comment) {
                 await githubService.createComment(owner, repo, existingIssue.number, comment);
                 if (!dryRun) {
@@ -575,9 +584,14 @@ export async function reconcileGitHubIssues(
                     );
                 }
             } else if (!dryRun) {
-                process.stderr.write(`Updated ${dep.name} (#${existingIssue.number})\n`);
+                if (changed) {
+                    process.stderr.write(`Updated ${dep.name} (#${existingIssue.number})\n`);
+                } else {
+                    process.stderr.write(
+                        `Skipped ${dep.name} (#${existingIssue.number}) - unchanged\n`,
+                    );
+                }
             }
-            updated++;
 
             existingIssuesByDependency.delete(dep.name);
         } else {
@@ -707,17 +721,28 @@ export async function reconcileGitHubIssues(
                 continue;
             }
 
-            // Update issue
-            await githubService.updateIssue(owner, repo, existingIssue.number, {
-                title,
-                description,
-            });
-            if (!dryRun) {
-                process.stderr.write(
-                    `Updated ${group.groupName} group (#${existingIssue.number}) - ${group.dependencies.length} dependencies\n`,
-                );
+            // Update issue (skip if title and body are unchanged)
+            const fullTitle = `[Dependicus] ${title}`;
+            const changed = existingIssue.title !== fullTitle || existingIssue.body !== description;
+            if (changed) {
+                await githubService.updateIssue(owner, repo, existingIssue.number, {
+                    title,
+                    description,
+                });
+                if (!dryRun) {
+                    process.stderr.write(
+                        `Updated ${group.groupName} group (#${existingIssue.number}) - ${group.dependencies.length} dependencies\n`,
+                    );
+                }
+                updated++;
+            } else {
+                if (!dryRun) {
+                    process.stderr.write(
+                        `Skipped ${group.groupName} group (#${existingIssue.number}) - unchanged\n`,
+                    );
+                }
+                skipped++;
             }
-            updated++;
 
             existingIssuesByDependency.delete(group.groupName);
         } else {
@@ -784,8 +809,8 @@ export async function reconcileGitHubIssues(
     }
 
     process.stderr.write(
-        `\nSummary: created=${created}, updated=${updated}, closed=${closed}, closedDuplicates=${closedDuplicates}\n`,
+        `\nSummary: created=${created}, updated=${updated}, skipped=${skipped}, closed=${closed}, closedDuplicates=${closedDuplicates}\n`,
     );
 
-    return { created, updated, closed, closedDuplicates };
+    return { created, updated, skipped, closed, closedDuplicates };
 }

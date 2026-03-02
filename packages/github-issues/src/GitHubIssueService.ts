@@ -8,6 +8,8 @@ export interface DependicusIssue {
     /** GitHub issue number */
     number: number;
     title: string;
+    /** Issue body (markdown description) */
+    body: string;
     /**
      * For single-dependency issues: the dependency name (e.g., "react")
      * For group issues: the group name (e.g., "sentry")
@@ -111,6 +113,7 @@ export class GitHubIssueService {
                 issues.push({
                     number: issue.number,
                     title: issue.title,
+                    body: issue.body ?? '',
                     dependencyName,
                     isGroup: groupName !== undefined,
                     updatedAt: issue.updated_at,

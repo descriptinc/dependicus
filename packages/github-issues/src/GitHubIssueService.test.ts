@@ -92,6 +92,7 @@ describe('GitHubIssueService', () => {
             expect(issues[0]).toEqual({
                 number: 42,
                 title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
+                body: '',
                 dependencyName: 'react',
                 isGroup: false,
                 updatedAt: '2025-01-15T00:00:00Z',

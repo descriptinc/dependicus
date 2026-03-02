@@ -79,7 +79,12 @@ function makeSpec(overrides: Partial<GitHubIssueSpec> = {}): GitHubIssueSpec {
 }
 
 function setupMocks(
-    existingIssues: Array<{ number: number; title: string; updated_at: string }> = [],
+    existingIssues: Array<{
+        number: number;
+        title: string;
+        updated_at: string;
+        body?: string;
+    }> = [],
 ) {
     mockOctokit.issues.getLabel.mockResolvedValue({ data: { name: 'dependicus' } });
     mockOctokit.issues.listForRepo.mockResolvedValue({ data: existingIssues });
@@ -137,6 +142,42 @@ describe('reconcileGitHubIssues', () => {
         expect(result.updated).toBe(1);
         expect(result.created).toBe(0);
         expect(mockOctokit.issues.update).toHaveBeenCalled();
+    });
+
+    it('skips update when title and body are unchanged', async () => {
+        // First, create an issue to capture the generated title and body
+        setupMocks();
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
+        const store = makeStore();
+
+        await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({ policy: { type: 'fyi' } }),
+        );
+
+        const createCall = mockOctokit.issues.create.mock.calls[0]![0];
+        const createdTitle = createCall.title;
+        const createdBody = createCall.body;
+
+        // Now set up mocks with that exact title and body as an existing issue
+        vi.clearAllMocks();
+        setupMocks([
+            {
+                number: 42,
+                title: createdTitle,
+                body: createdBody,
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+        ]);
+
+        const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({ policy: { type: 'fyi' } }),
+        );
+
+        expect(result.skipped).toBe(1);
+        expect(result.updated).toBe(0);
+        expect(mockOctokit.issues.update).not.toHaveBeenCalled();
     });
 
     it('closes issues for now-compliant packages', async () => {
@@ -332,6 +373,12 @@ describe('reconcileGitHubIssues', () => {
             makeSpec({ policy: { type: 'fyi' } }),
         );
 
-        expect(result).toEqual({ created: 0, updated: 0, closed: 0, closedDuplicates: 0 });
+        expect(result).toEqual({
+            created: 0,
+            updated: 0,
+            skipped: 0,
+            closed: 0,
+            closedDuplicates: 0,
+        });
     });
 });
