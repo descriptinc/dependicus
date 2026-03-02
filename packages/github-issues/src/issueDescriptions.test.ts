@@ -166,6 +166,9 @@ const npmProviderInfo = {
         'Dependency Graph': 'https://npmgraph.js.org/?q={{name}}@{{version}}',
         Registry: 'https://www.npmjs.com/package/{{name}}/v/{{version}}',
     },
+    catalogFile: 'pnpm-workspace.yaml',
+    patchHint:
+        'This dependency has a patch applied in `pnpm-workspace.yaml`. When upgrading, check if the patch is still needed or should be removed.',
 };
 
 const npmProviderInfoMap = new Map([['npm', npmProviderInfo]]);

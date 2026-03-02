@@ -9,7 +9,8 @@
             "@dependicus/providers-node": ["../providers-node/src/index.ts"],
             "@dependicus/site-builder": ["../site-builder/src/index.ts"],
             "@dependicus/site-frontend": ["../site-frontend/src/index.ts"],
-            "@dependicus/github-issues": ["../github-issues/src/index.ts"]
+            "@dependicus/github-issues": ["../github-issues/src/index.ts"],
+            "@dependicus/providers-python": ["../providers-python/src/index.ts"]
         }
     },
     "include": [
@@ -18,6 +19,7 @@
         "../linear/src/**/*",
         "../provider-mise/src/**/*",
         "../providers-node/src/**/*",
+        "../providers-python/src/**/*",
         "../site-builder/src/**/*",
         "../site-frontend/src/**/*",
         "../github-issues/src/**/*"

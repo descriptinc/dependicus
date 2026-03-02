@@ -54,6 +54,18 @@ Wait at least this many days after a release before creating or updating tickets
 
 You can set this to `false` to disable ticket creation, for example when running CI on pull requests.
 
+### `linear.skipStateNames` (optional): `string[]`
+
+Skip updating issues whose Linear workflow state name matches any entry (case-insensitive). For example, if your Linear workspace has custom states like "PR" and "Verify" for issues that are actively being worked on, you can prevent Dependicus from overwriting them:
+
+```ts
+linear: {
+    skipStateNames: ['pr', 'verify'],
+}
+```
+
+When omitted (the default), Dependicus updates all non-closed issues regardless of state.
+
 ## GitHub Issues
 
 Dependicus can also create and manage GitHub Issues for outdated dependencies. Like Linear, there is no default behavior — you must provide a `getGitHubIssueSpec()` function or a plugin.

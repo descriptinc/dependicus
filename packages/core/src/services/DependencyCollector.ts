@@ -47,6 +47,12 @@ export class DependencyCollector {
                 ...(provider.updateInstructions !== undefined && {
                     updateInstructions: provider.updateInstructions,
                 }),
+                ...(provider.catalogFile !== undefined && {
+                    catalogFile: provider.catalogFile,
+                }),
+                ...(provider.patchHint !== undefined && {
+                    patchHint: provider.patchHint,
+                }),
                 dependencies,
             });
         }

@@ -304,7 +304,8 @@ describe('reconcileIssues', () => {
         populateFacts(store, 'test-pkg', v);
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const configWithSkip = { ...defaultConfig, skipStateNames: ['pr', 'verify'] };
+        const result = await reconcileIssues(deps, store, configWithSkip, testGetLinearIssueSpec);
         expect(result.updated).toBe(0);
         expect(result.closed).toBe(0);
     });
@@ -409,7 +410,8 @@ describe('reconcileIssues', () => {
         populateFacts(store, 'test-pkg', v);
         const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
 
-        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
+        const configWithSkip = { ...defaultConfig, skipStateNames: ['pr', 'verify'] };
+        const result = await reconcileIssues(deps, store, configWithSkip, testGetLinearIssueSpec);
         expect(result.updated).toBe(0);
         // Should not close either — issue is in progress
         expect(result.closed).toBe(0);
@@ -904,10 +906,11 @@ describe('reconcileIssues', () => {
                 makeDep('group-b', [gB.version]),
             ];
 
+            const configWithSkip = { ...defaultConfig, skipStateNames: ['pr', 'verify'] };
             const result = await reconcileIssues(
                 deps,
                 store,
-                defaultConfig,
+                configWithSkip,
                 testGetLinearIssueSpec,
             );
             expect(result.updated).toBe(0);

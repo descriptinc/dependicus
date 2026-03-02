@@ -31,7 +31,7 @@
 
 {{#if supportsCatalog}}
 {{#if inCatalog}}
-This dependency is managed in the pnpm catalog. Edit `pnpm-workspace.yaml`:
+This dependency is managed in the catalog. Edit `{{catalogFile}}`:
 
 ```yaml
 catalog:
@@ -43,7 +43,7 @@ Then, run `{{installCommand}}` to update the lockfile.
 {{#if shouldRecommendCatalog}}
 This dependency is used by {{usedByCount}} packages. Consider adding it to the catalog:
 
-1. **Add to catalog** - Edit `pnpm-workspace.yaml`:
+1. **Add to catalog** - Edit `{{catalogFile}}`:
 
 ```yaml
 catalog:
@@ -95,7 +95,7 @@ This dependency is NOT in the catalog. {{updatePrefix}}
 {{#if hasPatches}}
 ## ⚠️ Patch Applied
 
-This dependency has a patch applied in `pnpm-workspace.yaml`. When upgrading, check if the patch is still needed or should be removed.
+{{patchHint}}
 
 {{/if}}
 {{#each descriptionSections}}

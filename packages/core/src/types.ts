@@ -23,7 +23,7 @@ export interface DependencyVersion {
     usedBy: string[]; // package names using this version
     dependencyTypes: ('dev' | 'prod')[]; // whether used as dev and/or prod dependency
     publishDate: string | undefined; // ISO date string when this version was published
-    inCatalog: boolean; // whether this version is pinned in pnpm-workspace.yaml catalog
+    inCatalog: boolean; // whether this version is managed via a provider catalog (e.g. pnpm catalog, bun workspace)
 }
 
 export interface DirectDependency {
@@ -90,6 +90,8 @@ export interface ProviderInfo {
     updatePrefix?: string; // markdown shown before the usedBy list in issue templates
     updateSuffix?: string; // markdown shown after the usedBy list in issue templates
     updateInstructions?: string; // standalone update instructions for group issues (no usedBy list)
+    catalogFile?: string; // file that holds the catalog (e.g. "pnpm-workspace.yaml", "package.json")
+    patchHint?: string; // free-form markdown shown when a dependency has local patches applied
 }
 
 /**

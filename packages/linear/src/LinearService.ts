@@ -37,7 +37,7 @@ export interface CreateIssueParams {
     /** Optional - notifications-only packages don't have due dates */
     dueDate?: Date;
     description: string;
-    /** Optional - delegate to an AI agent (e.g., Cursor) for automatic PR creation */
+    /** Optional - delegate to a Linear user or bot for automatic handling */
     delegateId?: string;
 }
 
@@ -161,7 +161,7 @@ export class LinearService {
 
     /**
      * Create a new Dependicus issue.
-     * Returns the issue identifier (e.g., "BIX-1234") or "DRY-RUN" in dry-run mode.
+     * Returns the issue identifier (e.g., "ENG-1234") or "DRY-RUN" in dry-run mode.
      */
     async createIssue(params: CreateIssueParams): Promise<string> {
         const { dependencyName, title, teamId, projectId, dueDate, description, delegateId } =
@@ -180,7 +180,7 @@ export class LinearService {
                 process.stderr.write(`\nDue Date: (none - notifications only)\n`);
             }
             if (delegateId) {
-                process.stderr.write(`\nDelegate: Cursor agent (auto-PR for patch update)\n`);
+                process.stderr.write(`\nDelegate: ${delegateId}\n`);
             }
             process.stderr.write('\n' + '='.repeat(80) + '\n');
             return 'DRY-RUN';

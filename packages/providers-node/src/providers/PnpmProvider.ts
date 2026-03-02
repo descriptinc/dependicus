@@ -32,6 +32,9 @@ export class PnpmProvider implements DependencyProvider {
         'Dependency Graph': 'https://npmgraph.js.org/?q={{name}}@{{version}}',
         Registry: 'https://www.npmjs.com/package/{{name}}/v/{{version}}',
     };
+    readonly catalogFile = 'pnpm-workspace.yaml';
+    readonly patchHint =
+        'This dependency has a patch applied in `pnpm-workspace.yaml`. When upgrading, check if the patch is still needed or should be removed.';
     readonly rootDir: string;
     readonly lockfilePath: string;
     private cachedPackages: PackageInfo[] | undefined = undefined;

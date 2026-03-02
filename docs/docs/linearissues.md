@@ -41,8 +41,8 @@ void dependicusCli({
 
             // SLA-enforced issues for minor/patch.
             // Auto-assign patch releases to a bot — but not if the
-            // dependency has local patches (pnpm patch), since those
-            // need human attention when updating.
+            // dependency has local patches applied, since those need
+            // human attention when updating.
             const isPatched = store.getVersionFact<boolean>(
                 name,
                 currentVersion,

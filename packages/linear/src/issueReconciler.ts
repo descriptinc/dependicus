@@ -49,6 +49,8 @@ export interface IssueReconcilerConfig {
     allowNewIssues?: boolean;
     /** Provider info map (ecosystem -> ProviderInfo) for presentation metadata */
     providerInfoMap?: Map<string, ProviderInfo>;
+    /** Skip updating issues whose Linear state name (case-insensitive) matches any entry. */
+    skipStateNames?: string[];
 }
 
 export interface ReconciliationResult {
@@ -236,6 +238,8 @@ export async function reconcileIssues(
             const filename = getDetailFilename(pkg, ver);
             return `${dependicusBaseUrl}/details/${filename}`;
         });
+
+    const skipStateNamesSet = new Set((config.skipStateNames ?? []).map((s) => s.toLowerCase()));
 
     const linearService = new LinearService(config.linearApiKey, { dryRun });
 
@@ -517,7 +521,8 @@ export async function reconcileIssues(
         if (existingIssue) {
             // Issue exists - check if it's in a state where we should skip updating
             const issueStateName = existingIssue.state.name?.toLowerCase();
-            const skipUpdate = issueStateName === 'pr' || issueStateName === 'verify';
+            const skipUpdate =
+                issueStateName !== undefined && skipStateNamesSet.has(issueStateName);
 
             if (skipUpdate) {
                 if (!dryRun) {
@@ -696,7 +701,8 @@ export async function reconcileIssues(
 
         if (existingIssue) {
             const issueStateName = existingIssue.state.name?.toLowerCase();
-            const skipUpdate = issueStateName === 'pr' || issueStateName === 'verify';
+            const skipUpdate =
+                issueStateName !== undefined && skipStateNamesSet.has(issueStateName);
 
             if (skipUpdate) {
                 if (!dryRun) {

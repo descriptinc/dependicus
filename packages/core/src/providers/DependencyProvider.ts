@@ -20,6 +20,8 @@ export interface DependencyProvider {
     readonly updatePrefix?: string;
     readonly updateSuffix?: string;
     readonly updateInstructions?: string;
+    readonly catalogFile?: string;
+    readonly patchHint?: string;
     getPackages(): Promise<PackageInfo[]>;
     isInCatalog(name: string, version: string): boolean;
     hasInCatalog(name: string): boolean;

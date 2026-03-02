@@ -109,6 +109,10 @@ export function buildIssueDescription(
 
     const installCommand = providerInfo?.installCommand ?? 'install';
     const supportsCatalog = providerInfo?.supportsCatalog ?? false;
+    const catalogFile = providerInfo?.catalogFile;
+    const patchHint =
+        providerInfo?.patchHint ??
+        'This dependency has local patches applied. When upgrading, check if the patches are still needed or should be removed.';
     const updatePrefix = providerInfo?.updatePrefix ?? 'Update the version in:';
     const updateSuffix =
         providerInfo?.updateSuffix ?? `Then, run \`${installCommand}\` to update the lockfile.`;
@@ -139,10 +143,12 @@ export function buildIssueDescription(
         dependencyTypes: version.dependencyTypes,
         inCatalog: version.inCatalog,
         supportsCatalog,
+        catalogFile,
         shouldRecommendCatalog,
         installCommand,
         updatePrefix,
         updateSuffix,
+        patchHint,
         urls,
         usedByCount: usedBy.length,
         usedByList: usedBy.slice(0, 20),
@@ -185,6 +191,7 @@ export function buildGroupIssueDescription(
     const groupProviderInfo = firstDep ? providerInfoMap?.get(firstDep.ecosystem) : undefined;
     const installCommand = groupProviderInfo?.installCommand ?? 'install';
     const supportsCatalog = groupProviderInfo?.supportsCatalog ?? false;
+    const catalogFile = groupProviderInfo?.catalogFile;
     const updateInstructions =
         groupProviderInfo?.updateInstructions ??
         `Update each dependency's version in the appropriate config file, then run \`${installCommand}\`.`;
@@ -199,6 +206,7 @@ export function buildGroupIssueDescription(
         dueDate,
         installCommand,
         supportsCatalog,
+        catalogFile,
         updateInstructions,
         dependencies: dependencies
             .map((dep) => {

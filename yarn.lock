@@ -124,6 +124,7 @@ __metadata:
     "@dependicus/linear": "workspace:*"
     "@dependicus/provider-mise": "workspace:*"
     "@dependicus/providers-node": "workspace:*"
+    "@dependicus/providers-python": "workspace:*"
     "@dependicus/site-builder": "workspace:*"
     "@types/node": "npm:^25.3.0"
     commander: "npm:^14.0.3"
@@ -175,6 +176,20 @@ __metadata:
     "@types/node": "npm:^25.3.0"
     "@types/semver": "npm:^7.7.1"
     js-yaml: "npm:^4.1.1"
+    semver: "npm:^7.7.4"
+    tsdown: "npm:^0.20.3"
+    typescript: "npm:^5.9.3"
+    vitest: "npm:^4.0.18"
+  languageName: unknown
+  linkType: soft
+
+"@dependicus/providers-python@workspace:*, @dependicus/providers-python@workspace:packages/providers-python":
+  version: 0.0.0-use.local
+  resolution: "@dependicus/providers-python@workspace:packages/providers-python"
+  dependencies:
+    "@dependicus/core": "workspace:*"
+    "@types/node": "npm:^25.3.0"
+    "@types/semver": "npm:^7.7.1"
     semver: "npm:^7.7.4"
     tsdown: "npm:^0.20.3"
     typescript: "npm:^5.9.3"

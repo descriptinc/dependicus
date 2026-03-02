@@ -6,9 +6,9 @@
 export const FactKeys = {
     // ── Version-level facts ──────────────────────────────────────────────
 
-    /** npm package description. `string` */
+    /** Package description. `string` */
     DESCRIPTION: 'description',
-    /** npm homepage URL. `string` */
+    /** Homepage URL. `string` */
     HOMEPAGE: 'homepage',
     /** Source repository URL (normalized). `string` */
     REPOSITORY_URL: 'repositoryUrl',
@@ -22,11 +22,11 @@ export const FactKeys = {
     COMPARE_URL: 'compareUrl',
     /** Whether this specific version is deprecated on npm. `boolean` */
     IS_DEPRECATED: 'isDeprecated',
-    /** Whether the installed version has local patches (e.g. pnpm patch). `boolean` */
+    /** Whether the installed version has local patches applied. `boolean` */
     IS_PATCHED: 'isPatched',
     /** Whether the dependency is an internal fork—this value comes only from custom configuration. `boolean` */
     IS_FORKED: 'isForked',
-    /** Whether the installed version differs from the pnpm catalog pin. `boolean` */
+    /** Whether the installed version differs from the catalog pin. `boolean` */
     HAS_CATALOG_MISMATCH: 'hasCatalogMismatch',
     /** Raw repository URL before normalization (e.g. git+https://...). `string` */
     RAW_REPO_URL: 'rawRepoUrl',

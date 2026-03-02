@@ -55,6 +55,8 @@ export interface DependicusCliConfig {
         cooldownDays?: number;
         /** Whether to allow new issue creation. Defaults to `true`. */
         allowNewIssues?: boolean;
+        /** Skip updating issues whose Linear state name (case-insensitive) matches any entry. */
+        skipStateNames?: string[];
     };
     /** GitHub Issues integration configuration. */
     github?: {
@@ -307,6 +309,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                                 getDetailUrl,
                                 cooldownDays: linearConfig.cooldownDays,
                                 allowNewIssues: linearConfig.allowNewIssues,
+                                skipStateNames: linearConfig.skipStateNames,
                             },
                             effectiveGetLinearIssueSpec,
                         );
