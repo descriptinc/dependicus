@@ -3,16 +3,20 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { load } from 'js-yaml';
 import { satisfies, validRange } from 'semver';
-import type { PackageInfo } from '../types';
-import type { CacheService } from '../services/CacheService';
-import type { DependencyProvider, SourceContext } from './DependencyProvider';
-import type { DataSource } from '../sources/types';
+import type {
+    PackageInfo,
+    DependencyProvider,
+    SourceContext,
+    DataSource,
+    CacheService,
+} from '@dependicus/core';
+import { BUFFER_SIZES } from '@dependicus/core';
 import { NpmRegistryService } from '../services/NpmRegistryService';
 import { NpmRegistrySource } from '../sources/NpmRegistrySource';
 import { NpmSizeSource } from '../sources/NpmSizeSource';
 import { DeprecationSource } from '../sources/DeprecationSource';
 import { DeprecationService } from '../services/DeprecationService';
-import { BUFFER_SIZES } from '../constants';
+import { resolveNpmMetadata } from '../resolveNpmMetadata';
 
 interface PnpmWorkspace {
     patchedDependencies?: Record<string, string>;
@@ -33,11 +37,10 @@ export class PnpmProvider implements DependencyProvider {
     private cachedPackages: PackageInfo[] | undefined = undefined;
     private patchedDeps: Set<string>;
     private catalogVersions: Map<string, string>;
+    private cacheService: CacheService;
 
-    constructor(
-        private cacheService: CacheService,
-        rootDir: string,
-    ) {
+    constructor(cacheService: CacheService, rootDir: string) {
+        this.cacheService = cacheService;
         this.rootDir = rootDir;
         this.lockfilePath = join(rootDir, 'pnpm-lock.yaml');
 
@@ -116,5 +119,12 @@ export class PnpmProvider implements DependencyProvider {
             new NpmSizeSource(registryService),
             new DeprecationSource(deprecationService),
         ];
+    }
+
+    async resolveVersionMetadata(
+        packages: Array<{ name: string; versions: string[] }>,
+    ): Promise<Map<string, { publishDate: string | undefined; latestVersion: string }>> {
+        const registryService = new NpmRegistryService(this.cacheService, this.lockfilePath);
+        return resolveNpmMetadata(registryService, packages);
     }
 }

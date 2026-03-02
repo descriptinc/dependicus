@@ -3,11 +3,9 @@ import type { ProviderOutput } from './types';
 import { mergeProviderDependencies } from './types';
 import { parseDependicusOutput } from './schema';
 import { CacheService } from './services/CacheService';
-import { NpmRegistryService } from './services/NpmRegistryService';
 import { GitHubService } from './services/GitHubService';
-import { DependencyCollector, NpmMetadataResolver } from './services/DependencyCollector';
+import { DependencyCollector } from './services/DependencyCollector';
 import type { DependencyProvider } from './providers/DependencyProvider';
-import { detectProviders, createProvidersByName } from './providers';
 import type { DataSource } from './sources/types';
 import { RootFactStore, FactKeys } from './sources/FactStore';
 import { runSources } from './sources/runSources';
@@ -17,10 +15,8 @@ import { WorkspaceSource } from './sources/WorkspaceSource';
 export interface CoreServicesConfig {
     repoRoot: string;
     cacheDir: string;
-    /** Explicit provider instances (takes precedence over providerNames). */
-    providers?: DependencyProvider[];
-    /** Provider names to use, e.g. ['pnpm'], ['bun'], ['pnpm', 'bun']. Auto-detects if omitted. */
-    providerNames?: string[];
+    /** Pre-built provider instances. */
+    providers: DependencyProvider[];
     sources?: DataSource[];
 }
 
@@ -29,22 +25,15 @@ export interface CoreServices {
 }
 
 export function createCoreServices(config: CoreServicesConfig): CoreServices {
-    const { repoRoot, cacheDir } = config;
+    const { repoRoot, cacheDir, providers } = config;
     const cacheService = new CacheService(cacheDir);
 
-    const providers =
-        config.providers ??
-        (config.providerNames
-            ? createProvidersByName(config.providerNames, cacheService, repoRoot)
-            : detectProviders(cacheService, repoRoot));
     // Use the first provider's lockfile for cache invalidation of shared services
     const lockfilePath = providers[0]!.lockfilePath;
 
-    const registryService = new NpmRegistryService(cacheService, lockfilePath);
     const githubService = new GitHubService(cacheService, lockfilePath);
 
-    const npmResolver = new NpmMetadataResolver(registryService);
-    const collector = new DependencyCollector(providers, npmResolver);
+    const collector = new DependencyCollector(providers);
 
     const sourceCtx = { cacheService, githubService, repoRoot };
 

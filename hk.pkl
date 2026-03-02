@@ -8,7 +8,7 @@ local linters = new Mapping<String, Step> {
     }
     ["oxfmt"] {
         glob = List("**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json", "**/*.css", "**/*.md", "**/*.yml", "**/*.yaml")
-        exclude = List("pnpm-lock.yaml", "bun.lock", "yarn.lock", "package-lock.json")
+        exclude = List("pnpm-lock.yaml", "bun.lock", "yarn.lock", "package-lock.json", ".claude/settings.json", ".claude/settings.local.json")
         check = "./node_modules/.bin/oxfmt --check {{files}}"
         fix = "./node_modules/.bin/oxfmt --write {{files}}"
         batch = true

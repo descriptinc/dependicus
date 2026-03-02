@@ -1,9 +1,6 @@
 import * as semver from 'semver';
-import type { CacheService } from './CacheService';
-import { WORKER_COUNT } from '../constants';
-import { sanitizeCacheKey } from '../utils/formatters';
-import { processInParallel } from '../utils/workerQueue';
-import type { PackageVersionInfo } from '../types';
+import { CacheService, WORKER_COUNT, sanitizeCacheKey, processInParallel } from '@dependicus/core';
+import type { PackageVersionInfo } from '@dependicus/core';
 
 export interface PackageMetadata {
     name: string;

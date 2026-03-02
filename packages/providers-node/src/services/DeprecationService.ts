@@ -2,12 +2,15 @@ import { execFile, execSync } from 'node:child_process';
 import { copyFileSync, existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import type { CacheService } from './CacheService';
-import { BUFFER_SIZES, WORKER_COUNT } from '../constants';
+import {
+    CacheService,
+    BUFFER_SIZES,
+    WORKER_COUNT,
+    sanitizeCacheKey,
+    processInParallel,
+} from '@dependicus/core';
 
 const execFileAsync = promisify(execFile);
-import { processInParallel } from '../utils/workerQueue';
-import { sanitizeCacheKey } from '../utils/formatters';
 
 export class DeprecationService {
     private deprecatedPackages: Set<string> | undefined = undefined;

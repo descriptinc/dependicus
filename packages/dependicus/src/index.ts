@@ -36,6 +36,9 @@ export { dependicusCli } from './cli';
 export type { DependicusCliConfig } from './cli';
 
 /** @group Core Types */
+export type { DependencyProvider } from '@dependicus/core';
+
+/** @group Core Types */
 export type { DirectDependency } from '@dependicus/core';
 
 /** @group Core Types */

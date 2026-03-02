@@ -1,4 +1,6 @@
 export type {
+    PackageInfo,
+    DependencyInfo,
     DetailPage,
     DirectDependency,
     DependencyVersion,
@@ -31,6 +33,8 @@ export {
     getVersionsBehind,
     formatBytes,
     formatSizeChange,
+    sanitizeCacheKey,
+    convertGitUrlToHttps,
 } from './utils/formatters';
 
 export {
@@ -58,19 +62,18 @@ export { createCoreServices, readDependicusJson } from './createCoreServices';
 export type { CoreServicesConfig, CoreServices } from './createCoreServices';
 
 // Providers
-export type { DependencyProvider } from './providers/DependencyProvider';
-export { PnpmProvider } from './providers/PnpmProvider';
-export { BunProvider } from './providers/BunProvider';
-export { YarnProvider } from './providers/YarnProvider';
-export { detectProviders, detectRuntime, createProvidersByName } from './providers';
+export type { DependencyProvider, SourceContext } from './providers/DependencyProvider';
 
 // Sources module
 export type { DataSource } from './sources/types';
 export type { FactStore, SerializedFacts } from './sources/FactStore';
 export { RootFactStore, ScopedFactStore, FactKeys } from './sources/FactStore';
 export { runSources } from './sources/runSources';
-export { NpmRegistrySource } from './sources/NpmRegistrySource';
-export { NpmSizeSource } from './sources/NpmSizeSource';
 export { GitHubSource } from './sources/GitHubSource';
-export { DeprecationSource } from './sources/DeprecationSource';
 export { WorkspaceSource } from './sources/WorkspaceSource';
+
+// Infrastructure shared with provider packages
+export { CacheService } from './services/CacheService';
+export { BUFFER_SIZES, WORKER_COUNT } from './constants';
+export { processInParallel } from './utils/workerQueue';
+export type { WorkerQueueOptions } from './utils/workerQueue';

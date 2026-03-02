@@ -1,10 +1,13 @@
 import { execSync } from 'node:child_process';
 import { basename, dirname, join, relative } from 'node:path';
-import type { PackageInfo, DependencyInfo } from '../types';
-import type { CacheService } from '../services/CacheService';
-import type { DependencyProvider } from './DependencyProvider';
-import type { DataSource } from '../sources/types';
-import { MiseVersionsSource } from '../sources/MiseVersionsSource';
+import type {
+    PackageInfo,
+    DependencyInfo,
+    DependencyProvider,
+    DataSource,
+    CacheService,
+} from '@dependicus/core';
+import { MiseVersionsSource } from './MiseVersionsSource';
 
 /** Test whether a repo-relative path is a mise config file. */
 export function isMiseConfigFile(relPath: string): boolean {
@@ -189,9 +192,11 @@ export class MiseProvider implements DependencyProvider {
      * Tools already at latest (not in outdated output) get latestVersion = currentVersion.
      */
     async resolveVersionMetadata(
-        packageNames: string[],
+        packages: Array<{ name: string; versions: string[] }>,
     ): Promise<Map<string, { publishDate: string | undefined; latestVersion: string }>> {
         process.stderr.write('Checking mise tool versions...\n');
+
+        const packageNames = packages.map((p) => p.name);
 
         const configDirs = this.discoverConfigDirs();
         const outdatedMap = new Map<string, string>();
@@ -219,9 +224,9 @@ export class MiseProvider implements DependencyProvider {
         }
 
         // Build the packages we were asked about from cached data
-        const packages = await this.getPackages();
+        const cachedPackages = await this.getPackages();
         const depMap = new Map<string, string>();
-        for (const pkg of packages) {
+        for (const pkg of cachedPackages) {
             if (pkg.dependencies) {
                 for (const [name, info] of Object.entries(pkg.dependencies)) {
                     depMap.set(name, info.version);

@@ -1,7 +1,6 @@
-import type { DirectDependency } from '../types';
+import type { DirectDependency, DataSource, FactStore } from '@dependicus/core';
+import { FactKeys } from '@dependicus/core';
 import type { DeprecationService } from '../services/DeprecationService';
-import type { DataSource, FactStore } from './types';
-import { FactKeys } from './FactStore';
 
 /**
  * Marks versions as deprecated and computes deprecated transitive dependencies

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { dependicusCli } from './cli';
-import type { DirectDependency, ProviderOutput } from '@dependicus/core';
+import type { DirectDependency, ProviderOutput, DependencyProvider } from '@dependicus/core';
 import { RootFactStore, readDependicusJson } from '@dependicus/core';
 
 // Mock external dependencies
@@ -72,11 +72,28 @@ function argv(...args: string[]): string[] {
     return ['node', 'dependicus', ...args];
 }
 
+const mockProvider: DependencyProvider = {
+    name: 'mock',
+    ecosystem: 'npm',
+    rootDir: '/repo',
+    lockfilePath: '/repo/mock.lock',
+    supportsCatalog: false,
+    installCommand: 'mock install',
+    urlPatterns: {},
+    getPackages: vi.fn().mockResolvedValue([]),
+    isInCatalog: vi.fn().mockReturnValue(false),
+    hasInCatalog: vi.fn().mockReturnValue(false),
+    isPatched: vi.fn().mockReturnValue(false),
+    createSources: vi.fn().mockReturnValue([]),
+    resolveVersionMetadata: vi.fn().mockResolvedValue(new Map()),
+};
+
 describe('dependicusCli', () => {
     const baseConfig = {
         repoRoot: '/repo',
         outputDir: '/repo/out',
         dependicusBaseUrl: 'https://example.com',
+        providers: [mockProvider],
     };
 
     beforeEach(() => {
@@ -372,6 +389,7 @@ describe('dependicusCli', () => {
             const cli = dependicusCli({
                 repoRoot: '/my-repo',
                 dependicusBaseUrl: 'https://example.com',
+                providers: [mockProvider],
             });
             await cli.run(argv('update'));
 

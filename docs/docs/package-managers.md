@@ -100,19 +100,3 @@ In CI, the runtime detection step relies on the process being launched by a pack
 ```sh
 node your-dependicus-script.js update --provider pnpm
 ```
-
-## Custom providers
-
-The `DependencyProvider` interface is exported from `@dependicus/core` for advanced use cases. If you need to support a package manager that isn't built in, you can implement the interface and pass it directly:
-
-```ts
-import { dependicusCli } from 'dependicus';
-import { MyCustomProvider } from './my-provider';
-
-void dependicusCli({
-    repoRoot,
-    providers: [new MyCustomProvider(cacheService, repoRoot)],
-}).run(process.argv);
-```
-
-The `providers` option takes precedence over `providerNames` and auto-detection.

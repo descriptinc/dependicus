@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DependencyCollector, NpmMetadataResolver } from './DependencyCollector';
+import { DependencyCollector } from './DependencyCollector';
 import type { DependencyProvider } from '../providers/DependencyProvider';
-import type { NpmRegistryService } from './NpmRegistryService';
 import type { PackageInfo } from '../types';
 
 function createMockProvider(packages: PackageInfo[] = []): DependencyProvider {
@@ -14,6 +13,7 @@ function createMockProvider(packages: PackageInfo[] = []): DependencyProvider {
         installCommand: 'pnpm install',
         urlPatterns: {},
         getPackages: vi.fn().mockResolvedValue(packages),
+        resolveVersionMetadata: vi.fn().mockResolvedValue(new Map()),
         isInCatalog: vi.fn().mockReturnValue(false),
         hasInCatalog: vi.fn().mockReturnValue(false),
         isPatched: vi.fn().mockReturnValue(false),
@@ -21,26 +21,14 @@ function createMockProvider(packages: PackageInfo[] = []): DependencyProvider {
     };
 }
 
-function createMockNpmRegistryService(): NpmRegistryService {
-    return {
-        getFullPackageMetadata: vi.fn().mockResolvedValue({
-            'dist-tags': { latest: '1.0.0' },
-            time: {},
-        }),
-        prefetchFullMetadata: vi.fn().mockResolvedValue(undefined),
-    } as unknown as NpmRegistryService;
-}
-
 describe('DependencyCollector', () => {
     let provider: DependencyProvider;
-    let registryService: NpmRegistryService;
     let collector: DependencyCollector;
 
     beforeEach(() => {
         vi.clearAllMocks();
         provider = createMockProvider();
-        registryService = createMockNpmRegistryService();
-        collector = new DependencyCollector([provider], new NpmMetadataResolver(registryService));
+        collector = new DependencyCollector([provider]);
     });
 
     describe('collectDirectDependencies', () => {
@@ -61,10 +49,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(
-                [provider],
-                new NpmMetadataResolver(registryService),
-            );
+            collector = new DependencyCollector([provider]);
 
             const result = await collector.collectDirectDependencies();
 
@@ -87,10 +72,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(
-                [provider],
-                new NpmMetadataResolver(registryService),
-            );
+            collector = new DependencyCollector([provider]);
 
             const result = await collector.collectDirectDependencies();
 
@@ -115,10 +97,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(
-                [provider],
-                new NpmMetadataResolver(registryService),
-            );
+            collector = new DependencyCollector([provider]);
 
             const result = await collector.collectDirectDependencies();
 
@@ -145,10 +124,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(
-                [provider],
-                new NpmMetadataResolver(registryService),
-            );
+            collector = new DependencyCollector([provider]);
 
             const result = await collector.collectDirectDependencies();
 
@@ -179,10 +155,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(
-                [provider],
-                new NpmMetadataResolver(registryService),
-            );
+            collector = new DependencyCollector([provider]);
 
             const result = await collector.collectDirectDependencies();
 
@@ -205,10 +178,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(
-                [provider],
-                new NpmMetadataResolver(registryService),
-            );
+            collector = new DependencyCollector([provider]);
 
             const result = await collector.collectDirectDependencies();
 
@@ -232,10 +202,7 @@ describe('DependencyCollector', () => {
                     },
                 },
             ]);
-            collector = new DependencyCollector(
-                [provider],
-                new NpmMetadataResolver(registryService),
-            );
+            collector = new DependencyCollector([provider]);
 
             const result = await collector.collectDirectDependencies();
 
@@ -254,10 +221,7 @@ describe('DependencyCollector', () => {
                 },
             ]);
             vi.mocked(provider.isInCatalog).mockReturnValue(true);
-            collector = new DependencyCollector(
-                [provider],
-                new NpmMetadataResolver(registryService),
-            );
+            collector = new DependencyCollector([provider]);
 
             const result = await collector.collectDirectDependencies();
 

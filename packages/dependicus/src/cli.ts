@@ -4,13 +4,17 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { Command } from 'commander';
+import { existsSync } from 'node:fs';
 import { createDependicus } from '@dependicus/site-builder';
 import {
     readDependicusJson,
     mergeProviderDependencies,
     createDetailUrlBuilder,
+    CacheService,
 } from '@dependicus/core';
-import type { FactStore, ProviderOutput } from '@dependicus/core';
+import type { FactStore, ProviderOutput, DependencyProvider } from '@dependicus/core';
+import { detectNodeProviders, createNodeProvidersByName } from '@dependicus/providers-node';
+import { MiseProvider } from '@dependicus/provider-mise';
 import { reconcileIssues } from '@dependicus/linear';
 import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
 import { reconcileGitHubIssues } from '@dependicus/github-issues';
@@ -35,6 +39,8 @@ export interface DependicusCliConfig {
     plugins?: DependicusPlugin[];
     /** Provider names to use for dependency analysis (e.g., 'pnpm', 'bun'). Auto-detects if omitted. */
     providerNames?: string[];
+    /** Pre-built provider instances. Takes precedence over `providerNames` and auto-detection. */
+    providers?: DependencyProvider[];
     /** Name shown in the site heading and title tag. Defaults to `'Dependicus for <basename of repoRoot>'`. */
     siteName?: string;
     /** Linear issue integration configuration. */
@@ -81,22 +87,52 @@ async function loadDependencies(
     });
 }
 
+function detectProviders(cacheService: CacheService, repoRoot: string): DependencyProvider[] {
+    const providers: DependencyProvider[] = detectNodeProviders(cacheService, repoRoot);
+    if (existsSync(join(repoRoot, 'mise.toml'))) {
+        providers.push(new MiseProvider(cacheService, repoRoot));
+    }
+    return providers;
+}
+
+function allProviders(cacheService: CacheService, repoRoot: string): DependencyProvider[] {
+    return [
+        ...createNodeProvidersByName(['pnpm', 'bun', 'yarn', 'npm'], cacheService, repoRoot),
+        new MiseProvider(cacheService, repoRoot),
+    ];
+}
+
 function createDependicusInstance(
     config: DependicusCliConfig & { repoRoot: string },
     resolved: ResolvedPlugins,
 ) {
     const siteName = config.siteName ?? `Dependicus for ${basename(config.repoRoot)}`;
+    const cacheDir = config.cacheDir ?? join(config.repoRoot, '.dependicus-cache');
+    const cacheService = new CacheService(cacheDir);
+    const providers = config.providers?.length
+        ? config.providers
+        : config.providerNames?.length
+          ? allProviders(cacheService, config.repoRoot).filter((p) =>
+                config.providerNames!.includes(p.name),
+            )
+          : detectProviders(cacheService, config.repoRoot);
+    if (providers.length === 0) {
+        throw new Error(
+            'No dependency providers detected. Use --provider to specify one explicitly.',
+        );
+    }
+
     return createDependicus({
         repoRoot: config.repoRoot,
         outputDir: config.outputDir,
-        cacheDir: config.cacheDir,
+        cacheDir,
+        providers,
         sources: resolved.sources,
         siteName,
         groupings: resolved.groupings,
         columns: resolved.columns,
         getUsedByGroupKey: resolved.getUsedByGroupKey,
         getSections: resolved.getSections,
-        providerNames: config.providerNames,
     });
 }
 

@@ -1,8 +1,11 @@
-import type { DirectDependency } from '../types';
-import type { PackageVersionInfo } from '../types';
-import type { CacheService } from '../services/CacheService';
-import type { DataSource, FactStore } from './types';
-import { FactKeys } from './FactStore';
+import type {
+    DirectDependency,
+    PackageVersionInfo,
+    DataSource,
+    FactStore,
+    CacheService,
+} from '@dependicus/core';
+import { FactKeys } from '@dependicus/core';
 import * as semver from 'semver';
 
 /**

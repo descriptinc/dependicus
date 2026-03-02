@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MiseVersionsSource } from './MiseVersionsSource';
-import { FactKeys, RootFactStore } from './FactStore';
-import type { DirectDependency } from '../types';
+import { FactKeys, RootFactStore } from '@dependicus/core';
+import type { DirectDependency } from '@dependicus/core';
 
 describe('MiseVersionsSource', () => {
     const mockCacheService = {

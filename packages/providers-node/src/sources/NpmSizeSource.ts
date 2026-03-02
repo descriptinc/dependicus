@@ -1,7 +1,6 @@
-import type { DirectDependency, PackageVersionInfo } from '../types';
+import type { DirectDependency, PackageVersionInfo, DataSource, FactStore } from '@dependicus/core';
+import { FactKeys } from '@dependicus/core';
 import type { NpmRegistryService } from '../services/NpmRegistryService';
-import type { DataSource, FactStore } from './types';
-import { FactKeys } from './FactStore';
 
 /**
  * Fetches unpacked-size maps for every package from the npm registry,

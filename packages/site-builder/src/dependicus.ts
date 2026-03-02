@@ -22,8 +22,7 @@ export interface DependicusConfig {
     repoRoot: string;
     outputDir?: string;
     cacheDir?: string;
-    providers?: DependencyProvider[];
-    providerNames?: string[];
+    providers: DependencyProvider[];
     sources?: DataSource[];
     groupings?: GroupingConfig[];
     siteName?: string;
@@ -57,7 +56,6 @@ export async function createDependicus(config: DependicusConfig): Promise<Depend
         repoRoot,
         cacheDir,
         providers: config.providers,
-        providerNames: config.providerNames,
         sources,
     });
     const htmlWriter = new HtmlWriter({

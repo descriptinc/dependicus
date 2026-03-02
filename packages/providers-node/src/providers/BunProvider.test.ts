@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { BunProvider } from './BunProvider';
-import type { CacheService } from '../services/CacheService';
+import type { CacheService } from '@dependicus/core';
 
 function createMockCacheService(overrides = {}): CacheService {
     return {

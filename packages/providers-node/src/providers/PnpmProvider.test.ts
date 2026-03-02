@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { CacheService } from '../services/CacheService';
-import type { PackageInfo } from '../types';
+import type { CacheService, PackageInfo } from '@dependicus/core';
 
 vi.mock('node:child_process', () => ({
     execSync: vi.fn(),

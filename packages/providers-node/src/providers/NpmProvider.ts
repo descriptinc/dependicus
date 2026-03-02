@@ -1,12 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import type { PackageInfo, DependencyInfo } from '../types';
-import type { CacheService } from '../services/CacheService';
-import type { DependencyProvider, SourceContext } from './DependencyProvider';
-import type { DataSource } from '../sources/types';
+import type {
+    PackageInfo,
+    DependencyInfo,
+    DependencyProvider,
+    SourceContext,
+    DataSource,
+    CacheService,
+} from '@dependicus/core';
 import { NpmRegistryService } from '../services/NpmRegistryService';
 import { NpmRegistrySource } from '../sources/NpmRegistrySource';
 import { NpmSizeSource } from '../sources/NpmSizeSource';
+import { resolveNpmMetadata } from '../resolveNpmMetadata';
 
 /**
  * Shape of a package-lock.json (lockfileVersion 3, npm v7+).
@@ -54,8 +59,10 @@ export class NpmProvider implements DependencyProvider {
     readonly rootDir: string;
     readonly lockfilePath: string;
     private cachedPackages: PackageInfo[] | undefined = undefined;
+    private cacheService: CacheService;
 
-    constructor(_cacheService: CacheService, rootDir: string) {
+    constructor(cacheService: CacheService, rootDir: string) {
+        this.cacheService = cacheService;
         this.rootDir = rootDir;
         this.lockfilePath = join(rootDir, 'package-lock.json');
     }
@@ -145,5 +152,12 @@ export class NpmProvider implements DependencyProvider {
     createSources(ctx: SourceContext): DataSource[] {
         const registryService = new NpmRegistryService(ctx.cacheService, this.lockfilePath);
         return [new NpmRegistrySource(registryService), new NpmSizeSource(registryService)];
+    }
+
+    async resolveVersionMetadata(
+        packages: Array<{ name: string; versions: string[] }>,
+    ): Promise<Map<string, { publishDate: string | undefined; latestVersion: string }>> {
+        const registryService = new NpmRegistryService(this.cacheService, this.lockfilePath);
+        return resolveNpmMetadata(registryService, packages);
     }
 }

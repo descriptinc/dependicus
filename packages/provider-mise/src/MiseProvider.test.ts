@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MiseProvider, isMiseConfigFile } from './MiseProvider';
-import type { CacheService } from '../services/CacheService';
+import type { CacheService } from '@dependicus/core';
 
 vi.mock('node:child_process', () => ({
     execSync: vi.fn(),
@@ -280,7 +280,11 @@ describe('MiseProvider', () => {
             .mockReturnValueOnce(docsMiseOutput);
 
         const provider = new MiseProvider(mockCacheService, rootDir);
-        const result = await provider.resolveVersionMetadata(['node', 'bun', 'python']);
+        const result = await provider.resolveVersionMetadata([
+            { name: 'node', versions: ['22.12.0'] },
+            { name: 'bun', versions: ['1.3.0'] },
+            { name: 'python', versions: ['3.12.0'] },
+        ]);
 
         // node is outdated
         expect(result.get('node@22.12.0')).toEqual({

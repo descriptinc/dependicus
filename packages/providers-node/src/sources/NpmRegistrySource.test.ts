@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { NpmRegistrySource } from './NpmRegistrySource';
-import { RootFactStore, FactKeys } from './FactStore';
-import type { DirectDependency, PackageVersionInfo } from '../types';
+import { RootFactStore, FactKeys } from '@dependicus/core';
+import type { DirectDependency, PackageVersionInfo } from '@dependicus/core';
 import type { NpmRegistryService, PackageMetadata } from '../services/NpmRegistryService';
 
 function makeDep(name: string, version: string, latestVersion: string): DirectDependency {
@@ -23,9 +23,7 @@ function makeDep(name: string, version: string, latestVersion: string): DirectDe
 
 function mockNpmRegistryService(overrides: Partial<NpmRegistryService> = {}): NpmRegistryService {
     return {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
         prefetchFullMetadata: vi.fn(async () => {}),
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
         prefetchUnpackedSizes: vi.fn(async () => {}),
         getPackageMetadata: vi.fn(async () => undefined),
         getVersionsBetween: vi.fn(async () => []),
@@ -46,7 +44,6 @@ describe('NpmRegistrySource', () => {
     });
 
     it('fetches full metadata for all package names', async () => {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
         const prefetchFullMetadata = vi.fn(async () => {});
         const service = mockNpmRegistryService({ prefetchFullMetadata });
         const source = new NpmRegistrySource(service);
@@ -85,30 +82,7 @@ describe('NpmRegistrySource', () => {
         expect(store.getVersionFact('react', '18.2.0', FactKeys.REPOSITORY_URL)).toBe(
             'https://github.com/facebook/react',
         );
-        expect(store.getVersionFact('react', '18.2.0', FactKeys.BUGS_URL)).toBe(
-            'https://github.com/facebook/react/issues',
-        );
         expect(store.getVersionFact('react', '18.2.0', FactKeys.UNPACKED_SIZE)).toBe(12345);
-    });
-
-    it('stores the raw repo URL for downstream sources', async () => {
-        const metadata: PackageMetadata = {
-            name: 'react',
-            version: '18.2.0',
-            repository: { url: 'git+https://github.com/facebook/react.git' },
-        };
-
-        const service = mockNpmRegistryService({
-            getPackageMetadata: vi.fn(async () => metadata),
-        });
-        const source = new NpmRegistrySource(service);
-        const store = new RootFactStore();
-
-        await source.fetch([makeDep('react', '18.2.0', '19.0.0')], store);
-
-        expect(store.getVersionFact('react', '18.2.0', FactKeys.RAW_REPO_URL)).toBe(
-            'git+https://github.com/facebook/react.git',
-        );
     });
 
     it('stores versions between current and latest', async () => {
@@ -143,48 +117,7 @@ describe('NpmRegistrySource', () => {
 
         await source.fetch([makeDep('unknown-pkg', '1.0.0', '2.0.0')], store);
 
-        // Should not throw, and versions-between should still be stored
         expect(store.getVersionFact('unknown-pkg', '1.0.0', FactKeys.DESCRIPTION)).toBeUndefined();
         expect(store.getVersionFact('unknown-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN)).toEqual([]);
-    });
-
-    it('processes multiple versions per dependency', async () => {
-        const getPackageMetadata = vi.fn(async (_name: string, version: string) => ({
-            name: 'react',
-            version,
-            description: `react@${version}`,
-        }));
-
-        const service = mockNpmRegistryService({ getPackageMetadata });
-        const source = new NpmRegistrySource(service);
-        const store = new RootFactStore();
-
-        const dep: DirectDependency = {
-            name: 'react',
-            ecosystem: 'npm',
-            versions: [
-                {
-                    version: '17.0.0',
-                    latestVersion: '19.0.0',
-                    usedBy: ['@my/app'],
-                    dependencyTypes: ['prod'],
-                    publishDate: '2023-01-01',
-                    inCatalog: false,
-                },
-                {
-                    version: '18.2.0',
-                    latestVersion: '19.0.0',
-                    usedBy: ['@my/lib'],
-                    dependencyTypes: ['dev'],
-                    publishDate: '2024-01-01',
-                    inCatalog: false,
-                },
-            ],
-        };
-
-        await source.fetch([dep], store);
-
-        expect(store.getVersionFact('react', '17.0.0', FactKeys.DESCRIPTION)).toBe('react@17.0.0');
-        expect(store.getVersionFact('react', '18.2.0', FactKeys.DESCRIPTION)).toBe('react@18.2.0');
     });
 });

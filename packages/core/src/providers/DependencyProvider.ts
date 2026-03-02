@@ -25,7 +25,7 @@ export interface DependencyProvider {
     hasInCatalog(name: string): boolean;
     isPatched(name: string, version: string): boolean;
     createSources(ctx: SourceContext): DataSource[];
-    resolveVersionMetadata?(
-        packageNames: string[],
+    resolveVersionMetadata(
+        packages: Array<{ name: string; versions: string[] }>,
     ): Promise<Map<string, { publishDate: string | undefined; latestVersion: string }>>;
 }

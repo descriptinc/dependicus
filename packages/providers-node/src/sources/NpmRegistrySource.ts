@@ -1,8 +1,6 @@
-import type { DirectDependency } from '../types';
+import type { DirectDependency, DataSource, FactStore } from '@dependicus/core';
+import { FactKeys, convertGitUrlToHttps } from '@dependicus/core';
 import type { NpmRegistryService } from '../services/NpmRegistryService';
-import { convertGitUrlToHttps } from '../utils/formatters';
-import type { DataSource, FactStore } from './types';
-import { FactKeys } from './FactStore';
 
 /**
  * Fetches per-version registry metadata (description, homepage, repository URL,

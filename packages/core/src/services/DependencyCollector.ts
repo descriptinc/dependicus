@@ -1,15 +1,5 @@
 import type { DirectDependency, DependencyVersion, PackageInfo, ProviderOutput } from '../types';
 import type { DependencyProvider } from '../providers/DependencyProvider';
-import type { NpmRegistryService } from './NpmRegistryService';
-import { WORKER_COUNT } from '../constants';
-import { processInParallel } from '../utils/workerQueue';
-
-export interface MetadataResolver {
-    resolve(
-        packageNames: string[],
-        dependencyMap: DependencyMap,
-    ): Promise<Map<string, { publishDate: string | undefined; latestVersion: string }>>;
-}
 
 type DependencyMap = Map<
     string,
@@ -23,55 +13,8 @@ type DependencyMap = Map<
     >
 >;
 
-export class NpmMetadataResolver implements MetadataResolver {
-    constructor(private registryService: NpmRegistryService) {}
-
-    async resolve(
-        packageNames: string[],
-        dependencyMap: DependencyMap,
-    ): Promise<Map<string, { publishDate: string | undefined; latestVersion: string }>> {
-        const metadataMap = new Map<
-            string,
-            Awaited<ReturnType<typeof this.registryService.getFullPackageMetadata>>
-        >();
-        let completed = 0;
-
-        await processInParallel(
-            packageNames,
-            async (packageName) => {
-                const metadata = await this.registryService.getFullPackageMetadata(packageName);
-                metadataMap.set(packageName, metadata);
-                completed++;
-                if (completed % 50 === 0 || completed === packageNames.length) {
-                    process.stderr.write(
-                        `  Fetched ${completed}/${packageNames.length} packages\n`,
-                    );
-                }
-            },
-            { workerCount: WORKER_COUNT },
-        );
-
-        const resultMap = new Map<
-            string,
-            { publishDate: string | undefined; latestVersion: string }
-        >();
-        for (const [depName, versionMap] of dependencyMap.entries()) {
-            const metadata = metadataMap.get(depName);
-            const latestVersion = metadata?.['dist-tags']?.latest || '';
-            for (const version of versionMap.keys()) {
-                const publishDate = metadata?.time?.[version];
-                resultMap.set(`${depName}@${version}`, { publishDate, latestVersion });
-            }
-        }
-        return resultMap;
-    }
-}
-
 export class DependencyCollector {
-    constructor(
-        private providers: DependencyProvider[],
-        private defaultResolver: MetadataResolver,
-    ) {}
+    constructor(private providers: DependencyProvider[]) {}
 
     /**
      * Collect direct dependencies per provider.
@@ -187,21 +130,11 @@ export class DependencyCollector {
     ): Promise<DirectDependency[]> {
         const result: DirectDependency[] = [];
 
-        // Use provider's resolver if available, otherwise use default (npm)
-        let registryDataMap: Map<
-            string,
-            { publishDate: string | undefined; latestVersion: string }
-        >;
-        if (provider.resolveVersionMetadata) {
-            const packageNames = Array.from(dependencyMap.keys());
-            registryDataMap = await provider.resolveVersionMetadata(packageNames);
-        } else {
-            process.stderr.write('Fetching package metadata from npm registry...\n');
-            registryDataMap = await this.defaultResolver.resolve(
-                Array.from(dependencyMap.keys()),
-                dependencyMap,
-            );
-        }
+        const packages = Array.from(dependencyMap.entries()).map(([name, versionMap]) => ({
+            name,
+            versions: Array.from(versionMap.keys()),
+        }));
+        const registryDataMap = await provider.resolveVersionMetadata(packages);
 
         for (const [depName, versionMap] of dependencyMap.entries()) {
             const versions: DependencyVersion[] = [];

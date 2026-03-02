@@ -1,6 +1,6 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "dependicus-monorepo",
@@ -16,6 +16,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@octokit/rest": "^22.0.1",
+        "handlebars": "^4.7.8",
         "js-yaml": "^4.1.1",
         "semver": "^7.7.4",
         "zod": "^4.3.6",
@@ -36,10 +37,12 @@
         "dependicus": "dist/bin.mjs",
       },
       "dependencies": {
-        "@dependicus/core": "*",
-        "@dependicus/github-issues": "*",
-        "@dependicus/linear": "*",
-        "@dependicus/site-builder": "*",
+        "@dependicus/core": "workspace:*",
+        "@dependicus/github-issues": "workspace:*",
+        "@dependicus/linear": "workspace:*",
+        "@dependicus/provider-mise": "workspace:*",
+        "@dependicus/providers-node": "workspace:*",
+        "@dependicus/site-builder": "workspace:*",
         "commander": "^14.0.3",
         "rolldown": "^1.0.0-rc.5",
       },
@@ -55,7 +58,7 @@
       "name": "@dependicus/github-issues",
       "version": "0.1.0",
       "dependencies": {
-        "@dependicus/core": "*",
+        "@dependicus/core": "workspace:*",
         "@octokit/rest": "^22.0.1",
         "handlebars": "^4.7.8",
         "zod": "^4.3.6",
@@ -71,7 +74,7 @@
       "name": "@dependicus/linear",
       "version": "0.1.0",
       "dependencies": {
-        "@dependicus/core": "*",
+        "@dependicus/core": "workspace:*",
         "@linear/sdk": "^76.0.0",
         "handlebars": "^4.7.8",
         "zod": "^4.3.6",
@@ -83,12 +86,44 @@
         "vitest": "^4.0.18",
       },
     },
+    "packages/provider-mise": {
+      "name": "@dependicus/provider-mise",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dependicus/core": "workspace:*",
+        "semver": "^7.7.4",
+      },
+      "devDependencies": {
+        "@types/node": "^25.3.0",
+        "@types/semver": "^7.7.1",
+        "tsdown": "^0.20.3",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18",
+      },
+    },
+    "packages/providers-node": {
+      "name": "@dependicus/providers-node",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dependicus/core": "workspace:*",
+        "js-yaml": "^4.1.1",
+        "semver": "^7.7.4",
+      },
+      "devDependencies": {
+        "@types/js-yaml": "^4.0.9",
+        "@types/node": "^25.3.0",
+        "@types/semver": "^7.7.1",
+        "tsdown": "^0.20.3",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18",
+      },
+    },
     "packages/site-builder": {
       "name": "@dependicus/site-builder",
       "version": "0.1.0",
       "dependencies": {
-        "@dependicus/core": "*",
-        "@dependicus/site-frontend": "*",
+        "@dependicus/core": "workspace:*",
+        "@dependicus/site-frontend": "workspace:*",
         "handlebars": "^4.7.8",
         "marked": "^17.0.3",
         "rolldown": "^1.0.0-rc.5",
@@ -136,6 +171,10 @@
     "@dependicus/internal": ["@dependicus/internal@workspace:packages/dependicus"],
 
     "@dependicus/linear": ["@dependicus/linear@workspace:packages/linear"],
+
+    "@dependicus/provider-mise": ["@dependicus/provider-mise@workspace:packages/provider-mise"],
+
+    "@dependicus/providers-node": ["@dependicus/providers-node@workspace:packages/providers-node"],
 
     "@dependicus/site-builder": ["@dependicus/site-builder@workspace:packages/site-builder"],
 

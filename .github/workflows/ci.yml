@@ -16,7 +16,7 @@ env:
     MISE_NODE_VERSION: '20'
 
 jobs:
-    check:
+    check-pnpm:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
             - run: mise run bun:typecheck
             - run: mise run bun:test
 
-    lint:
+    lint-pnpm:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -65,7 +65,7 @@ jobs:
                   name: zensical
                   path: docs/site
 
-    typedoc:
+    typedoc-pnpm:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -75,7 +75,7 @@ jobs:
               working-directory: packages/dependicus
             - uses: actions/upload-artifact@v4
               with:
-                  name: typedoc
+                  name: typedoc-pnpm
                   path: packages/dependicus/typedoc-out
 
     typedoc-bun:
@@ -92,7 +92,7 @@ jobs:
                   name: typedoc-bun
                   path: packages/dependicus/typedoc-out
 
-    dependicus:
+    dependicus-pnpm:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -102,14 +102,14 @@ jobs:
             - uses: actions/cache@v4
               with:
                   path: .dependicus-cache
-                  key: dependicus-cache-${{ github.sha }}
-                  restore-keys: dependicus-cache-
+                  key: dependicus-pnpm-cache-${{ github.sha }}
+                  restore-keys: dependicus-pnpm-cache-
             - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
               with:
-                  name: dependicus
+                  name: dependicus-pnpm
                   path: dependicus-out
 
     dependicus-bun:
@@ -246,7 +246,7 @@ jobs:
 
     github-issues:
         if: github.ref == 'refs/heads/main'
-        needs: [check, lint, dependicus]
+        needs: [check-pnpm, lint-pnpm, dependicus-pnpm]
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -259,11 +259,11 @@ jobs:
             - uses: actions/cache@v4
               with:
                   path: .dependicus-cache
-                  key: dependicus-cache-${{ github.sha }}
-                  restore-keys: dependicus-cache-
+                  key: dependicus-pnpm-cache-${{ github.sha }}
+                  restore-keys: dependicus-pnpm-cache-
             - uses: actions/download-artifact@v4
               with:
-                  name: dependicus
+                  name: dependicus-pnpm
                   path: dependicus-out
             - run: node packages/dependicus/dist/bin.mjs make-github-issues --dependicus-base-url https://descriptinc.github.io/dependicus/dependencies
               env:
@@ -273,20 +273,20 @@ jobs:
         if: github.ref == 'refs/heads/main'
         needs:
             [
-                check,
+                check-pnpm,
                 check-bun,
                 check-npm,
                 check-yarn,
-                lint,
+                lint-pnpm,
                 lint-bun,
                 lint-npm,
                 lint-yarn,
                 zensical,
-                typedoc,
+                typedoc-pnpm,
                 typedoc-bun,
                 typedoc-npm,
                 typedoc-yarn,
-                dependicus,
+                dependicus-pnpm,
                 dependicus-bun,
                 dependicus-npm,
                 dependicus-yarn,
@@ -305,11 +305,11 @@ jobs:
                   path: site
             - uses: actions/download-artifact@v4
               with:
-                  name: typedoc
+                  name: typedoc-pnpm
                   path: site/api
             - uses: actions/download-artifact@v4
               with:
-                  name: dependicus
+                  name: dependicus-pnpm
                   path: site/dependencies
             - uses: actions/download-artifact@v4
               with:
