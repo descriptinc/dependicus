@@ -1,6 +1,6 @@
 # Package Managers
 
-Dependicus supports pnpm, bun, yarn, npm, and mise as dependency providers. For Node.js package managers it reads the lockfile and workspace structure. For mise it reads `mise.toml` and queries the mise CLI for tool versions.
+Dependicus supports pnpm, bun, yarn, npm, mise, and uv as dependency providers. For Node.js package managers it reads the lockfile and workspace structure. For mise it reads `mise.toml` and queries the mise CLI for tool versions. For Python projects managed by uv it reads the CycloneDX SBOM export and queries the PyPI registry.
 
 ## Auto-detection
 
@@ -18,8 +18,9 @@ When you run Dependicus without specifying a provider, it uses a two-step detect
     - `yarn.lock` &rarr; yarn
     - `package-lock.json` &rarr; npm
     - `mise.toml` &rarr; mise
+    - `uv.lock` (anywhere in the repo) &rarr; uv
 
-If multiple lockfiles exist and the runtime is ambiguous, all matching providers are activated and their results are merged. Mise is always detected via lockfile presence (there is no runtime detection for mise).
+If multiple lockfiles exist and the runtime is ambiguous, all matching providers are activated and their results are merged. Mise is always detected via `mise.toml` presence and uv is always detected via `uv.lock` presence (there is no runtime detection for either).
 
 ## Explicit provider selection
 
@@ -31,6 +32,7 @@ dependicus update --provider bun
 dependicus update --provider yarn
 dependicus update --provider npm
 dependicus update --provider mise
+dependicus update --provider uv
 ```
 
 Or in a script:
@@ -53,7 +55,7 @@ This is useful if your repository contains both a `pnpm-lock.yaml` and a `bun.lo
 
 ## Catalog support
 
-pnpm and bun support dependency catalogs, which centralize version ranges so workspace packages can reference them instead of duplicating version specifiers. yarn, npm, and mise do not have a native catalog feature, so `isCatalog` always returns false for those providers.
+pnpm and bun support dependency catalogs, which centralize version ranges so workspace packages can reference them instead of duplicating version specifiers. yarn, npm, mise, and uv do not have a native catalog feature, so `isCatalog` always returns false for those providers.
 
 | Feature             | pnpm                                   | bun                              | yarn / npm    |
 | ------------------- | -------------------------------------- | -------------------------------- | ------------- |
@@ -83,16 +85,31 @@ The mise provider differs from the Node.js package manager providers in a few wa
 
 The mise provider only includes tools whose configuration lives under the repo root (tools from global `~/.config/mise/config.toml` are excluded).
 
+## Python (uv)
+
+[uv](https://docs.astral.sh/uv/) is a fast Python package and project manager. The uv provider tracks Python dependencies in projects managed by uv, letting you see which packages are outdated and what newer versions are available on PyPI.
+
+Dependicus discovers Python projects by searching for `uv.lock` files anywhere in the repository (using `git ls-files`). This means a monorepo can contain multiple independent Python projects and they will all be included. For each project directory found, Dependicus runs `uv export --format cyclonedx1.5` to get a structured [CycloneDX](https://cyclonedx.org/specification/overview/) SBOM. This approach handles both standalone projects and uv workspaces uniformly, without parsing `pyproject.toml` or `uv.lock` directly.
+
+The uv provider differs from the Node.js package manager providers in a few ways:
+
+- **Publish dates come from PyPI.** The provider fetches package metadata from `https://pypi.org/pypi/<name>/json` to get publish dates and latest versions.
+- **No catalogs or patching.** These are npm-specific concepts.
+- **Version data comes from the PyPI registry.** The provider filters the full release history to build the upgrade path, excluding prereleases and yanked releases.
+- **Direct dependencies only.** The CycloneDX SBOM distinguishes direct and transitive dependencies. Only direct dependencies of each workspace member are tracked.
+
+Requires uv >= 0.9.11 (when CycloneDX export was added). The provider passes `--frozen` to read from the existing lockfile without re-resolving, and `--no-dev` to exclude development dependencies.
+
 ## Provider capabilities
 
-| Capability         | pnpm                            | bun                        | yarn                                   | npm                        | mise             |
-| ------------------ | ------------------------------- | -------------------------- | -------------------------------------- | -------------------------- | ---------------- |
-| Dependency listing | `pnpm -r list --json --depth=0` | Parses `bun.lock` directly | Parses `yarn.lock` directly            | Parses `package-lock.json` | `mise ls --json` |
-| Catalog            | `pnpm-workspace.yaml`           | `package.json`             | Not supported                          | Not supported              | Not supported    |
-| Patched packages   | Yes                             | No                         | Yes (`patch:` protocol in `yarn.lock`) | No                         | No               |
-| Lockfile           | `pnpm-lock.yaml`                | `bun.lock`                 | `yarn.lock`                            | `package-lock.json`        | `mise.toml`      |
-| Publish dates      | Yes (npm registry)              | Yes (npm registry)         | Yes (npm registry)                     | Yes (npm registry)         | No               |
-| Ecosystem          | npm                             | npm                        | npm                                    | npm                        | mise             |
+| Capability         | pnpm                            | bun                        | yarn                                   | npm                        | mise             | uv                                |
+| ------------------ | ------------------------------- | -------------------------- | -------------------------------------- | -------------------------- | ---------------- | --------------------------------- |
+| Dependency listing | `pnpm -r list --json --depth=0` | Parses `bun.lock` directly | Parses `yarn.lock` directly            | Parses `package-lock.json` | `mise ls --json` | `uv export --format cyclonedx1.5` |
+| Catalog            | `pnpm-workspace.yaml`           | `package.json`             | Not supported                          | Not supported              | Not supported    | Not supported                     |
+| Patched packages   | Yes                             | No                         | Yes (`patch:` protocol in `yarn.lock`) | No                         | No               | No                                |
+| Lockfile           | `pnpm-lock.yaml`                | `bun.lock`                 | `yarn.lock`                            | `package-lock.json`        | `mise.toml`      | `uv.lock`                         |
+| Publish dates      | Yes (npm registry)              | Yes (npm registry)         | Yes (npm registry)                     | Yes (npm registry)         | No               | Yes (PyPI registry)               |
+| Ecosystem          | npm                             | npm                        | npm                                    | npm                        | mise             | pypi                              |
 
 ## CI considerations
 

@@ -78,6 +78,9 @@ importers:
       '@dependicus/providers-node':
         specifier: workspace:*
         version: link:../providers-node
+      '@dependicus/providers-python':
+        specifier: workspace:*
+        version: link:../providers-python
       '@dependicus/site-builder':
         specifier: workspace:*
         version: link:../site-builder
@@ -200,6 +203,31 @@ importers:
       '@types/js-yaml':
         specifier: ^4.0.9
         version: 4.0.9
+      '@types/node':
+        specifier: ^25.3.0
+        version: 25.3.0
+      '@types/semver':
+        specifier: ^7.7.1
+        version: 7.7.1
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@25.3.0)(tsx@4.21.0)(yaml@2.8.2)
+
+  packages/providers-python:
+    dependencies:
+      '@dependicus/core':
+        specifier: workspace:*
+        version: link:../core
+      semver:
+        specifier: ^7.7.4
+        version: 7.7.4
+    devDependencies:
       '@types/node':
         specifier: ^25.3.0
         version: 25.3.0

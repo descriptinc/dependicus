@@ -15,6 +15,7 @@ import {
 import type { FactStore, ProviderOutput, DependencyProvider } from '@dependicus/core';
 import { detectNodeProviders, createNodeProvidersByName } from '@dependicus/providers-node';
 import { MiseProvider } from '@dependicus/provider-mise';
+import { UvProvider } from '@dependicus/providers-python';
 import { reconcileIssues } from '@dependicus/linear';
 import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
 import { reconcileGitHubIssues } from '@dependicus/github-issues';
@@ -92,6 +93,10 @@ function detectProviders(cacheService: CacheService, repoRoot: string): Dependen
     if (existsSync(join(repoRoot, 'mise.toml'))) {
         providers.push(new MiseProvider(cacheService, repoRoot));
     }
+    const uvProvider = new UvProvider(cacheService, repoRoot);
+    if (uvProvider.discoverProjectDirs().length > 0) {
+        providers.push(uvProvider);
+    }
     return providers;
 }
 
@@ -99,6 +104,7 @@ function allProviders(cacheService: CacheService, repoRoot: string): DependencyP
     return [
         ...createNodeProvidersByName(['pnpm', 'bun', 'yarn', 'npm'], cacheService, repoRoot),
         new MiseProvider(cacheService, repoRoot),
+        new UvProvider(cacheService, repoRoot),
     ];
 }
 
@@ -166,7 +172,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                 .option('--repo-root <path>', 'Root directory of the project (default: cwd)')
                 .option(
                     '--provider <name>',
-                    'Dependency provider to use (repeatable): pnpm, bun, yarn, mise (default: auto-detect)',
+                    'Dependency provider to use (repeatable): pnpm, bun, yarn, mise, uv (default: auto-detect)',
                     collect,
                     [] as string[],
                 )
