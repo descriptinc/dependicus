@@ -5,6 +5,7 @@
         "paths": {
             "@dependicus/core": ["../core/src/index.ts"],
             "@dependicus/linear": ["../linear/src/index.ts"],
+            "@dependicus/provider-go": ["../provider-go/src/index.ts"],
             "@dependicus/provider-mise": ["../provider-mise/src/index.ts"],
             "@dependicus/providers-node": ["../providers-node/src/index.ts"],
             "@dependicus/site-builder": ["../site-builder/src/index.ts"],
@@ -17,6 +18,7 @@
         "src/**/*",
         "../core/src/**/*",
         "../linear/src/**/*",
+        "../provider-go/src/**/*",
         "../provider-mise/src/**/*",
         "../providers-node/src/**/*",
         "../providers-python/src/**/*",
