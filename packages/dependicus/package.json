@@ -29,6 +29,7 @@
         "@dependicus/linear": "workspace:*",
         "@dependicus/provider-go": "workspace:*",
         "@dependicus/provider-mise": "workspace:*",
+        "@dependicus/provider-rust": "workspace:*",
         "@dependicus/providers-node": "workspace:*",
         "@dependicus/providers-python": "workspace:*",
         "@dependicus/site-builder": "workspace:*",

@@ -6,6 +6,7 @@ jq = "latest"
 node = "22"
 pkl = "0.30.2"
 pnpm = "10.27.0"
+rust = "latest"
 uv = "0.10.7"
 yarn = "4"
 
@@ -27,7 +28,7 @@ run = "pnpm run typedoc"
 
 [tasks."docs:dependicus"]
 description = "Run dependicus on itself"
-run = "node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go"
+run = "node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust"
 
 [tasks."pnpm:build"]
 description = "Build all packages with pnpm"

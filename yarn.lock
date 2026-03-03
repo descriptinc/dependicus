@@ -122,7 +122,9 @@ __metadata:
     "@dependicus/core": "workspace:*"
     "@dependicus/github-issues": "workspace:*"
     "@dependicus/linear": "workspace:*"
+    "@dependicus/provider-go": "workspace:*"
     "@dependicus/provider-mise": "workspace:*"
+    "@dependicus/provider-rust": "workspace:*"
     "@dependicus/providers-node": "workspace:*"
     "@dependicus/providers-python": "workspace:*"
     "@dependicus/site-builder": "workspace:*"
@@ -153,9 +155,37 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@dependicus/provider-go@workspace:*, @dependicus/provider-go@workspace:packages/provider-go":
+  version: 0.0.0-use.local
+  resolution: "@dependicus/provider-go@workspace:packages/provider-go"
+  dependencies:
+    "@dependicus/core": "workspace:*"
+    "@types/node": "npm:^25.3.0"
+    "@types/semver": "npm:^7.7.1"
+    semver: "npm:^7.7.4"
+    tsdown: "npm:^0.20.3"
+    typescript: "npm:^5.9.3"
+    vitest: "npm:^4.0.18"
+  languageName: unknown
+  linkType: soft
+
 "@dependicus/provider-mise@workspace:*, @dependicus/provider-mise@workspace:packages/provider-mise":
   version: 0.0.0-use.local
   resolution: "@dependicus/provider-mise@workspace:packages/provider-mise"
+  dependencies:
+    "@dependicus/core": "workspace:*"
+    "@types/node": "npm:^25.3.0"
+    "@types/semver": "npm:^7.7.1"
+    semver: "npm:^7.7.4"
+    tsdown: "npm:^0.20.3"
+    typescript: "npm:^5.9.3"
+    vitest: "npm:^4.0.18"
+  languageName: unknown
+  linkType: soft
+
+"@dependicus/provider-rust@workspace:*, @dependicus/provider-rust@workspace:packages/provider-rust":
+  version: 0.0.0-use.local
+  resolution: "@dependicus/provider-rust@workspace:packages/provider-rust"
   dependencies:
     "@dependicus/core": "workspace:*"
     "@types/node": "npm:^25.3.0"

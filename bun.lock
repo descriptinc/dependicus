@@ -40,8 +40,11 @@
         "@dependicus/core": "workspace:*",
         "@dependicus/github-issues": "workspace:*",
         "@dependicus/linear": "workspace:*",
+        "@dependicus/provider-go": "workspace:*",
         "@dependicus/provider-mise": "workspace:*",
+        "@dependicus/provider-rust": "workspace:*",
         "@dependicus/providers-node": "workspace:*",
+        "@dependicus/providers-python": "workspace:*",
         "@dependicus/site-builder": "workspace:*",
         "commander": "^14.0.3",
         "rolldown": "^1.0.0-rc.5",
@@ -86,8 +89,38 @@
         "vitest": "^4.0.18",
       },
     },
+    "packages/provider-go": {
+      "name": "@dependicus/provider-go",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dependicus/core": "workspace:*",
+        "semver": "^7.7.4",
+      },
+      "devDependencies": {
+        "@types/node": "^25.3.0",
+        "@types/semver": "^7.7.1",
+        "tsdown": "^0.20.3",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18",
+      },
+    },
     "packages/provider-mise": {
       "name": "@dependicus/provider-mise",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dependicus/core": "workspace:*",
+        "semver": "^7.7.4",
+      },
+      "devDependencies": {
+        "@types/node": "^25.3.0",
+        "@types/semver": "^7.7.1",
+        "tsdown": "^0.20.3",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18",
+      },
+    },
+    "packages/provider-rust": {
+      "name": "@dependicus/provider-rust",
       "version": "0.1.0",
       "dependencies": {
         "@dependicus/core": "workspace:*",
@@ -111,6 +144,21 @@
       },
       "devDependencies": {
         "@types/js-yaml": "^4.0.9",
+        "@types/node": "^25.3.0",
+        "@types/semver": "^7.7.1",
+        "tsdown": "^0.20.3",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18",
+      },
+    },
+    "packages/providers-python": {
+      "name": "@dependicus/providers-python",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dependicus/core": "workspace:*",
+        "semver": "^7.7.4",
+      },
+      "devDependencies": {
         "@types/node": "^25.3.0",
         "@types/semver": "^7.7.1",
         "tsdown": "^0.20.3",
@@ -172,9 +220,15 @@
 
     "@dependicus/linear": ["@dependicus/linear@workspace:packages/linear"],
 
+    "@dependicus/provider-go": ["@dependicus/provider-go@workspace:packages/provider-go"],
+
     "@dependicus/provider-mise": ["@dependicus/provider-mise@workspace:packages/provider-mise"],
 
+    "@dependicus/provider-rust": ["@dependicus/provider-rust@workspace:packages/provider-rust"],
+
     "@dependicus/providers-node": ["@dependicus/providers-node@workspace:packages/providers-node"],
+
+    "@dependicus/providers-python": ["@dependicus/providers-python@workspace:packages/providers-python"],
 
     "@dependicus/site-builder": ["@dependicus/site-builder@workspace:packages/site-builder"],
 
