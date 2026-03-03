@@ -139,6 +139,15 @@ else
 fi
 """
 
+[tasks.update-all-lockfiles]
+description = "Regenerate lockfiles for all package managers, ending on pnpm"
+run = """
+for pm in npm yarn bun pnpm; do
+  echo "=== Switching to $pm ==="
+  bash scripts/switch-pm.sh "$pm"
+done
+"""
+
 [tasks.delete-node-modules]
 description = "Delete all node_modules directories"
 run = "rm -rf node_modules packages/*/node_modules"
