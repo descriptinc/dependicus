@@ -9,13 +9,20 @@ nav = [
             { "What is Dependicus?" = "index.md" },
             { "Getting Started" = "gettingstarted.md" },
             { "Configuration" = "configuration.md" },
-            { "Package Managers" = "package-managers.md" },
             { "Continuous Integration" = "ci.md" },
             { "BasicCompliancePlugin" = "compliance.md" },
         ] },
         { "Tickets" = [
             { "Linear Issues" = "linearissues.md" },
             { "GitHub Issues" = "githubissues.md" },
+        ] },
+        { "Package Managers" = [
+            { "Overview" = "package-managers.md" },
+            { "Node.js" = "providers/node.md" },
+            { "Mise" = "providers/mise.md" },
+            { "Python (uv)" = "providers/uv.md" },
+            { "Go" = "providers/go.md" },
+            { "Rust (Cargo)" = "providers/rust.md" },
         ] },
         { "Guides" = [
             { "Writing Plugins" = "plugins.md" },

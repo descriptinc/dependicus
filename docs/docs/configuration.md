@@ -8,7 +8,7 @@ Root of your workspace. Defaults to the working directory.
 
 ### `providerNames` (optional): `string[]`
 
-Explicitly select which package manager providers to use. Supported values: `'pnpm'`, `'bun'`, `'yarn'`, `'npm'`. When omitted, Dependicus [auto-detects](./package-managers.md) the active package manager.
+Explicitly select which dependency providers to use. Supported values: `'pnpm'`, `'bun'`, `'yarn'`, `'npm'`, `'mise'`, `'uv'`, `'go'`, `'rust'`. When omitted, Dependicus [auto-detects](./package-managers.md) the active providers.
 
 ### `providers` (optional): `DependencyProvider[]`
 

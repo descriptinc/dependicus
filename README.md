@@ -6,7 +6,7 @@ If you maintain a monorepo with multiple teams, dozens of workspace packages, an
 
 You can define SLOs for how quickly different kinds of updates need to happen, route tickets to the right team, group related dependencies, and distinguish between advisory notifications and hard deadlines. The tickets are rich enough that [coding agents can pick them up directly](https://descriptinc.github.io/dependicus/coding-agents/).
 
-Dependicus supports [pnpm](https://pnpm.io/), [bun](https://bun.sh/), [yarn](https://yarnpkg.com/), [npm](https://www.npmjs.com/), [mise](https://mise.jdx.dev/), [uv](https://docs.astral.sh/uv/), and [Go](https://go.dev/) as dependency providers, with auto-detection of the active one. Node.js package managers, mise tool versions, Python dependencies managed by uv, and Go modules are all tracked in a single unified view. It has a plugin system for customization. It’s a young open source project, but we use it daily at [Descript](https://descript.com).
+Dependicus supports [pnpm](https://pnpm.io/), [bun](https://bun.sh/), [yarn](https://yarnpkg.com/), [npm](https://www.npmjs.com/), [mise](https://mise.jdx.dev/), [uv](https://docs.astral.sh/uv/), [Go](https://go.dev/), and [Rust](https://www.rust-lang.org/) as dependency providers, with auto-detection of the active one. Node.js package managers, mise tool versions, Python dependencies managed by uv, Go modules, and Rust crates are all tracked in a single unified view. It has a plugin system for customization. It’s a young open source project, but we use it daily at [Descript](https://descript.com).
 
 [Full documentation](https://descriptinc.github.io/dependicus/) | [Demo deployment targeting this repo](https://descriptinc.github.io/dependicus/dependencies/)
 

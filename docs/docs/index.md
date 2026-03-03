@@ -8,10 +8,9 @@ Dependicus has a plugin system so you can customize it to your unique needs. It'
 
 ```mermaid
 graph LR
-    lockfile["your lockfile / config"] --> dependicus-update["<tt>dependicus update</tt><br>&rarr; <tt>dependencies.json</tt>"]
+    lockfile["lockfiles and tool configs"] --> dependicus-update["<tt>dependicus update</tt><br>&rarr; <tt>dependencies.json</tt>"]
+    registries["package registries"] --> dependicus-update
     GitHub --> dependicus-update
-    npmjs.org --> dependicus-update
-    mise-versions["mise-versions.jdx.dev"] --> dependicus-update
     dependicus-update --> dependicus-html["<tt>dependicus html</tt>"]
     dependicus-update --> dependicus-make-linear-issues["<tt>dependicus make-linear-issues</tt>"]
     dependicus-update --> dependicus-make-github-issues["<tt>dependicus make-github-issues</tt>"]
@@ -21,8 +20,8 @@ graph LR
     dependicus-make-github-issues --> github-issues["GitHub Issues"]
 ```
 
-Dependicus supports [pnpm](https://pnpm.io/), [bun](https://bun.sh/), [yarn](https://yarnpkg.com/), [npm](https://www.npmjs.com/), and [mise](https://mise.jdx.dev/) as dependency providers, with auto-detection of the active one. See [Package Managers](./package-managers.md) for details.
+Dependicus supports [pnpm](https://pnpm.io/), [bun](https://bun.sh/), [yarn](https://yarnpkg.com/), [npm](https://www.npmjs.com/), [mise](https://mise.jdx.dev/), [uv](https://docs.astral.sh/uv/), [Go](https://go.dev/), and [Rust](https://www.rust-lang.org/) as dependency providers, with auto-detection of the active one. See [Package Managers](./package-managers.md) for details.
 
-## LLM usage disclaimer
+## LLM usage note
 
 We use coding agents as part of the process of working on Dependicus. It's not vibecoded; the architecture reflects our human intent, and changes are reviewed carefully. But if you're avoiding software written with the assistance of LLMs, Dependicus is not a good fit for you.
