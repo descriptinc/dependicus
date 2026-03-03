@@ -105,7 +105,7 @@ jobs:
                   path: .dependicus-cache
                   key: dependicus-pnpm-cache-${{ github.sha }}
                   restore-keys: dependicus-pnpm-cache-
-            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
@@ -125,7 +125,7 @@ jobs:
                   path: .dependicus-cache
                   key: dependicus-bun-cache-${{ github.sha }}
                   restore-keys: dependicus-bun-cache-
-            - run: bun run packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise
+            - run: bun run packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
@@ -163,7 +163,7 @@ jobs:
                   path: .dependicus-cache
                   key: dependicus-yarn-cache-${{ github.sha }}
                   restore-keys: dependicus-yarn-cache-
-            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
@@ -237,7 +237,7 @@ jobs:
                   path: .dependicus-cache
                   key: dependicus-npm-cache-${{ github.sha }}
                   restore-keys: dependicus-npm-cache-
-            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
