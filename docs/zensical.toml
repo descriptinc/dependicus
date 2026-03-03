@@ -5,21 +5,27 @@ repo_name = "descriptinc/dependicus"
 edit_uri = "edit/main/docs/docs/"
 nav = [
     { "Docs" = [
-        { "Home" = "index.md" },
-        "gettingstarted.md",
-        "configuration.md",
-        { "Package Managers" = "package-managers.md" },
-        "plugins.md",
-        "compliance.md",
-        { "Linear Issues" = "linearissues.md" },
-        { "GitHub Issues" = "githubissues.md" },
-        "ci.md",
-        { "Using Coding Agents" = "coding-agents.md" },
-        { "Contributing" = "contributing.md" },
-    ] },
-    { "Comparisons" = [
-        { "vs Renovate" = "dependicus-vs-renovate.md" },
-        { "vs Dependabot" = "dependicus-vs-dependabot.md" },
+        { "Basics" = [
+            { "What is Dependicus?" = "index.md" },
+            { "Getting Started" = "gettingstarted.md" },
+            { "Configuration" = "configuration.md" },
+            { "Package Managers" = "package-managers.md" },
+            { "Continuous Integration" = "ci.md" },
+            { "BasicCompliancePlugin" = "compliance.md" },
+        ] },
+        { "Tickets" = [
+            { "Linear Issues" = "linearissues.md" },
+            { "GitHub Issues" = "githubissues.md" },
+        ] },
+        { "Guides" = [
+            { "Writing Plugins" = "plugins.md" },
+            { "Using Coding Agents" = "coding-agents.md" },
+            { "Contributing" = "contributing.md" },
+        ] },
+        { "Comparisons" = [
+            { "vs Renovate" = "dependicus-vs-renovate.md" },
+            { "vs Dependabot" = "dependicus-vs-dependabot.md" },
+        ] },
     ] },
     { "API" = "/api/" },
     { "Dependencies" = "/dependencies/" },

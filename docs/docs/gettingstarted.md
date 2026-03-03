@@ -1,8 +1,56 @@
 # Getting Started
 
-From here on out, the docs will assume you’re installing Dependicus via `package.json` rather than running it directly with your package manager’s `dlx`/`npx` command. After all, dependency governance is important!
+## Quickstart
+
+You only need to run a couple of commands to see whether Dependicus is useful to you. First, collect the data and generate the static site.
+
+```sh
+export GITHUB_TOKEN=<a GitHub token> # speeds up fetching of changelogs and tags
+
+# pnpm
+pnpm dlx dependicus@latest update --html
+
+# bun
+bunx dependicus@latest update --html
+
+# yarn
+yarn dlx dependicus@latest update --html
+
+# npm
+npx dependicus@latest update --html
+
+# open ./dependicus-out/index.html
+```
+
+If you're a Linear shop, you can reuse the same data to create tickets when updates are available. The default behavior is very naive, so this example uses `--dry-run` just to give you a sense of what would happen.
+
+```sh
+export LINEAR_API_KEY=<a Linear API key>
+
+# pnpm
+pnpm dlx dependicus@latest make-linear-issues \
+    --linear-team-id=<uuid of a Linear team> \
+    --dry-run
+
+# bun
+bunx dependicus@latest make-linear-issues \
+    --linear-team-id=<uuid of a Linear team> \
+    --dry-run
+
+# yarn
+yarn dlx dependicus@latest make-linear-issues \
+    --linear-team-id=<uuid of a Linear team> \
+    --dry-run
+
+# npm
+npx dependicus@latest make-linear-issues \
+    --linear-team-id=<uuid of a Linear team> \
+    --dry-run
+```
 
 ## Installation
+
+From here on out, the docs will assume you're installing Dependicus via `package.json` rather than running it directly with your package manager's `dlx`/`npx` command. After all, dependency governance is important!
 
 ```sh
 # pnpm
@@ -22,15 +70,15 @@ npm install dependicus
 
 ### `GITHUB_TOKEN`
 
-Dependicus uses the GitHub API to attempt to find canonical releases and changelogs for each of your dependencies so you can conveniently click through to them from the static site. The GitHub API is severely rate limted without an API key, so we strongly recommend you set this variable.
+Dependicus uses the GitHub API to attempt to find canonical releases and changelogs for each of your dependencies so you can conveniently click through to them from the static site. The GitHub API is severely rate limited without an API key, so we strongly recommend you set this variable. (GitHub CI sets it for you automatically.)
 
 ### `LINEAR_API_KEY`
 
-This field is required in order to use the Linear ticket creation feature of Dependicus. If you don’t plan to use those features, you can omit this variable.
+This field is required in order to use the Linear ticket creation feature of Dependicus. If you don't plan to use those features, you can omit this variable.
 
 ## The Dependicus CLI
 
-Dependicus ships with a CLI that uses bare-bones defaults. This may be enough for people who don’t use Linear or GitHub Issues and don’t need to add additional data with plugins.
+Dependicus ships with a CLI that uses bare-bones defaults. This may be enough for people who don't use Linear or GitHub Issues and don't need to add additional data with plugins.
 
 ```sh
 > pnpm exec dependicus -h
@@ -62,7 +110,7 @@ When `--provider` is omitted, Dependicus [auto-detects](./package-managers.md) t
 
 Dependicus does not offer a config file. The JavaScript ecosystem has many build systems, multiple languages, and copious linters with different default rule sets, which creates many edge cases for JS-based config files. Given this variety, we chose to expose Dependicus's configuration as a function call so you can use your normal project conventions with it.
 
-In other words, if you want to customize Dependicus’s behavior in any way, you need to write a script to call it.
+In other words, if you want to customize Dependicus's behavior in any way, you need to write a script to call it.
 
 ```ts
 // dependicus.js
