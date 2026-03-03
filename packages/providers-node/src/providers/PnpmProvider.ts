@@ -31,6 +31,7 @@ export class PnpmProvider implements DependencyProvider {
     readonly urlPatterns = {
         'Dependency Graph': 'https://npmgraph.js.org/?q={{name}}@{{version}}',
         Registry: 'https://www.npmjs.com/package/{{name}}/v/{{version}}',
+        npmx: 'https://npmx.dev/package/{{name}}',
     };
     readonly catalogFile = 'pnpm-workspace.yaml';
     readonly patchHint =
