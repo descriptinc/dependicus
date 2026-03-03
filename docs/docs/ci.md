@@ -6,10 +6,10 @@ The update step is the only one that requires network access, and it's the slowe
 
 ## Environment variables
 
-| Variable         | Required by                    | Description                                                           |
-| ---------------- | ------------------------------ | --------------------------------------------------------------------- |
-| `GITHUB_TOKEN`   | `update`, `make-github-issues` | Strongly recommended for `update`. Required for `make-github-issues`. |
-| `LINEAR_API_KEY` | `make-linear-issues`           | Required. Must have write access to the teams you route tickets to.   |
+| Variable         | Required by                    | Description                                                                                                                       |
+| ---------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `GITHUB_TOKEN`   | `update`, `make-github-issues` | GitHub Actions provides this automatically. On other CI systems, set it to a GitHub personal access token with `repo` read scope. |
+| `LINEAR_API_KEY` | `make-linear-issues`           | Required. Must have write access to the teams you route tickets to.                                                               |
 
 ## GitHub Actions
 
@@ -39,8 +39,6 @@ jobs:
 
             - name: Collect dependency data
               run: node your-dependicus-script.js update
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Upload dependency data
               uses: actions/upload-artifact@v4
