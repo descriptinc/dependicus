@@ -48,7 +48,10 @@ export interface SerializedFacts {
     version: Record<string, Record<string, Record<string, Record<string, unknown>>>>;
 }
 
-/** Read/write interface for fact storage. */
+/**
+ * Read/write interface for fact storage.
+ * @group Data Collection
+ */
 export interface FactStore {
     getDependencyFact<T>(name: string, key: string): T | undefined;
     setDependencyFact(name: string, key: string, value: unknown): void;
