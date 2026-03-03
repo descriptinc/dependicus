@@ -1,12 +1,12 @@
 # Dependicus
 
-Dependicus is a dependency governance tool for monorepos. It collects data from your lockfiles, tool configs, the npm registry, and GitHub, then produces two outputs: an interactive dashboard, and tickets for either Linear or GitHub.
+Dependicus is a dependency governance tool for monorepos. It collects data from your lockfiles, tool configs, package registries, and GitHub, then produces two outputs: an interactive dashboard, and tickets for either Linear or GitHub.
 
 If you maintain a monorepo with multiple teams, dozens of workspace packages, and hundreds of dependencies, Dependicus gives you the visibility that automated-PR tools don't: which dependencies are behind, by how much, who owns them, and where teams have drifted to different versions of the same package. The dashboard is a single view of your entire dependency landscape. The tickets are driven by compliance policies you define.
 
 You can define SLOs for how quickly different kinds of updates need to happen, route tickets to the right team, group related dependencies, and distinguish between advisory notifications and hard deadlines. The tickets are rich enough that [coding agents can pick them up directly](https://descriptinc.github.io/dependicus/coding-agents/).
 
-Dependicus supports [pnpm](https://pnpm.io/), [bun](https://bun.sh/), [yarn](https://yarnpkg.com/), [npm](https://www.npmjs.com/), and [mise](https://mise.jdx.dev/) as dependency providers, with auto-detection of the active one. It has a plugin system for customization. It’s a young open source project, but we use it daily at [Descript](https://descript.com).
+Dependicus supports [pnpm](https://pnpm.io/), [bun](https://bun.sh/), [yarn](https://yarnpkg.com/), [npm](https://www.npmjs.com/), [mise](https://mise.jdx.dev/), and [uv](https://docs.astral.sh/uv/) as dependency providers, with auto-detection of the active one. Node.js package managers, mise tool versions, and Python dependencies managed by uv are all tracked in a single unified view. It has a plugin system for customization. It’s a young open source project, but we use it daily at [Descript](https://descript.com).
 
 [Full documentation](https://descriptinc.github.io/dependicus/) | [Demo deployment targeting this repo](https://descriptinc.github.io/dependicus/dependencies/)
 
