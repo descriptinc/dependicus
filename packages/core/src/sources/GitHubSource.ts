@@ -18,9 +18,12 @@ export class GitHubSource implements DataSource {
     constructor(private githubService: GitHubService) {}
 
     async fetch(dependencies: DirectDependency[], store: FactStore): Promise<void> {
-        // Collect unique repos from all version-level rawRepoUrl facts
-        // Each dependency carries its ecosystem, so we scope reads accordingly
+        // Collect unique repos and build a map of repo -> latest versions needed
         const repos: GitHubRepo[] = [];
+        const repoLatestVersions = new Map<
+            string,
+            Array<{ version: string; packageName: string }>
+        >();
         for (const dep of dependencies) {
             const scoped = store.scoped(dep.ecosystem);
             for (const ver of dep.versions) {
@@ -32,11 +35,15 @@ export class GitHubSource implements DataSource {
                 const repo = this.githubService.parseRepoUrl(rawUrl);
                 if (repo) {
                     repos.push(repo);
+                    const key = `${repo.owner}/${repo.repo}`;
+                    const entries = repoLatestVersions.get(key) ?? [];
+                    entries.push({ version: ver.latestVersion, packageName: dep.name });
+                    repoLatestVersions.set(key, entries);
                 }
             }
         }
 
-        await this.githubService.prefetchRepoData(repos);
+        await this.githubService.prefetchRepoData(repos, repoLatestVersions);
 
         for (const dep of dependencies) {
             const scoped = store.scoped(dep.ecosystem);

@@ -101,39 +101,4 @@ export class CacheService {
         }
         return await readFile(dataPath, 'utf-8');
     }
-
-    /**
-     * Get the lockfile hash from the last GitHub releases fetch.
-     */
-    async getLastReleaseFetchHash(): Promise<string | undefined> {
-        const hashPath = join(this.cacheDir, 'github-releases-fetch.hash');
-        if (!existsSync(hashPath)) {
-            return undefined;
-        }
-        return (await readFile(hashPath, 'utf-8')).trim();
-    }
-
-    /**
-     * Store the lockfile hash for the current GitHub releases fetch.
-     */
-    async setLastReleaseFetchHash(lockfilePath: string): Promise<void> {
-        if (!existsSync(this.cacheDir)) {
-            await mkdir(this.cacheDir, { recursive: true });
-        }
-        const hash = await this.getFileHash(lockfilePath);
-        const hashPath = join(this.cacheDir, 'github-releases-fetch.hash');
-        await writeFile(hashPath, hash, 'utf-8');
-    }
-
-    /**
-     * Check if lockfile has changed since the last releases fetch.
-     */
-    async hasLockfileChangedSinceLastFetch(lockfilePath: string): Promise<boolean> {
-        const lastHash = await this.getLastReleaseFetchHash();
-        if (!lastHash) {
-            return true;
-        }
-        const currentHash = await this.getFileHash(lockfilePath);
-        return currentHash !== lastHash;
-    }
 }

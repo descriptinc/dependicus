@@ -28,10 +28,7 @@ export function createCoreServices(config: CoreServicesConfig): CoreServices {
     const { repoRoot, cacheDir, providers } = config;
     const cacheService = new CacheService(cacheDir);
 
-    // Use the first provider's lockfile for cache invalidation of shared services
-    const lockfilePath = providers[0]!.lockfilePath;
-
-    const githubService = new GitHubService(cacheService, lockfilePath);
+    const githubService = new GitHubService(cacheService);
 
     const collector = new DependencyCollector(providers);
 

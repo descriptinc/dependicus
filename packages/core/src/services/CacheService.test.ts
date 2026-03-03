@@ -77,34 +77,4 @@ describe('CacheService', () => {
             expect(data).toBeUndefined();
         });
     });
-
-    describe('lockfile change tracking', () => {
-        it('reports lockfile changed when no prior fetch', async () => {
-            const lockfile = join(tempDir, 'pnpm-lock.yaml');
-            writeFileSync(lockfile, 'lockfile-v1');
-
-            const changed = await cacheService.hasLockfileChangedSinceLastFetch(lockfile);
-            expect(changed).toBe(true);
-        });
-
-        it('reports lockfile unchanged after recording fetch', async () => {
-            const lockfile = join(tempDir, 'pnpm-lock.yaml');
-            writeFileSync(lockfile, 'lockfile-v1');
-
-            await cacheService.setLastReleaseFetchHash(lockfile);
-            const changed = await cacheService.hasLockfileChangedSinceLastFetch(lockfile);
-            expect(changed).toBe(false);
-        });
-
-        it('reports lockfile changed after modification', async () => {
-            const lockfile = join(tempDir, 'pnpm-lock.yaml');
-            writeFileSync(lockfile, 'lockfile-v1');
-
-            await cacheService.setLastReleaseFetchHash(lockfile);
-
-            writeFileSync(lockfile, 'lockfile-v2');
-            const changed = await cacheService.hasLockfileChangedSinceLastFetch(lockfile);
-            expect(changed).toBe(true);
-        });
-    });
 });

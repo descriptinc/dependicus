@@ -24,10 +24,7 @@ export interface ChangelogInfo {
 export class GitHubService {
     private octokit: Octokit;
 
-    constructor(
-        private cacheService: CacheService,
-        private lockfilePath: string,
-    ) {
+    constructor(private cacheService: CacheService) {
         // Use GITHUB_TOKEN if available for higher rate limits
         const auth = process.env.GITHUB_TOKEN;
         // Suppress verbose request logging (debug/info) but keep warn/error
@@ -89,45 +86,43 @@ export class GitHubService {
     }
 
     /**
+     * Cache key for the set of latest versions we last checked for a repo.
+     */
+    private getCheckedVersionsCacheKey(repo: GitHubRepo): string {
+        return `github-checked-versions-${sanitizeCacheKey(repo.owner)}-${sanitizeCacheKey(repo.repo)}`;
+    }
+
+    /**
      * Get all releases for a repository.
-     * Releases are cached permanently by tag name. Only fetches new releases
-     * when the lockfile changes.
+     * Returns cached releases. The prefetch step handles fetching when needed.
      */
     async getReleases(repo: GitHubRepo): Promise<GitHubRelease[]> {
         const tagsCacheKey = this.getCachedTagsCacheKey(repo);
-
-        // Load existing cached tags
         const cachedTagsJson = await this.cacheService.readPermanentCache(tagsCacheKey);
-        const hasCachedTags = cachedTagsJson !== undefined;
+        const cachedTags: string[] = cachedTagsJson ? JSON.parse(cachedTagsJson) : [];
+        return await this.loadCachedReleases(repo, cachedTags);
+    }
+
+    /**
+     * Fetch and cache new releases for a repository.
+     * Called by prefetchRepoData when cache needs updating.
+     */
+    private async fetchAndCacheReleases(repo: GitHubRepo): Promise<void> {
+        const tagsCacheKey = this.getCachedTagsCacheKey(repo);
+        const cachedTagsJson = await this.cacheService.readPermanentCache(tagsCacheKey);
         const cachedTags: string[] = cachedTagsJson ? JSON.parse(cachedTagsJson) : [];
 
-        // If we have cache (even empty) and lockfile hasn't changed, return cached releases
-        const lockfileChanged = await this.cacheService.hasLockfileChangedSinceLastFetch(
-            this.lockfilePath,
-        );
-
-        if (hasCachedTags && !lockfileChanged) {
-            return await this.loadCachedReleases(repo, cachedTags);
-        }
-
-        // Lockfile changed or no cache - fetch new releases
         try {
             const newReleases = await this.fetchNewReleases(repo, cachedTags);
 
-            // Cache each new release permanently
             for (const release of newReleases) {
                 const releaseKey = this.getReleaseCacheKey(repo, release.tagName);
                 await this.cacheService.writePermanentCache(releaseKey, JSON.stringify(release));
             }
 
-            // Update the list of cached tags
             const allTags = [...new Set([...cachedTags, ...newReleases.map((r) => r.tagName)])];
             await this.cacheService.writePermanentCache(tagsCacheKey, JSON.stringify(allTags));
-
-            // Return all releases (cached + new)
-            return await this.loadCachedReleases(repo, allTags);
         } catch (error) {
-            // Only cache 404s (repo doesn't exist) - don't cache rate limits or other transient errors
             if (
                 cachedTags.length === 0 &&
                 error instanceof Error &&
@@ -136,7 +131,6 @@ export class GitHubService {
             ) {
                 await this.cacheService.writePermanentCache(tagsCacheKey, JSON.stringify([]));
             }
-            return await this.loadCachedReleases(repo, cachedTags);
         }
     }
 
@@ -238,6 +232,7 @@ export class GitHubService {
      * Check if CHANGELOG.md exists in the repository root.
      * Returns the URL and filename if found.
      * Results are cached permanently (including failures).
+     * Re-throws rate-limit errors (403/429) so callers can abort gracefully.
      */
     async getChangelogUrl(repo: GitHubRepo): Promise<ChangelogInfo | undefined> {
         const cacheKey = `github-changelog-${sanitizeCacheKey(repo.owner)}-${sanitizeCacheKey(repo.repo)}`;
@@ -250,43 +245,31 @@ export class GitHubService {
         }
 
         try {
-            // Get the default branch first
-            const repoInfo = await this.octokit.repos.get({
+            const response = await this.octokit.repos.getContent({
                 owner: repo.owner,
                 repo: repo.repo,
+                path: 'CHANGELOG.md',
             });
-            const defaultBranch = repoInfo.data.default_branch;
 
-            // Check for CHANGELOG.md only
-            try {
-                await this.octokit.repos.getContent({
-                    owner: repo.owner,
-                    repo: repo.repo,
-                    path: 'CHANGELOG.md',
-                });
-
+            const file = response.data;
+            if (!Array.isArray(file) && file.type === 'file' && file.html_url) {
                 const result: ChangelogInfo = {
                     filename: 'CHANGELOG.md',
-                    url: `https://github.com/${repo.owner}/${repo.repo}/blob/${defaultBranch}/CHANGELOG.md`,
+                    url: file.html_url,
                 };
-
                 await this.cacheService.writePermanentCache(cacheKey, JSON.stringify(result));
                 return result;
-            } catch (contentError) {
-                // Only cache 404 (file doesn't exist) - don't cache rate limits
-                if (
-                    contentError instanceof Error &&
-                    'status' in contentError &&
-                    contentError.status === 404
-                ) {
-                    await this.cacheService.writePermanentCache(cacheKey, 'null');
-                }
-                return undefined;
             }
+
+            await this.cacheService.writePermanentCache(cacheKey, 'null');
+            return undefined;
         } catch (error) {
-            // Only cache 404s (repo doesn't exist) - don't cache rate limits or other transient errors
-            if (error instanceof Error && 'status' in error && error.status === 404) {
-                await this.cacheService.writePermanentCache(cacheKey, 'null');
+            if (error instanceof Error && 'status' in error) {
+                if (error.status === 404) {
+                    await this.cacheService.writePermanentCache(cacheKey, 'null');
+                } else if (error.status === 403 || error.status === 429) {
+                    throw error;
+                }
             }
             return undefined;
         }
@@ -326,10 +309,62 @@ export class GitHubService {
     }
 
     /**
-     * Prefetch GitHub data for a list of repos, with progress logging.
-     * This fetches releases and changelog info for repos that aren't cached.
+     * Check if the cached releases for a repo already cover the given latest
+     * versions. Two ways a version is considered "covered":
+     *   1. A tag matching the version exists in cached releases (fast path).
+     *   2. We already fetched releases while this version was current, so
+     *      re-fetching would produce the same result.
      */
-    async prefetchRepoData(repos: GitHubRepo[]): Promise<void> {
+    private async hasCachedLatestVersions(
+        repo: GitHubRepo,
+        entries: Array<{ version: string; packageName: string }>,
+    ): Promise<boolean> {
+        const tagsCacheKey = this.getCachedTagsCacheKey(repo);
+        const cachedTagsJson = await this.cacheService.readPermanentCache(tagsCacheKey);
+        if (!cachedTagsJson) return false;
+
+        const cachedTags: string[] = JSON.parse(cachedTagsJson);
+
+        // No releases exist for this repo — re-fetching won't help
+        if (cachedTags.length === 0) return true;
+
+        const tagSet = new Set(cachedTags);
+
+        // Load versions we already checked (may not exist yet)
+        const checkedKey = this.getCheckedVersionsCacheKey(repo);
+        const checkedJson = await this.cacheService.readPermanentCache(checkedKey);
+        const checkedVersions = checkedJson
+            ? new Set<string>(JSON.parse(checkedJson) as string[])
+            : new Set<string>();
+
+        for (const { version, packageName } of entries) {
+            // Fast path: a matching tag exists in cached releases
+            const candidates = [`v${version}`, version, `${packageName}@${version}`];
+            if (packageName.startsWith('@')) {
+                const shortName = packageName.split('/')[1];
+                if (shortName) {
+                    candidates.push(`${shortName}@${version}`);
+                }
+            }
+            if (candidates.some((tag) => tagSet.has(tag))) continue;
+
+            // Slow path: we already fetched while this version was current
+            if (checkedVersions.has(version)) continue;
+
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Prefetch GitHub data for a list of repos, with progress logging.
+     * Uses per-repo latest version checking to avoid unnecessary API calls:
+     * if the latest version's tag is already cached, we skip that repo entirely.
+     */
+    async prefetchRepoData(
+        repos: GitHubRepo[],
+        latestVersions?: Map<string, Array<{ version: string; packageName: string }>>,
+    ): Promise<void> {
         // Deduplicate repos by owner/repo
         const uniqueRepos = new Map<string, GitHubRepo>();
         for (const repo of repos) {
@@ -339,21 +374,23 @@ export class GitHubService {
             }
         }
 
-        const lockfileChanged = await this.cacheService.hasLockfileChangedSinceLastFetch(
-            this.lockfilePath,
-        );
-
         // Filter to repos that need fetching
         const reposToFetch: GitHubRepo[] = [];
-        for (const repo of uniqueRepos.values()) {
+        for (const [key, repo] of uniqueRepos) {
             const hasReleases = await this.hasReleasesCache(repo);
             const hasChangelog = this.hasChangelogCache(repo);
 
-            // Need to fetch if: no cache, or lockfile changed (for releases)
-            const needsReleases = !hasReleases || lockfileChanged;
-            const needsChangelog = !hasChangelog;
+            // If we have cached tags and they include the latest versions, skip releases
+            let needsReleases = !hasReleases;
+            if (hasReleases && latestVersions) {
+                const entries = latestVersions.get(key);
+                if (entries) {
+                    const covered = await this.hasCachedLatestVersions(repo, entries);
+                    needsReleases = !covered;
+                }
+            }
 
-            if (needsReleases || needsChangelog) {
+            if (needsReleases || !hasChangelog) {
                 reposToFetch.push(repo);
             }
         }
@@ -363,16 +400,37 @@ export class GitHubService {
             return;
         }
 
-        process.stderr.write(
-            `Fetching GitHub data for ${reposToFetch.length} repos${lockfileChanged ? ' (lockfile changed)' : ''}...\n`,
-        );
+        process.stderr.write(`Fetching GitHub data for ${reposToFetch.length} repos...\n`);
 
         let completed = 0;
+        let changelogRateLimited = false;
         for (const repo of reposToFetch) {
-            await this.getReleases(repo);
+            await this.fetchAndCacheReleases(repo);
 
-            if (!this.hasChangelogCache(repo)) {
-                await this.getChangelogUrl(repo);
+            // Record the versions we just checked so we don't re-fetch next run
+            const repoKey = `${repo.owner}/${repo.repo}`;
+            const entries = latestVersions?.get(repoKey);
+            if (entries) {
+                const checkedKey = this.getCheckedVersionsCacheKey(repo);
+                const versions = [...new Set(entries.map((e) => e.version))];
+                await this.cacheService.writePermanentCache(checkedKey, JSON.stringify(versions));
+            }
+
+            if (!changelogRateLimited && !this.hasChangelogCache(repo)) {
+                try {
+                    await this.getChangelogUrl(repo);
+                } catch (error) {
+                    if (
+                        error instanceof Error &&
+                        'status' in error &&
+                        (error.status === 403 || error.status === 429)
+                    ) {
+                        changelogRateLimited = true;
+                        process.stderr.write(
+                            'GitHub rate limit hit, skipping remaining changelog lookups\n',
+                        );
+                    }
+                }
             }
 
             completed++;
@@ -380,8 +438,5 @@ export class GitHubService {
                 process.stderr.write(`  Fetched ${completed}/${reposToFetch.length} repos\n`);
             }
         }
-
-        // Update lockfile hash after successful fetch
-        await this.cacheService.setLastReleaseFetchHash(this.lockfilePath);
     }
 }

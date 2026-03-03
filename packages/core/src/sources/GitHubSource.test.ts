@@ -89,7 +89,10 @@ describe('GitHubSource', () => {
         await source.fetch([makeDep('react', '18.2.0', '19.0.0')], store);
 
         expect(parseRepoUrl).toHaveBeenCalledWith('git+https://github.com/facebook/react.git');
-        expect(prefetchRepoData).toHaveBeenCalledWith([fakeRepo]);
+        expect(prefetchRepoData).toHaveBeenCalledWith(
+            [fakeRepo],
+            new Map([['facebook/react', [{ version: '19.0.0', packageName: 'react' }]]]),
+        );
     });
 
     it('stores GITHUB_DATA as a package-level fact', async () => {
