@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import type {
     PackageInfo,
     DependencyInfo,
@@ -103,7 +103,7 @@ export class GoProvider implements DependencyProvider {
 
         for (const dir of projectDirs) {
             const projectPath = dir === '.' ? this.rootDir : join(this.rootDir, dir);
-            const { packages, depCount } = this.listModules(projectPath);
+            const { packages, depCount } = this.listModules(projectPath, dir);
             allPackages.push(...packages);
             totalDepCount += depCount;
         }
@@ -115,7 +115,10 @@ export class GoProvider implements DependencyProvider {
         return allPackages;
     }
 
-    private listModules(projectPath: string): { packages: PackageInfo[]; depCount: number } {
+    private listModules(
+        projectPath: string,
+        relativeDir: string,
+    ): { packages: PackageInfo[]; depCount: number } {
         let output: string;
         try {
             output = execSync('go list -m -json all', {
@@ -158,9 +161,11 @@ export class GoProvider implements DependencyProvider {
             depCount++;
         }
 
+        // Use the monorepo-relative directory as the package name for readable "Used By" values
+        const packageName = relativeDir === '.' ? basename(projectPath) : relativeDir;
         const packages: PackageInfo[] = [
             {
-                name: mainModule.Path,
+                name: packageName,
                 version: mainModule.Version ? cleanGoVersion(mainModule.Version) : '0.0.0',
                 path: projectPath,
                 dependencies,

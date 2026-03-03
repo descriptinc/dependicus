@@ -402,6 +402,33 @@ main tbody tr {
     height: 100vh;
 }
 
+.dep-provider-bar {
+    display: flex;
+    gap: var(--size-2);
+    padding: var(--size-2) var(--size-3);
+    background: var(--surface-2);
+    border-bottom: var(--border-size-1) solid var(--surface-3);
+}
+
+.dep-provider {
+    padding: var(--size-1) var(--size-3);
+    border: var(--border-size-1) solid var(--surface-3);
+    background: var(--surface-1);
+    border-radius: var(--radius-2);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.dep-provider:hover {
+    background: var(--surface-3);
+}
+
+.dep-provider.active {
+    background: var(--surface-1);
+    border-color: var(--blue-7);
+    font-weight: var(--font-weight-6);
+}
+
 .dep-tabs {
     display: flex;
     gap: var(--size-1);

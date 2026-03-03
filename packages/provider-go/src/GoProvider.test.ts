@@ -103,7 +103,7 @@ describe('GoProvider', () => {
         const packages = await provider.getPackages();
 
         expect(packages).toHaveLength(1);
-        expect(packages[0]!.name).toBe('github.com/example/myapp');
+        expect(packages[0]!.name).toBe('project');
         expect(packages[0]!.version).toBe('0.0.0'); // main module has no version
 
         const deps = packages[0]!.dependencies!;

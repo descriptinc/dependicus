@@ -54,9 +54,19 @@ export interface DashboardTab {
 }
 
 /**
+ * Provider metadata for 2-level navigation
+ */
+export interface ProviderInfo {
+    name: string;
+    depCount: number;
+    dupCount: number;
+}
+
+/**
  * Data passed from Node.js to browser via global variable
  */
 export interface DependicusData {
+    providers: ProviderInfo[];
     tabs: DashboardTab[];
     uniqueNotes: string[];
     customColumns: BrowserColumnDef[];

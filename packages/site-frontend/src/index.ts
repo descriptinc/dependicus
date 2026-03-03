@@ -1,7 +1,13 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export type { BrowserColumnDef, GroupingSlug, DependicusData, RowData } from './types';
+export type {
+    BrowserColumnDef,
+    GroupingSlug,
+    DependicusData,
+    ProviderInfo,
+    RowData,
+} from './types';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

@@ -96,6 +96,15 @@ export interface HtmlWriterOptions {
     siteName?: string;
 }
 
+/**
+ * Strip well-known hosting prefixes from Go module paths for display.
+ * e.g. "github.com/gorilla/mux" → "gorilla/mux"
+ */
+function shortenModulePath(name: string, ecosystem: string): string {
+    if (ecosystem !== 'gomod') return name;
+    return name.replace(/^(?:github\.com|gitlab\.com|bitbucket\.org)\//, '');
+}
+
 export class HtmlWriter {
     private templateService: TemplateService;
     private groupings: GroupingConfig[];
@@ -221,7 +230,7 @@ export class HtmlWriter {
                     scoped.getDependencyFact<Record<string, string>>(dep.name, FactKeys.URLS) ?? {};
                 const registryPattern = rowUrlPatterns['Registry'];
                 rows.push({
-                    Dependency: dep.name,
+                    Dependency: shortenModulePath(dep.name, dep.ecosystem),
                     Ecosystem: dep.ecosystem,
                     Type: versionInfo.dependencyTypes.join(', '),
                     Version: versionInfo.version,
@@ -356,10 +365,24 @@ export class HtmlWriter {
             grouped: t.groupBy !== undefined,
         }));
 
+        // Build provider metadata for 2-level navigation
+        const providerInfos = providers.map((provider) => {
+            const allTab = tabs.find((t) => t.id === provider.name);
+            const dupTab = tabs.find((t) => t.id === `${provider.name}-duplicates`);
+            return {
+                name: provider.name,
+                depCount: allTab?.data.length ?? 0,
+                dupCount: dupTab?.data.length ?? 0,
+            };
+        });
+
         // Render content using template
         const content = this.templateService.render('pages/index', {
             tabs: tabSummaries,
             tabsJson: JSON.stringify(tabs),
+            providersJson: JSON.stringify(providerInfos),
+            providersSummary: providerInfos,
+            singleProvider: providerInfos.length === 1,
             uniqueNotesJson: JSON.stringify(uniqueNotes),
             customColumnsJson: JSON.stringify(browserColumns),
             groupingsJson: JSON.stringify(
@@ -528,8 +551,9 @@ export class HtmlWriter {
             store.getDependencyFact<string[]>(dep.name, FactKeys.DEPRECATED_TRANSITIVE_DEPS) ?? [];
 
         // Render content using template
+        const displayName = shortenModulePath(dep.name, dep.ecosystem);
         const content = this.templateService.render('pages/dependency-detail', {
-            name: dep.name,
+            name: displayName,
             version: versionInfo.version,
             description,
             customMeta: customMeta.length > 0 ? customMeta : undefined,
@@ -556,7 +580,7 @@ export class HtmlWriter {
 
         // Render full page with base layout
         return this.templateService.render('layouts/base', {
-            title: `${dep.name}@${versionInfo.version}`,
+            title: `${displayName}@${versionInfo.version}`,
             siteName: this.siteName,
             content,
             baseHref,
@@ -748,7 +772,7 @@ export class HtmlWriter {
                 const dependencies = deps.map((dep) => {
                     const version = dep.versions[0];
                     return {
-                        name: dep.name,
+                        name: shortenModulePath(dep.name, dep.ecosystem),
                         version: version?.version ?? '',
                         latestVersion: version?.latestVersion ?? '',
                         detailLink: version

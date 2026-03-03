@@ -169,8 +169,10 @@ describe('HtmlWriter', () => {
             const providers: ProviderOutput[] = [makeProvider([dep])];
             const html = await writer.toHtml(providers, store);
 
-            expect(html).toContain('data-tab="pnpm"');
-            expect(html).toContain('pnpm duplicates');
+            expect(html).toContain('data-tab-type="deps"');
+            expect(html).toContain('data-tab-type="dups"');
+            // Single provider: provider bar is hidden
+            expect(html).not.toContain('data-provider=');
         });
 
         it('generates multi-version rows for packages with multiple versions', async () => {
