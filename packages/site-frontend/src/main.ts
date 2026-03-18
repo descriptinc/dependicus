@@ -1,6 +1,7 @@
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import type { RowData, TabulatorInstance } from './types';
 import { createColumnDefs, getTableConfig } from './config';
+import { exportToCsv } from './csv-export';
 
 /**
  * Main entry point for browser-side initialization
@@ -22,6 +23,9 @@ function init() {
     const wrappers = document.querySelectorAll<HTMLElement>('.dep-table-wrapper');
     const depsBadge = tabButtons[0]?.querySelector('.dep-tab-count');
     const dupsBadge = tabButtons[1]?.querySelector('.dep-tab-count');
+    const exportBtn = document.getElementById('export-csv') as HTMLButtonElement | null;
+
+    const filteredState = new Map<string, boolean>();
 
     function getTabId(provider: string, tabType: string): string {
         return tabType === 'deps' ? provider : `${provider}-duplicates`;
@@ -84,6 +88,13 @@ function init() {
         return { provider: activeProvider, tabType: 'deps' };
     }
 
+    function updateExportButton() {
+        if (!exportBtn) return;
+        const tabId = getTabId(activeProvider, activeTabType);
+        const isFiltered = filteredState.get(tabId) ?? false;
+        exportBtn.textContent = isFiltered ? 'Export Selected' : 'Export';
+    }
+
     function navigate(provider: string, tabType: 'deps' | 'dups') {
         activeProvider = provider;
         activeTabType = tabType;
@@ -92,6 +103,7 @@ function init() {
         updateCounts(provider);
         showTab(provider, tabType);
         setHash(provider, tabType);
+        updateExportButton();
     }
 
     // Create column definitions per tab (supportsCatalog varies across providers)
@@ -156,6 +168,8 @@ function init() {
 
             table.on('dataFiltered', (_filters: unknown, rows: RowData[]) => {
                 updateTabCount(tab.id, rows.length, tab.data.length);
+                filteredState.set(tab.id, rows.length < tab.data.length);
+                updateExportButton();
             });
         }
     }
@@ -177,6 +191,24 @@ function init() {
             navigate(activeProvider, tabType);
         });
     });
+
+    // Export CSV click handler
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            const tabId = getTabId(activeProvider, activeTabType);
+            const table = tables.get(tabId);
+            if (!table) return;
+
+            const isFiltered = filteredState.get(tabId) ?? false;
+            const rows = isFiltered
+                ? (table.getData('active') as RowData[])
+                : (table.getData() as RowData[]);
+
+            const suffix = activeTabType === 'dups' ? '-duplicates' : '';
+            const filename = `dependicus-${activeProvider}${suffix}.csv`;
+            exportToCsv(rows, filename);
+        });
+    }
 
     // Handle browser back/forward
     window.addEventListener('hashchange', () => {

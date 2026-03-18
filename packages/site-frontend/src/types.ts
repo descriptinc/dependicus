@@ -142,6 +142,8 @@ export interface TabulatorInstance {
     redraw(): void;
     destroy(): void;
     setHeaderFilterValue(field: string, value: string): void;
+    getData(activeOnly?: 'active'): RowData[];
+    getHeaderFilters(): Array<{ field: string; value: unknown }>;
 }
 
 /**

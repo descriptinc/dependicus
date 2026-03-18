@@ -643,9 +643,31 @@ a.dep-pill {
     color: inherit;
 }
 
+/* Export button */
+.dep-export-btn {
+    margin-left: auto;
+    padding: var(--size-1) var(--size-3);
+    border: var(--border-size-1) solid var(--surface-3);
+    background: var(--surface-1);
+    border-radius: var(--radius-2);
+    cursor: pointer;
+    font-size: var(--font-size-1);
+    color: var(--text-1);
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.dep-export-btn:hover {
+    background: var(--surface-3);
+}
+
+.dep-export-btn:active {
+    background: var(--surface-4, var(--surface-3));
+}
+
 /* Responsive toggle */
 .dep-responsive-toggle {
-    margin-left: auto;
     display: flex;
     align-items: center;
     gap: var(--size-1);

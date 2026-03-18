@@ -6,5 +6,7 @@ declare module 'tabulator-tables' {
         redraw(): void;
         destroy(): void;
         setHeaderFilterValue(field: string, value: string): void;
+        getData(activeOnly?: 'active'): any[];
+        getHeaderFilters(): Array<{ field: string; value: unknown }>;
     }
 }
