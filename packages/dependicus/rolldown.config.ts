@@ -1,6 +1,9 @@
 import { defineConfig } from 'rolldown';
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'rolldown';
+
+const configDir = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Replace `__dirname` with the actual source directory of each module at build
@@ -18,16 +21,49 @@ function staticDirname(): Plugin {
         transform: {
             filter: { code: { include: ['__dirname'] } },
             handler(code, id) {
-                return code.replaceAll('__dirname', JSON.stringify(dirname(id)));
+                // Strip the ESM polyfill declaration, then replace remaining usage
+                const stripped = code.replace(
+                    /const __dirname\s*=\s*dirname\(fileURLToPath\(import\.meta\.url\)\);?\n?/g,
+                    '',
+                );
+                return stripped.replaceAll('__dirname', JSON.stringify(dirname(id)));
             },
         },
     };
 }
 
+/**
+ * Resolve `@dependicus/*` workspace imports to their TypeScript source rather
+ * than the built dist/ output.  This avoids conflicts with the staticDirname
+ * plugin (which would corrupt the __dirname polyfill in built files) and
+ * produces a cleaner bundle from source.
+ */
+function resolveWorkspaceSource(): Plugin {
+    return {
+        name: 'resolve-workspace-source',
+        resolveId(source) {
+            if (source.startsWith('@dependicus/')) {
+                const pkg = source.slice('@dependicus/'.length);
+                return resolve(configDir, '..', pkg, 'src/index.ts');
+            }
+        },
+    };
+}
+
 export default defineConfig({
-    input: 'src/bin.ts',
-    output: { file: 'dist/bin.js', format: 'cjs', banner: '#!/usr/bin/env node' },
+    input: { bin: 'src/bin.ts', index: 'src/index.ts' },
+    output: {
+        dir: 'dist',
+        format: 'esm',
+        entryFileNames: '[name].mjs',
+        chunkFileNames: '[name].mjs',
+    },
     platform: 'node',
-    external: [/^rolldown/],
-    plugins: [staticDirname()],
+    resolve: { conditionNames: ['import', 'node', 'default'] },
+    external: (id) =>
+        !id.startsWith('.') &&
+        !id.startsWith('/') &&
+        !id.startsWith('\0') &&
+        !id.startsWith('@dependicus/'),
+    plugins: [resolveWorkspaceSource(), staticDirname()],
 });

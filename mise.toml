@@ -1,3 +1,5 @@
+min_version = "2026.3.4"
+
 [tools]
 bun = "1.3"
 go = "1.24"
@@ -147,6 +149,13 @@ for pm in npm yarn bun pnpm; do
   bash scripts/switch-pm.sh "$pm"
 done
 """
+
+[tasks.release]
+description = "Build, test, and publish dependicus to NPM"
+depends = ["pnpm:build", "pnpm:test", "pnpm:typecheck"]
+dir = "{{config_root}}/packages/dependicus"
+interactive = true
+run = "pnpm publish"
 
 [tasks.delete-node-modules]
 description = "Delete all node_modules directories"

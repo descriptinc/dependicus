@@ -217,31 +217,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@dependicus/internal@workspace:packages/dependicus":
-  version: 0.0.0-use.local
-  resolution: "@dependicus/internal@workspace:packages/dependicus"
-  dependencies:
-    "@dependicus/core": "workspace:*"
-    "@dependicus/github-issues": "workspace:*"
-    "@dependicus/linear": "workspace:*"
-    "@dependicus/provider-go": "workspace:*"
-    "@dependicus/provider-mise": "workspace:*"
-    "@dependicus/provider-rust": "workspace:*"
-    "@dependicus/providers-node": "workspace:*"
-    "@dependicus/providers-python": "workspace:*"
-    "@dependicus/site-builder": "workspace:*"
-    "@types/node": "npm:^25.3.0"
-    commander: "npm:^14.0.3"
-    rolldown: "npm:^1.0.0-rc.5"
-    tsdown: "npm:^0.20.3"
-    typedoc: "npm:^0.28.17"
-    typescript: "npm:^5.9.3"
-    vitest: "npm:^4.0.18"
-  bin:
-    dependicus: dist/bin.mjs
-  languageName: unknown
-  linkType: soft
-
 "@dependicus/linear@workspace:*, @dependicus/linear@workspace:packages/linear":
   version: 0.0.0-use.local
   resolution: "@dependicus/linear@workspace:packages/linear"
@@ -1799,6 +1774,41 @@ __metadata:
     oxfmt: "npm:^0.35.0"
     oxlint: "npm:^1.50.0"
     tsx: "npm:^4.21.0"
+  languageName: unknown
+  linkType: soft
+
+"dependicus@workspace:packages/dependicus":
+  version: 0.0.0-use.local
+  resolution: "dependicus@workspace:packages/dependicus"
+  dependencies:
+    "@dependicus/core": "workspace:*"
+    "@dependicus/github-issues": "workspace:*"
+    "@dependicus/linear": "workspace:*"
+    "@dependicus/provider-go": "workspace:*"
+    "@dependicus/provider-mise": "workspace:*"
+    "@dependicus/provider-rust": "workspace:*"
+    "@dependicus/providers-node": "workspace:*"
+    "@dependicus/providers-python": "workspace:*"
+    "@dependicus/site-builder": "workspace:*"
+    "@linear/sdk": "npm:^76.0.0"
+    "@octokit/rest": "npm:^22.0.1"
+    "@types/node": "npm:^25.3.0"
+    commander: "npm:^14.0.3"
+    handlebars: "npm:^4.7.8"
+    isomorphic-dompurify: "npm:^3.5.1"
+    js-yaml: "npm:^4.1.1"
+    marked: "npm:^17.0.3"
+    open-props: "npm:^1.7.23"
+    rolldown: "npm:^1.0.0-rc.5"
+    semver: "npm:^7.7.4"
+    tabulator-tables: "npm:^6.3.1"
+    tsdown: "npm:^0.20.3"
+    typedoc: "npm:^0.28.17"
+    typescript: "npm:^5.9.3"
+    vitest: "npm:^4.0.18"
+    zod: "npm:^4.3.6"
+  bin:
+    dependicus: dist/bin.mjs
   languageName: unknown
   linkType: soft
 
