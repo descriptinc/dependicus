@@ -31,12 +31,24 @@
       },
     },
     "packages/dependicus": {
-      "name": "@dependicus/internal",
+      "name": "dependicus",
       "version": "0.1.0",
-      "bin": {
-        "dependicus": "dist/bin.mjs",
-      },
+      "bin": "dist/bin.mjs",
       "dependencies": {
+        "@linear/sdk": "^76.0.0",
+        "@octokit/rest": "^22.0.1",
+        "commander": "^14.0.3",
+        "handlebars": "^4.7.8",
+        "isomorphic-dompurify": "^3.5.1",
+        "js-yaml": "^4.1.1",
+        "marked": "^17.0.3",
+        "open-props": "^1.7.23",
+        "rolldown": "^1.0.0-rc.5",
+        "semver": "^7.7.4",
+        "tabulator-tables": "^6.3.1",
+        "zod": "^4.3.6",
+      },
+      "devDependencies": {
         "@dependicus/core": "workspace:*",
         "@dependicus/github-issues": "workspace:*",
         "@dependicus/linear": "workspace:*",
@@ -46,10 +58,6 @@
         "@dependicus/providers-node": "workspace:*",
         "@dependicus/providers-python": "workspace:*",
         "@dependicus/site-builder": "workspace:*",
-        "commander": "^14.0.3",
-        "rolldown": "^1.0.0-rc.5",
-      },
-      "devDependencies": {
         "@types/node": "^25.3.0",
         "tsdown": "^0.20.3",
         "typedoc": "^0.28.17",
@@ -236,8 +244,6 @@
     "@dependicus/core": ["@dependicus/core@workspace:packages/core"],
 
     "@dependicus/github-issues": ["@dependicus/github-issues@workspace:packages/github-issues"],
-
-    "@dependicus/internal": ["@dependicus/internal@workspace:packages/dependicus"],
 
     "@dependicus/linear": ["@dependicus/linear@workspace:packages/linear"],
 
@@ -592,6 +598,8 @@
     "decimal.js": ["decimal.js@10.6.0", "", {}, "sha512-YpgQiITW3JXGntzdUmyUR1V812Hn8T1YVXhCu+wO3OpS4eU9l4YdD3qjyiKdV6mvV29zapkMeD390UVEf2lkUg=="],
 
     "defu": ["defu@6.1.4", "", {}, "sha512-mEQCMmwJu317oSz8CwdIOdwf3xMif1ttiM8LTufzc3g6kR+9Pe236twL8j3IYT1F7GfRgGcW6MWxzZjLIkuHIg=="],
+
+    "dependicus": ["dependicus@workspace:packages/dependicus"],
 
     "dompurify": ["dompurify@3.3.3", "", { "optionalDependencies": { "@types/trusted-types": "^2.0.7" } }, "sha512-Oj6pzI2+RqBfFG+qOaOLbFXLQ90ARpcGG6UePL82bJLtdsa6CYJD7nmiU8MW9nQNOtCHV3lZ/Bzq1X0QYbBZCA=="],
 

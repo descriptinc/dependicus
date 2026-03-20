@@ -1,6 +1,8 @@
 {
     "name": "@dependicus/github-issues",
     "version": "0.1.0",
+    "private": true,
+    "license": "MIT",
     "files": [
         "dist"
     ],

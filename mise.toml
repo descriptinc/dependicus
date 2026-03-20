@@ -148,6 +148,12 @@ for pm in npm yarn bun pnpm; do
 done
 """
 
+[tasks.release]
+description = "Build, test, and publish dependicus to NPM"
+depends = ["pnpm:build", "pnpm:test", "pnpm:typecheck"]
+dir = "{{config_root}}/packages/dependicus"
+run = "pnpm publish"
+
 [tasks.delete-node-modules]
 description = "Delete all node_modules directories"
 run = "rm -rf node_modules packages/*/node_modules"

@@ -63,6 +63,43 @@ importers:
 
   packages/dependicus:
     dependencies:
+      '@linear/sdk':
+        specifier: ^76.0.0
+        version: 76.0.0(graphql@16.13.0)
+      '@octokit/rest':
+        specifier: ^22.0.1
+        version: 22.0.1
+      commander:
+        specifier: ^14.0.3
+        version: 14.0.3
+      handlebars:
+        specifier: ^4.7.8
+        version: 4.7.8
+      isomorphic-dompurify:
+        specifier: ^3.5.1
+        version: 3.5.1
+      js-yaml:
+        specifier: ^4.1.1
+        version: 4.1.1
+      marked:
+        specifier: ^17.0.3
+        version: 17.0.3
+      open-props:
+        specifier: ^1.7.23
+        version: 1.7.23
+      rolldown:
+        specifier: 1.0.0-rc.5
+        version: 1.0.0-rc.5
+      semver:
+        specifier: ^7.7.4
+        version: 7.7.4
+      tabulator-tables:
+        specifier: ^6.3.1
+        version: 6.3.1
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+    devDependencies:
       '@dependicus/core':
         specifier: workspace:*
         version: link:../core
@@ -90,13 +127,6 @@ importers:
       '@dependicus/site-builder':
         specifier: workspace:*
         version: link:../site-builder
-      commander:
-        specifier: ^14.0.3
-        version: 14.0.3
-      rolldown:
-        specifier: 1.0.0-rc.5
-        version: 1.0.0-rc.5
-    devDependencies:
       '@types/node':
         specifier: ^25.3.0
         version: 25.3.0

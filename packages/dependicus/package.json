@@ -1,11 +1,29 @@
 {
-    "name": "@dependicus/internal",
+    "name": "dependicus",
     "version": "0.1.0",
-    "bin": {
-        "dependicus": "dist/bin.mjs"
+    "description": "Dependency governance tool for JavaScript/TypeScript monorepos",
+    "keywords": [
+        "audit",
+        "dashboard",
+        "dependency",
+        "governance",
+        "monorepo",
+        "outdated"
+    ],
+    "homepage": "https://github.com/descriptinc/dependicus",
+    "bugs": "https://github.com/descriptinc/dependicus/issues",
+    "license": "MIT",
+    "author": "Descript, Inc.",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/descriptinc/dependicus.git",
+        "directory": "packages/dependicus"
     },
+    "bin": "dist/bin.mjs",
     "files": [
-        "dist"
+        "dist",
+        "LICENSE",
+        "README.md"
     ],
     "type": "module",
     "exports": {
@@ -14,16 +32,34 @@
             "default": "./dist/index.mjs"
         }
     },
+    "publishConfig": {
+        "access": "public"
+    },
     "scripts": {
         "dependicus": "node dist/bin.mjs",
         "build": "tsdown",
-        "bundle": "rolldown -c rolldown.config.ts",
+        "bundle": "rm -f dist/*.mjs dist/*.js && rolldown -c rolldown.config.ts",
+        "prepack": "pnpm run build && pnpm run bundle",
         "clean": "rm -rf dist",
         "test": "vitest run",
         "typedoc": "typedoc --tsconfig tsconfig.typedoc.json --entryPoints src/index.ts --out typedoc-out --name 'Dependicus API Reference'",
         "typecheck": "tsc --build tsconfig.json"
     },
     "dependencies": {
+        "@linear/sdk": "^76.0.0",
+        "@octokit/rest": "^22.0.1",
+        "commander": "^14.0.3",
+        "handlebars": "^4.7.8",
+        "isomorphic-dompurify": "^3.5.1",
+        "js-yaml": "^4.1.1",
+        "marked": "^17.0.3",
+        "open-props": "^1.7.23",
+        "rolldown": "^1.0.0-rc.5",
+        "semver": "^7.7.4",
+        "tabulator-tables": "^6.3.1",
+        "zod": "^4.3.6"
+    },
+    "devDependencies": {
         "@dependicus/core": "workspace:*",
         "@dependicus/github-issues": "workspace:*",
         "@dependicus/linear": "workspace:*",
@@ -33,10 +69,6 @@
         "@dependicus/providers-node": "workspace:*",
         "@dependicus/providers-python": "workspace:*",
         "@dependicus/site-builder": "workspace:*",
-        "commander": "^14.0.3",
-        "rolldown": "^1.0.0-rc.5"
-    },
-    "devDependencies": {
         "@types/node": "^25.3.0",
         "tsdown": "^0.20.3",
         "typedoc": "^0.28.17",

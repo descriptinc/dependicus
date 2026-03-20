@@ -50,7 +50,7 @@ export type { PackageVersionInfo } from '@dependicus/core';
 export type { DataSource } from '@dependicus/core';
 
 /** @group Data Collection */
-export { FactStore } from '@dependicus/core';
+export type { FactStore } from '@dependicus/core';
 
 /** @group Data Collection */
 export { FactKeys } from '@dependicus/core';
