@@ -52,4 +52,8 @@ pnpm dlx dependicus@latest make-github-issues \
 
 Dependicus offers extensive customization through its JavaScript API.
 
+## Peer dependency note
+
+The Linear integration (`make-linear-issues`) depends on `@linear/sdk`, which has a transitive peer dependency on `graphql`. If your project uses `strictPeerDependencies`, you may need to add `graphql` to your own dependencies. This is only required for Linear ticket creation.
+
 [Full documentation](https://descriptinc.github.io/dependicus/) | [Demo deployment targeting this repo](https://descriptinc.github.io/dependicus/dependencies/)

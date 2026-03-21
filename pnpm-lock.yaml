@@ -87,9 +87,6 @@ importers:
       open-props:
         specifier: ^1.7.23
         version: 1.7.23
-      rolldown:
-        specifier: 1.0.0-rc.5
-        version: 1.0.0-rc.5
       semver:
         specifier: ^7.7.4
         version: 7.7.4
@@ -133,6 +130,9 @@ importers:
       dts-bundle-generator:
         specifier: ^9.5.1
         version: 9.5.1
+      rolldown:
+        specifier: 1.0.0-rc.5
+        version: 1.0.0-rc.5
       tsdown:
         specifier: ^0.20.3
         version: 0.20.3(typescript@5.9.3)
@@ -350,9 +350,6 @@ importers:
       marked:
         specifier: ^17.0.3
         version: 17.0.3
-      rolldown:
-        specifier: 1.0.0-rc.5
-        version: 1.0.0-rc.5
     devDependencies:
       '@types/node':
         specifier: ^25.3.0
@@ -379,6 +376,9 @@ importers:
       '@types/node':
         specifier: ^25.3.0
         version: 25.3.0
+      rolldown:
+        specifier: 1.0.0-rc.5
+        version: 1.0.0-rc.5
       tsdown:
         specifier: ^0.20.3
         version: 0.20.3(typescript@5.9.3)

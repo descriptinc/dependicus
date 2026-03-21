@@ -12,10 +12,20 @@
             "types": "./dist/index.d.mts",
             "source": "./src/index.ts",
             "default": "./dist/index.mjs"
+        },
+        "./browser-bundle": {
+            "types": "./src/browser-bundle.d.mts",
+            "source": "./src/browser-bundle.ts",
+            "default": "./dist/browser-bundle.mjs"
+        },
+        "./css-bundle": {
+            "types": "./src/css-bundle.d.mts",
+            "source": "./src/css-bundle.ts",
+            "default": "./dist/css-bundle.mjs"
         }
     },
     "scripts": {
-        "build": "tsdown",
+        "build": "tsdown && node scripts/build-assets.mjs",
         "clean": "rm -rf dist",
         "test": "vitest run",
         "typecheck": "tsc --build tsconfig.json"
@@ -26,6 +36,7 @@
     },
     "devDependencies": {
         "@types/node": "^25.3.0",
+        "rolldown": "1.0.0-rc.5",
         "tsdown": "^0.20.3",
         "typescript": "^5.9.3",
         "vitest": "^4.0.18"

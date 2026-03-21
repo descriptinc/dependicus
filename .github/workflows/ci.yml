@@ -245,6 +245,26 @@ jobs:
                   name: dependicus-npm
                   path: dependicus-out
 
+    bundle-check:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: pnpm install
+            - run: mise run pnpm:build
+            - run: pnpm run bundle
+              working-directory: packages/dependicus
+            - name: Install from tarball and run CLI
+              run: |
+                  cd packages/dependicus && pnpm pack --pack-destination ../../
+                  cd ../..
+                  mkdir bundle-test && cd bundle-test
+                  npm init -y
+                  npm install ../dependicus-*.tgz
+                  npx dependicus update --html --provider pnpm
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     github-issues:
         if: github.ref == 'refs/heads/main'
         needs: [check-pnpm, lint-pnpm, dependicus-pnpm]

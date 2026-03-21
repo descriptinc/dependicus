@@ -1,4 +1,3 @@
-import { rolldown } from 'rolldown';
 import DOMPurify from 'isomorphic-dompurify';
 import { marked } from 'marked';
 import { getCssContent } from '../paths';
@@ -32,7 +31,7 @@ import {
 } from '@dependicus/core';
 import { TemplateService } from './TemplateService';
 import type { BrowserColumnDef } from '@dependicus/site-frontend';
-import { browserEntryPath } from '@dependicus/site-frontend';
+import getBrowserBundle from '@dependicus/site-frontend/browser-bundle';
 
 interface GroupStats {
     totalDependencies: number;
@@ -180,20 +179,10 @@ export class HtmlWriter {
     }
 
     /**
-     * Bundle browser-side JavaScript code using rolldown.
+     * Get bundled browser-side JavaScript code.
      */
     private async bundleBrowserCode(): Promise<string> {
-        const bundle = await rolldown({
-            input: browserEntryPath,
-            platform: 'browser',
-        });
-        const { output } = await bundle.generate({ format: 'iife' });
-
-        if (output.length === 0 || !output[0]) {
-            throw new Error('rolldown failed to produce output files');
-        }
-
-        return output[0].code;
+        return getBrowserBundle();
     }
 
     /**
