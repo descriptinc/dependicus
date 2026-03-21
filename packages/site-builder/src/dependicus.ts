@@ -78,8 +78,19 @@ export async function createDependicus(config: DependicusConfig): Promise<Depend
         },
 
         refreshLocal(dependencies: DirectDependency[], store: FactStore): void {
-            for (const source of config.sources ?? []) {
-                source.refreshLocal?.(dependencies, store);
+            // Group by ecosystem and run with scoped stores so plugin
+            // sources write to the correct namespace.
+            const byEcosystem = new Map<string, DirectDependency[]>();
+            for (const dep of dependencies) {
+                const list = byEcosystem.get(dep.ecosystem) ?? [];
+                list.push(dep);
+                byEcosystem.set(dep.ecosystem, list);
+            }
+            for (const [ecosystem, deps] of byEcosystem) {
+                const scoped = store.scoped(ecosystem);
+                for (const source of config.sources ?? []) {
+                    source.refreshLocal?.(deps, scoped);
+                }
             }
         },
 

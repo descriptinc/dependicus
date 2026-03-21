@@ -81,14 +81,21 @@ export function createCoreServices(config: CoreServicesConfig): CoreServices {
                 await runSources(ecosystemSources, ecosystemDeps, scopedStore);
             }
 
-            // Universal enrichment: GitHub, Workspace, and user plugin sources
-            const mergedDeps = mergeProviderDependencies(providerOutputs);
+            // Universal enrichment: GitHub, Workspace, and user plugin sources.
+            // Run per-ecosystem with scoped stores so plugin sources that write
+            // directly to the store are correctly namespaced. Built-in sources
+            // self-scope via dep.ecosystem, so this is safe.
             const universalSources: DataSource[] = [
                 new GitHubSource(githubService),
                 new WorkspaceSource(providers),
                 ...(config.sources ?? []),
             ];
-            await runSources(universalSources, mergedDeps, store);
+
+            for (const [ecosystem, outputs] of byEcosystem) {
+                const ecosystemDeps = mergeProviderDependencies(outputs);
+                const scopedStore = store.scoped(ecosystem);
+                await runSources(universalSources, ecosystemDeps, scopedStore);
+            }
 
             return { providers: providerOutputs, store };
         },
