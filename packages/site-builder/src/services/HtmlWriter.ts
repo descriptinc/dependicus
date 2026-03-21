@@ -383,13 +383,17 @@ export class HtmlWriter {
             ),
         });
 
-        // Render full page with layout
+        // Render full page with layout.
+        // Grouping pages are provider-scoped, so default to the first provider for nav links.
+        const defaultProviderPrefix = providers.length > 0 ? `${providers[0]!.name}/` : '';
+
         return this.templateService.render('layouts/index', {
             title: 'Dependency Report',
             siteName: this.siteName,
             cssContent,
             bundledJs,
             content,
+            providerPrefix: defaultProviderPrefix,
             timestamp: new Date().toLocaleString(),
             groupings: this.groupings.map((g) => ({
                 label: g.label,

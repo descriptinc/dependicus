@@ -485,6 +485,21 @@ describe('HtmlWriter', () => {
             expect(html).toContain('Teams');
         });
 
+        it('index page nav links include provider prefix for groupings', async () => {
+            const writer = new HtmlWriter({
+                groupings: [teamGrouping],
+            });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            const providers: ProviderOutput[] = [makeProvider([dep])];
+            const html = await writer.toHtml(providers, store);
+
+            // Nav links must include the provider prefix so they resolve to real files
+            expect(html).toContain('href="pnpm/teams/index.html"');
+            // Must not contain "undefined" in any href
+            expect(html).not.toMatch(/href="[^"]*undefined[^"]*"/);
+        });
+
         it('detail pages include nav links for configured groupings', () => {
             const writer = new HtmlWriter({
                 groupings: [teamGrouping],
@@ -494,7 +509,7 @@ describe('HtmlWriter', () => {
             const providers: ProviderOutput[] = [makeProvider([dep])];
             const pages = writer.toDetailPages(providers, store);
 
-            expect(pages[0]!.html).toContain('teams/index.html');
+            expect(pages[0]!.html).toContain('pnpm/teams/index.html');
             expect(pages[0]!.html).toContain('Teams');
         });
 
