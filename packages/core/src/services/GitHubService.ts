@@ -3,6 +3,21 @@ import type { CacheService } from './CacheService';
 import { sanitizeCacheKey } from '../utils/formatters';
 import { findReleaseForVersion, detectTagFormat } from '../utils/releaseUtils';
 
+/** True for 429 and 403-with-exhausted-rate-limit. All other 4xx are non-fatal. */
+function isRateLimitError(error: unknown): boolean {
+    if (!(error instanceof Error) || !('status' in error)) return false;
+    const status = (error as { status: number }).status;
+    if (status === 429) return true;
+    if (status === 403) {
+        const response =
+            'response' in error
+                ? (error.response as { headers?: Record<string, string> })
+                : undefined;
+        return response?.headers?.['x-ratelimit-remaining'] === '0';
+    }
+    return false;
+}
+
 export interface GitHubRepo {
     owner: string;
     repo: string;
@@ -123,12 +138,8 @@ export class GitHubService {
             const allTags = [...new Set([...cachedTags, ...newReleases.map((r) => r.tagName)])];
             await this.cacheService.writePermanentCache(tagsCacheKey, JSON.stringify(allTags));
         } catch (error) {
-            if (
-                cachedTags.length === 0 &&
-                error instanceof Error &&
-                'status' in error &&
-                error.status === 404
-            ) {
+            if (isRateLimitError(error)) throw error;
+            if (cachedTags.length === 0) {
                 await this.cacheService.writePermanentCache(tagsCacheKey, JSON.stringify([]));
             }
         }
@@ -264,13 +275,8 @@ export class GitHubService {
             await this.cacheService.writePermanentCache(cacheKey, 'null');
             return undefined;
         } catch (error) {
-            if (error instanceof Error && 'status' in error) {
-                if (error.status === 404) {
-                    await this.cacheService.writePermanentCache(cacheKey, 'null');
-                } else if (error.status === 403 || error.status === 429) {
-                    throw error;
-                }
-            }
+            if (isRateLimitError(error)) throw error;
+            await this.cacheService.writePermanentCache(cacheKey, 'null');
             return undefined;
         }
     }
@@ -420,11 +426,7 @@ export class GitHubService {
                 try {
                     await this.getChangelogUrl(repo);
                 } catch (error) {
-                    if (
-                        error instanceof Error &&
-                        'status' in error &&
-                        (error.status === 403 || error.status === 429)
-                    ) {
+                    if (isRateLimitError(error)) {
                         changelogRateLimited = true;
                         process.stderr.write(
                             'GitHub rate limit hit, skipping remaining changelog lookups\n',

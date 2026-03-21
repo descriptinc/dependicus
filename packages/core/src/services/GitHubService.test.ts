@@ -205,6 +205,48 @@ describe('GitHubService', () => {
         });
     });
 
+    describe('getChangelogUrl error handling', () => {
+        it('caches null on non-rate-limit 403 (e.g. IP allowlist)', async () => {
+            const { service, writes } = createServiceWithCache({});
+
+            const err = new Error('IP not permitted') as Error & {
+                status: number;
+                response: { headers: Record<string, string> };
+            };
+            err.status = 403;
+            err.response = { headers: { 'x-ratelimit-remaining': '14542' } };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (service as any).octokit.repos.getContent = vi.fn(async () => {
+                throw err;
+            });
+
+            const result = await service.getChangelogUrl({ owner: 'pubnub', repo: 'javascript' });
+            expect(result).toBeUndefined();
+            expect(writes.some((w) => w.key.includes('changelog') && w.data === 'null')).toBe(true);
+        });
+
+        it('throws on rate limit so caller can stop fetching', async () => {
+            const { service } = createServiceWithCache({});
+
+            const err = new Error('Rate limit') as Error & {
+                status: number;
+                response: { headers: Record<string, string> };
+            };
+            err.status = 403;
+            err.response = { headers: { 'x-ratelimit-remaining': '0' } };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (service as any).octokit.repos.getContent = vi.fn(async () => {
+                throw err;
+            });
+
+            await expect(
+                service.getChangelogUrl({ owner: 'facebook', repo: 'react' }),
+            ).rejects.toThrow('Rate limit');
+        });
+    });
+
     describe('prefetchRepoData version-aware caching', () => {
         const repo = { owner: 'facebook', repo: 'react' };
 
