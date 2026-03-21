@@ -1,4 +1,5 @@
 import { defineConfig } from 'rolldown';
+import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'rolldown';
@@ -50,6 +51,22 @@ function resolveWorkspaceSource(): Plugin {
     };
 }
 
+/**
+ * Import `.hbs` and `.css` files as raw string modules so that templates and
+ * stylesheets are embedded in the bundle instead of read from disk at runtime.
+ */
+function inlineRawFiles(): Plugin {
+    return {
+        name: 'inline-raw-files',
+        load(id) {
+            if (id.endsWith('.hbs') || id.endsWith('.css')) {
+                const content = readFileSync(id, 'utf-8');
+                return `export default ${JSON.stringify(content)};`;
+            }
+        },
+    };
+}
+
 export default defineConfig({
     input: { bin: 'src/bin.ts', index: 'src/index.ts' },
     output: {
@@ -65,5 +82,5 @@ export default defineConfig({
         !id.startsWith('/') &&
         !id.startsWith('\0') &&
         !id.startsWith('@dependicus/'),
-    plugins: [resolveWorkspaceSource(), staticDirname()],
+    plugins: [resolveWorkspaceSource(), inlineRawFiles(), staticDirname()],
 });

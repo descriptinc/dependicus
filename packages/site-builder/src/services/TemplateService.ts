@@ -1,21 +1,35 @@
-import { readFileSync, readdirSync } from 'node:fs';
-import { dirname, resolve, join, basename } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import Handlebars from 'handlebars';
 import { helpers } from '../templates/helpers';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+// Partials
+import navPartial from '../templates/partials/nav.hbs';
+import upgradePathPartial from '../templates/partials/upgrade-path.hbs';
+
+// Layouts
+import baseLayout from '../templates/layouts/base.hbs';
+import indexLayout from '../templates/layouts/index.hbs';
+
+// Pages
+import dependencyDetailPage from '../templates/pages/dependency-detail.hbs';
+import groupingDetailPage from '../templates/pages/grouping-detail.hbs';
+import groupingIndexPage from '../templates/pages/grouping-index.hbs';
+import indexPage from '../templates/pages/index.hbs';
+
+const templateMap: Record<string, string> = {
+    'layouts/base': baseLayout,
+    'layouts/index': indexLayout,
+    'pages/dependency-detail': dependencyDetailPage,
+    'pages/grouping-detail': groupingDetailPage,
+    'pages/grouping-index': groupingIndexPage,
+    'pages/index': indexPage,
+};
 
 export class TemplateService {
     private handlebars: typeof Handlebars;
     private templateCache: Map<string, HandlebarsTemplateDelegate> = new Map();
-    private templatesDir: string;
 
-    constructor(templatesDir?: string) {
+    constructor() {
         this.handlebars = Handlebars.create();
-        // Default to templates directory relative to this file
-        this.templatesDir = templatesDir || resolve(__dirname, '../templates');
-
         this.registerHelpers();
         this.registerPartials();
     }
@@ -36,29 +50,11 @@ export class TemplateService {
     }
 
     /**
-     * Register all partials from templates/partials directory
+     * Register all partials
      */
     private registerPartials(): void {
-        const partialsDir = join(this.templatesDir, 'partials');
-
-        try {
-            const files = readdirSync(partialsDir);
-
-            for (const file of files) {
-                if (!file.endsWith('.hbs')) continue;
-
-                const partialPath = join(partialsDir, file);
-                const partialName = basename(file, '.hbs');
-                const partialContent = readFileSync(partialPath, 'utf-8');
-
-                this.handlebars.registerPartial(partialName, partialContent);
-            }
-        } catch (error) {
-            // Partials directory might not exist yet during initial setup
-            process.stderr.write(
-                `Warning: Could not load partials from ${partialsDir}: ${error}\n`,
-            );
-        }
+        this.handlebars.registerPartial('nav', navPartial);
+        this.handlebars.registerPartial('upgrade-path', upgradePathPartial);
     }
 
     /**
@@ -71,12 +67,12 @@ export class TemplateService {
             return cached;
         }
 
-        // Read and compile template
-        const fullPath = join(this.templatesDir, `${templatePath}.hbs`);
-        const templateContent = readFileSync(fullPath, 'utf-8');
-        const compiled = this.handlebars.compile(templateContent);
+        const content = templateMap[templatePath];
+        if (!content) {
+            throw new Error(`Unknown template: "${templatePath}"`);
+        }
 
-        // Cache for future use
+        const compiled = this.handlebars.compile(content);
         this.templateCache.set(templatePath, compiled);
 
         return compiled;

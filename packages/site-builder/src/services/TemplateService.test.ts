@@ -1,13 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { resolve } from 'node:path';
 import { TemplateService } from './TemplateService';
 
 describe('TemplateService', () => {
     let service: TemplateService;
 
     beforeEach(() => {
-        const templatesDir = resolve(__dirname, '../templates');
-        service = new TemplateService(templatesDir);
+        service = new TemplateService();
     });
 
     describe('render', () => {

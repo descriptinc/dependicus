@@ -1,6 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { dirname, resolve, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import Handlebars from 'handlebars';
 import type { PackageVersionInfo, GitHubData, DetailUrlFn, ProviderInfo } from '@dependicus/core';
 import type { FactStore } from '@dependicus/core';
@@ -13,9 +10,9 @@ import {
 } from '@dependicus/core';
 import { helpers } from './templates/helpers';
 import type { OutdatedDependency, OutdatedGroup } from './types';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const templatesDir = resolve(__dirname, 'templates');
+import issueDescriptionHbs from './templates/issue-description.hbs';
+import groupDescriptionHbs from './templates/group-description.hbs';
+import newVersionsCommentHbs from './templates/new-versions-comment.hbs';
 
 function createHandlebars(): typeof Handlebars {
     const hbs = Handlebars.create();
@@ -31,14 +28,9 @@ function createHandlebars(): typeof Handlebars {
 
 const hbs = createHandlebars();
 
-function loadTemplate(name: string): HandlebarsTemplateDelegate {
-    const content = readFileSync(join(templatesDir, `${name}.hbs`), 'utf-8');
-    return hbs.compile(content);
-}
-
-const issueDescriptionTemplate = loadTemplate('issue-description');
-const groupDescriptionTemplate = loadTemplate('group-description');
-const newVersionsCommentTemplate = loadTemplate('new-versions-comment');
+const issueDescriptionTemplate = hbs.compile(issueDescriptionHbs);
+const groupDescriptionTemplate = hbs.compile(groupDescriptionHbs);
+const newVersionsCommentTemplate = hbs.compile(newVersionsCommentHbs);
 
 /**
  * Build the description for a single-dependency GitHub issue.
