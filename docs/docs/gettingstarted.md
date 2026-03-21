@@ -66,6 +66,10 @@ yarn add dependicus
 npm install dependicus
 ```
 
+## Peer dependency note
+
+The Linear integration (`make-linear-issues`) depends on `@linear/sdk`, which has a transitive peer dependency on `graphql`. If your project uses `strictPeerDependencies`, you may need to add `graphql` to your own dependencies. This is only required for Linear ticket creation.
+
 ## Environment variables
 
 ### `GITHUB_TOKEN`
