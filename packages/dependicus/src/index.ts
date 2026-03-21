@@ -53,7 +53,7 @@ export type { DataSource } from '@dependicus/core';
 export type { FactStore } from '@dependicus/core';
 
 /** @group Data Collection */
-export { FactKeys } from '@dependicus/core';
+export { RootFactStore, ScopedFactStore, FactKeys } from '@dependicus/core';
 
 // ── Ticket Creation ──────────────────────────────────────────────────
 

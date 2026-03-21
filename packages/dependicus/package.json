@@ -39,7 +39,7 @@
     "scripts": {
         "dependicus": "node dist/bin.mjs",
         "build": "tsdown",
-        "bundle": "rm -f dist/*.mjs dist/*.js && rolldown -c rolldown.config.ts",
+        "bundle": "rm -f dist/*.mjs dist/*.js dist/*.d.mts dist/*.d.mts.map && rolldown -c rolldown.config.ts && dts-bundle-generator -o dist/index.d.mts src/index.ts --project tsconfig.json --no-banner",
         "prepack": "pnpm run build && pnpm run bundle",
         "clean": "rm -rf dist",
         "test": "vitest run",
@@ -71,6 +71,7 @@
         "@dependicus/providers-python": "workspace:*",
         "@dependicus/site-builder": "workspace:*",
         "@types/node": "^25.3.0",
+        "dts-bundle-generator": "^9.5.1",
         "tsdown": "^0.20.3",
         "typedoc": "^0.28.17",
         "typescript": "^5.9.3",
