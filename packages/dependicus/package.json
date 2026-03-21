@@ -1,6 +1,6 @@
 {
     "name": "dependicus",
-    "version": "0.1.8",
+    "version": "0.1.9-rc.1",
     "description": "Dependency governance for monorepos: pnpm, bun, yarn, npm, mise, uv, Go, and Rust",
     "keywords": [
         "audit",
@@ -34,12 +34,21 @@
         }
     },
     "publishConfig": {
-        "access": "public"
+        "access": "public",
+        "devDependencies": {
+            "@types/node": "^25.3.0",
+            "dts-bundle-generator": "^9.5.1",
+            "rolldown": "1.0.0-rc.10",
+            "tsdown": "^0.20.3",
+            "typedoc": "^0.28.17",
+            "typescript": "^5.9.3",
+            "vitest": "^4.1.0"
+        }
     },
     "scripts": {
         "dependicus": "node dist/bin.mjs",
         "build": "tsdown",
-        "bundle": "rm -f dist/*.mjs dist/*.js dist/*.d.mts dist/*.d.mts.map && rolldown -c rolldown.config.ts && dts-bundle-generator -o dist/index.d.mts src/index.ts --project tsconfig.json --no-banner",
+        "bundle": "node scripts/bundle.mjs",
         "prepack": "pnpm run build && pnpm run bundle",
         "clean": "rm -rf dist",
         "test": "vitest run",
@@ -71,10 +80,10 @@
         "@dependicus/site-builder": "workspace:*",
         "@types/node": "^25.3.0",
         "dts-bundle-generator": "^9.5.1",
-        "rolldown": "1.0.0-rc.5",
+        "rolldown": "1.0.0-rc.10",
         "tsdown": "^0.20.3",
         "typedoc": "^0.28.17",
         "typescript": "^5.9.3",
-        "vitest": "^4.0.18"
+        "vitest": "^4.1.0"
     }
 }

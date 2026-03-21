@@ -24,12 +24,6 @@
         "oxlint": "^1.50.0",
         "tsx": "^4.21.0"
     },
-    "resolutions": {
-        "rolldown": "1.0.0-rc.5"
-    },
-    "overrides": {
-        "rolldown": "1.0.0-rc.5"
-    },
     "engines": {
         "node": ">=20"
     }

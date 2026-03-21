@@ -1,21 +1,20 @@
-import { rolldown } from 'rolldown';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
 
 let cached: string | undefined;
 
 export default async function getCssBundle(): Promise<string> {
     if (cached !== undefined) return cached;
-    const bundle = await rolldown({
-        input: resolve(__dirname, 'styles-entry.css'),
-    });
-    const { output } = await bundle.generate({});
-    const cssAsset = output.find((o) => o.type === 'asset' && o.fileName.endsWith('.css'));
-    if (!cssAsset || cssAsset.type !== 'asset') {
-        throw new Error('rolldown failed to produce CSS bundle');
-    }
-    cached = String(cssAsset.source);
+    cached = [
+        readFileSync(require.resolve('open-props/open-props.min.css'), 'utf-8'),
+        readFileSync(require.resolve('open-props/normalize.min.css'), 'utf-8'),
+        readFileSync(require.resolve('tabulator-tables/dist/css/tabulator.min.css'), 'utf-8'),
+        readFileSync(resolve(__dirname, 'styles.css'), 'utf-8'),
+    ].join('\n');
     return cached;
 }

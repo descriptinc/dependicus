@@ -1,5 +1,6 @@
 import { rolldown } from 'rolldown';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
 // Bundle browser JS into an IIFE
 const jsBuild = await rolldown({
@@ -17,16 +18,14 @@ writeFileSync(
     `export default async function getBrowserBundle() {\n    return ${JSON.stringify(iifeCode)};\n}\n`,
 );
 
-// Bundle CSS (open-props + tabulator + styles.css)
-const cssBuild = await rolldown({
-    input: 'src/styles-entry.css',
-});
-const { output: cssOutput } = await cssBuild.generate({});
-const cssAsset = cssOutput.find((o) => o.type === 'asset' && o.fileName.endsWith('.css'));
-if (!cssAsset || cssAsset.type !== 'asset') {
-    throw new Error('rolldown failed to produce CSS bundle');
-}
-const cssContent = String(cssAsset.source);
+// Bundle CSS by concatenating source files directly
+const require = createRequire(import.meta.url);
+const cssContent = [
+    readFileSync(require.resolve('open-props/open-props.min.css'), 'utf-8'),
+    readFileSync(require.resolve('open-props/normalize.min.css'), 'utf-8'),
+    readFileSync(require.resolve('tabulator-tables/dist/css/tabulator.min.css'), 'utf-8'),
+    readFileSync(new URL('../src/styles.css', import.meta.url), 'utf-8'),
+].join('\n');
 
 writeFileSync(
     'dist/css-bundle.mjs',
