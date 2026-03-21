@@ -11,10 +11,12 @@ export class CacheService {
         this.cacheDir = cacheDir;
     }
 
-    private validateKey(key: string): void {
-        if (key !== sanitizeCacheKey(key)) {
-            throw new Error(`Unsafe cache key: ${key}`);
-        }
+    private cacheFileName(key: string): string {
+        return `${sanitizeCacheKey(key)}.json`;
+    }
+
+    private cacheHashName(key: string): string {
+        return `${sanitizeCacheKey(key)}.hash`;
     }
 
     /**
@@ -31,9 +33,8 @@ export class CacheService {
      * @param invalidationFile - File path whose hash determines cache validity (e.g., lockfile path)
      */
     async isCacheValid(key: string, invalidationFile: string): Promise<boolean> {
-        this.validateKey(key);
-        const dataPath = join(this.cacheDir, `${key}.json`);
-        const hashPath = join(this.cacheDir, `${key}.hash`);
+        const dataPath = join(this.cacheDir, this.cacheFileName(key));
+        const hashPath = join(this.cacheDir, this.cacheHashName(key));
 
         if (!existsSync(dataPath) || !existsSync(hashPath)) {
             return false;
@@ -50,8 +51,7 @@ export class CacheService {
      * @param key - Cache key
      */
     async readCache(key: string): Promise<string> {
-        this.validateKey(key);
-        const dataPath = join(this.cacheDir, `${key}.json`);
+        const dataPath = join(this.cacheDir, this.cacheFileName(key));
         return await readFile(dataPath, 'utf-8');
     }
 
@@ -62,14 +62,13 @@ export class CacheService {
      * @param invalidationFile - File path whose hash determines cache validity
      */
     async writeCache(key: string, data: string, invalidationFile: string): Promise<void> {
-        this.validateKey(key);
         // Ensure cache directory exists
         if (!existsSync(this.cacheDir)) {
             await mkdir(this.cacheDir, { recursive: true });
         }
 
-        const dataPath = join(this.cacheDir, `${key}.json`);
-        const hashPath = join(this.cacheDir, `${key}.hash`);
+        const dataPath = join(this.cacheDir, this.cacheFileName(key));
+        const hashPath = join(this.cacheDir, this.cacheHashName(key));
         const currentHash = await this.getFileHash(invalidationFile);
 
         await writeFile(dataPath, data, 'utf-8');
@@ -82,13 +81,12 @@ export class CacheService {
      * @param data - Data to cache
      */
     async writePermanentCache(key: string, data: string): Promise<void> {
-        this.validateKey(key);
         // Ensure cache directory exists
         if (!existsSync(this.cacheDir)) {
             await mkdir(this.cacheDir, { recursive: true });
         }
 
-        const dataPath = join(this.cacheDir, `${key}.json`);
+        const dataPath = join(this.cacheDir, this.cacheFileName(key));
         await writeFile(dataPath, data, 'utf-8');
     }
 
@@ -97,8 +95,7 @@ export class CacheService {
      * @param key - Cache key
      */
     hasPermanentCache(key: string): boolean {
-        this.validateKey(key);
-        const dataPath = join(this.cacheDir, `${key}.json`);
+        const dataPath = join(this.cacheDir, this.cacheFileName(key));
         return existsSync(dataPath);
     }
 
@@ -107,8 +104,7 @@ export class CacheService {
      * @param key - Cache key
      */
     async readPermanentCache(key: string): Promise<string | undefined> {
-        this.validateKey(key);
-        const dataPath = join(this.cacheDir, `${key}.json`);
+        const dataPath = join(this.cacheDir, this.cacheFileName(key));
         if (!existsSync(dataPath)) {
             return undefined;
         }
