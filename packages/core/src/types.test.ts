@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeProviderDependencies, buildProviderInfoMap } from './types';
+import { mergeProviderDependencies, buildProviderInfoMap, getDetailFilename } from './types';
 import type { ProviderOutput, DirectDependency } from './types';
 
 function makeProviderOutput(overrides?: Partial<ProviderOutput>): ProviderOutput {
@@ -248,6 +248,32 @@ describe('mergeProviderDependencies', () => {
         expect(result[0]!.name).toBe('apple');
         expect(result[1]!.name).toBe('monkey');
         expect(result[2]!.name).toBe('zebra');
+    });
+});
+
+describe('getDetailFilename', () => {
+    it('handles plain package names', () => {
+        expect(getDetailFilename('react', '18.2.0')).toBe('react@18.2.0.html');
+    });
+
+    it('strips leading @ and replaces slash in scoped packages', () => {
+        expect(getDetailFilename('@babel/core', '7.24.0')).toBe('babel-core@7.24.0.html');
+    });
+
+    it('replaces colons from mise-style names', () => {
+        expect(getDetailFilename('github:coder-coder', '2.22.1')).toBe(
+            'github-coder-coder@2.22.1.html',
+        );
+    });
+
+    it('replaces all NTFS-invalid characters', () => {
+        expect(getDetailFilename('a:b"c<d>e|f*g?h', '1.0.0')).toBe('a-b-c-d-e-f-g-h@1.0.0.html');
+    });
+
+    it('sanitizes directory traversal in name and version', () => {
+        expect(getDetailFilename('../../etc/passwd', '../../hack')).toBe(
+            '_-_-etc-passwd@_-_-hack.html',
+        );
     });
 });
 

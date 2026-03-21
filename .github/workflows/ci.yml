@@ -261,7 +261,7 @@ jobs:
                   mkdir bundle-test && cd bundle-test
                   npm init -y
                   npm install ../dependicus-*.tgz
-                  npx dependicus update --html --provider pnpm
+                  npx dependicus update --html --provider pnpm --repo-root ..
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

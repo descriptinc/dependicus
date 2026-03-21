@@ -203,8 +203,11 @@ export function mergeProviderDependencies(providers: ProviderOutput[]): DirectDe
 
 /** Build the filename for a dependency detail page (e.g., "scope-pkg@1.0.0.html"). */
 export function getDetailFilename(name: string, version: string): string {
-    const safeName = name.replace(/^@/, '').replace(/\//g, '-').replace(/\.\./g, '_');
-    const safeVersion = version.replace(/\.\./g, '_');
+    const safeName = name
+        .replace(/^@/, '')
+        .replace(/[/:"<>|*?]/g, '-')
+        .replace(/\.\./g, '_');
+    const safeVersion = version.replace(/[/:"<>|*?]/g, '-').replace(/\.\./g, '_');
     return `${safeName}@${safeVersion}.html`;
 }
 
