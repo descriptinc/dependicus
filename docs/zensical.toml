@@ -41,4 +41,9 @@ nav = [
 [project.theme]
 logo = "images/logo.svg"
 favicon = "images/favicon.svg"
-features = ["navigation.footer", "navigation.tabs", "content.action.edit", "content.action.view"]
+features = ["navigation.footer", "navigation.tabs", "content.action.edit", "content.action.view", "content.tabs.link"]
+
+[project.markdown_extensions.pymdownx.superfences]
+
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true

@@ -13,127 +13,227 @@ The update step is the only one that requires network access, and it's the slowe
 
 ## GitHub Actions
 
-```yaml
-name: dependicus
+=== "CLI (default)"
 
-on:
-    push:
-        branches: [main]
+    If you haven't customized Dependicus with a wrapper script, you can run it directly with `npx` (or your package manager's equivalent):
 
-jobs:
-    dependicus-update:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+    ```yaml
+    name: dependicus
 
-            # Set up Node and your package manager however you normally do
+    on:
+        push:
+            branches: [main]
 
-            - name: Cache Dependicus
-              uses: actions/cache@v4
-              with:
-                  path: .dependicus-cache
-                  # No need to bust on lockfile changes—dependicus
-                  # can still reuse most of the cached data.
-                  key: dependicus
-                  restore-keys: dependicus
+    jobs:
+        dependicus-update:
+            runs-on: ubuntu-latest
+            steps:
+                - uses: actions/checkout@v4
 
-            - name: Collect dependency data
-              run: node your-dependicus-script.js update
+                # Set up Node and your package manager however you normally do
 
-            - name: Upload dependency data
-              uses: actions/upload-artifact@v4
-              with:
-                  name: dependicus-data
-                  path: dependicus-out/dependencies.json
+                - name: Cache Dependicus
+                  uses: actions/cache@v4
+                  with:
+                      path: .dependicus-cache
+                      # No need to bust on lockfile changes—dependicus
+                      # can still reuse most of the cached data.
+                      key: dependicus
+                      restore-keys: dependicus
 
-    dependicus-html:
-        runs-on: ubuntu-latest
-        needs: dependicus-update
-        steps:
-            - uses: actions/checkout@v4
+                - name: Collect dependency data
+                  run: npx dependicus update
 
-            # Set up Node and your package manager however you normally do
+                - name: Upload dependency data
+                  uses: actions/upload-artifact@v4
+                  with:
+                      name: dependicus-data
+                      path: dependicus-out/dependencies.json
 
-            - uses: actions/download-artifact@v4
-              with:
-                  name: dependicus-data
-                  path: dependicus-out/
+        dependicus-html:
+            runs-on: ubuntu-latest
+            needs: dependicus-update
+            steps:
+                - uses: actions/checkout@v4
 
-            - name: Generate HTML site
-              run: node your-dependicus-script.js html
+                # Set up Node and your package manager however you normally do
 
-            - name: Upload site
-              uses: actions/upload-artifact@v4
-              with:
-                  name: dependicus-site
-                  path: dependicus-out/
+                - uses: actions/download-artifact@v4
+                  with:
+                      name: dependicus-data
+                      path: dependicus-out/
 
-    dependicus-linear-tickets:
-        runs-on: ubuntu-latest
-        needs: dependicus-update
-        steps:
-            - uses: actions/checkout@v4
+                - name: Generate HTML site
+                  run: npx dependicus html
 
-            # Set up Node and your package manager however you normally do
+                - name: Upload site
+                  uses: actions/upload-artifact@v4
+                  with:
+                      name: dependicus-site
+                      path: dependicus-out/
 
-            - uses: actions/download-artifact@v4
-              with:
-                  name: dependicus-data
-                  path: dependicus-out/
+        dependicus-linear-tickets:
+            runs-on: ubuntu-latest
+            needs: dependicus-update
+            steps:
+                - uses: actions/checkout@v4
 
-            - name: Create/update Linear tickets
-              run: node your-dependicus-script.js make-linear-issues
-              env:
-                  LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+                # Set up Node and your package manager however you normally do
 
-    dependicus-github-issues:
-        runs-on: ubuntu-latest
-        needs: dependicus-update
-        steps:
-            - uses: actions/checkout@v4
+                - uses: actions/download-artifact@v4
+                  with:
+                      name: dependicus-data
+                      path: dependicus-out/
 
-            # Set up Node and your package manager however you normally do
+                - name: Create/update Linear tickets
+                  run: npx dependicus make-linear-issues
+                  env:
+                      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
 
-            - uses: actions/download-artifact@v4
-              with:
-                  name: dependicus-data
-                  path: dependicus-out/
+        dependicus-github-issues:
+            runs-on: ubuntu-latest
+            needs: dependicus-update
+            steps:
+                - uses: actions/checkout@v4
 
-            - name: Create/update GitHub issues
-              run: node your-dependicus-script.js make-github-issues
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
+                # Set up Node and your package manager however you normally do
 
-Replace `your-dependicus-script.js` with whatever script calls `dependicusCli()`. Adjust `dependicus-out` and `.dependicus-cache` if you’ve overridden `outputDir` or `cacheDir`.
+                - uses: actions/download-artifact@v4
+                  with:
+                      name: dependicus-data
+                      path: dependicus-out/
+
+                - name: Create/update GitHub issues
+                  run: npx dependicus make-github-issues
+                  env:
+                      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    ```
+
+    For other package managers, swap in the equivalent command:
+
+    ```sh
+    # pnpm
+    pnpm exec dependicus update
+
+    # bun
+    bunx dependicus update
+
+    # yarn
+    yarn dlx dependicus update
+    ```
+
+=== "Custom script"
+
+    If you've [customized Dependicus](./gettingstarted.md#customizing-dependicus-by-wrapping-the-dependicuscli-function) with a wrapper script, invoke it with `node` instead:
+
+    ```yaml
+    name: dependicus
+
+    on:
+        push:
+            branches: [main]
+
+    jobs:
+        dependicus-update:
+            runs-on: ubuntu-latest
+            steps:
+                - uses: actions/checkout@v4
+
+                # Set up Node and your package manager however you normally do
+
+                - name: Cache Dependicus
+                  uses: actions/cache@v4
+                  with:
+                      path: .dependicus-cache
+                      # No need to bust on lockfile changes—dependicus
+                      # can still reuse most of the cached data.
+                      key: dependicus
+                      restore-keys: dependicus
+
+                - name: Collect dependency data
+                  run: node your-dependicus-script.js update
+
+                - name: Upload dependency data
+                  uses: actions/upload-artifact@v4
+                  with:
+                      name: dependicus-data
+                      path: dependicus-out/dependencies.json
+
+        dependicus-html:
+            runs-on: ubuntu-latest
+            needs: dependicus-update
+            steps:
+                - uses: actions/checkout@v4
+
+                # Set up Node and your package manager however you normally do
+
+                - uses: actions/download-artifact@v4
+                  with:
+                      name: dependicus-data
+                      path: dependicus-out/
+
+                - name: Generate HTML site
+                  run: node your-dependicus-script.js html
+
+                - name: Upload site
+                  uses: actions/upload-artifact@v4
+                  with:
+                      name: dependicus-site
+                      path: dependicus-out/
+
+        dependicus-linear-tickets:
+            runs-on: ubuntu-latest
+            needs: dependicus-update
+            steps:
+                - uses: actions/checkout@v4
+
+                # Set up Node and your package manager however you normally do
+
+                - uses: actions/download-artifact@v4
+                  with:
+                      name: dependicus-data
+                      path: dependicus-out/
+
+                - name: Create/update Linear tickets
+                  run: node your-dependicus-script.js make-linear-issues
+                  env:
+                      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+
+        dependicus-github-issues:
+            runs-on: ubuntu-latest
+            needs: dependicus-update
+            steps:
+                - uses: actions/checkout@v4
+
+                # Set up Node and your package manager however you normally do
+
+                - uses: actions/download-artifact@v4
+                  with:
+                      name: dependicus-data
+                      path: dependicus-out/
+
+                - name: Create/update GitHub issues
+                  run: node your-dependicus-script.js make-github-issues
+                  env:
+                      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    ```
+
+    Replace `your-dependicus-script.js` with whatever script calls `dependicusCli()`. Adjust `dependicus-out` and `.dependicus-cache` if you've overridden `outputDir` or `cacheDir`.
 
 ### Provider detection in CI
 
-When your script is launched by a package manager, Dependicus auto-detects the provider from the runtime. If you invoke your script with bare `node`, auto-detection falls back to lockfile presence. To be explicit, pass `--provider`:
+When Dependicus is launched by a package manager, it auto-detects the provider from the runtime. If you invoke it with bare `node` or `npx`, auto-detection falls back to lockfile presence. To be explicit, pass `--provider`:
 
 ```sh
-node your-dependicus-script.js update --provider pnpm
+npx dependicus update --provider pnpm
 ```
 
 ### Other package managers
 
-The workflow above uses pnpm as an example, but the structure is the same for any package manager. Just swap in the appropriate run command:
-
-```sh
-# bun
-bun run your-dependicus-script.js update
-
-# yarn
-yarn run your-dependicus-script.js update
-
-# npm
-npx your-dependicus-script.js update
-```
-
-The rest of the jobs (HTML generation, ticket creation) are identical regardless of package manager since they only read `dependencies.json`.
+The workflows above use npm/npx as an example, but the structure is the same for any package manager. The rest of the jobs (HTML generation, ticket creation) are identical regardless of package manager since they only read `dependencies.json`.
 
 Note that yarn does not natively support the `catalog:` protocol, so if your Dependicus script references catalog data under yarn, you may need to resolve it beforehand with a helper script.
 
-On pull requests, you probably want to skip the Linear tickets and GitHub Issues jobs, or set `allowNewIssues: false` / `allowNewIssues: false` in your config.
+On pull requests, you probably want to skip the Linear tickets and GitHub Issues jobs, or set `allowNewIssues: false` in your config.
 
-For deploying the static site, you’ll have to decide what works best for your project. GitHub Pages is an easy option and can even be a good solution for companies, due to the ability to gate it behind a GitHub login and org authorization.
+For deploying the static site, you'll have to decide what works best for your project. GitHub Pages is an easy option and can even be a good solution for companies, due to the ability to gate it behind a GitHub login and org authorization.
