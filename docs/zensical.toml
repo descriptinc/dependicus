@@ -34,8 +34,8 @@ nav = [
             { "vs Dependabot" = "dependicus-vs-dependabot.md" },
         ] },
     ] },
-    { "API" = "/api/" },
-    { "Dependencies" = "/dependencies/" },
+    { "API" = "/dependicus/api/" },
+    { "Dependencies" = "/dependicus/dependencies/" },
 ]
 
 [project.theme]
