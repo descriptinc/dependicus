@@ -20,7 +20,7 @@ function stubProvider(output: ProviderOutput): DependencyProvider {
                     d.versions.map((v) => [d.name, { version: v.version }]),
                 ),
             })),
-        resolveVersionMetadata: async (packages) => {
+        resolveVersionMetadata: async (packages: Array<{ name: string; versions: string[] }>) => {
             const map = new Map<string, { latestVersion: string; publishDate?: string }>();
             for (const pkg of packages) {
                 for (const v of pkg.versions) {
