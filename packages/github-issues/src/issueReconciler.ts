@@ -259,11 +259,13 @@ export async function reconcileGitHubIssues(
 
             const versionContext: VersionContext = {
                 name: dep.name,
+                ecosystem: dep.ecosystem,
                 currentVersion: version.version,
                 latestVersion: version.latestVersion,
             };
 
-            const ctx = getGitHubIssueSpec?.(versionContext, store);
+            const scopedStore = store.scoped(dep.ecosystem);
+            const ctx = getGitHubIssueSpec?.(versionContext, scopedStore);
             if (!ctx) continue;
 
             const policy = ctx.policy ?? DEFAULT_POLICY;

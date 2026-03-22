@@ -247,6 +247,7 @@ describe('getSections', () => {
 describe('getLinearIssueSpec', () => {
     const defaultContext: VersionContext = {
         name: 'test-pkg',
+        ecosystem: 'npm',
         currentVersion: '1.0.0',
         latestVersion: '2.0.0',
     };
@@ -355,6 +356,7 @@ describe('getLinearIssueSpec', () => {
         const plugin = new BasicCompliancePlugin(config);
         const context: VersionContext = {
             name: 'test-pkg',
+            ecosystem: 'npm',
             currentVersion: '1.0.0',
             latestVersion: '1.5.0',
         };

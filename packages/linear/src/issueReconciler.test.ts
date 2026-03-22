@@ -140,12 +140,11 @@ function populateFacts(
             'A test package',
         );
     }
-    // testMeta is consumer-facing metadata read by the getLinearIssueSpec callback,
-    // which receives the root (unscoped) store. Write it unscoped.
+    // testMeta is consumer-facing metadata read by the getLinearIssueSpec callback.
     if (opts.meta !== undefined) {
-        store.setDependencyFact(dependencyName, 'testMeta', opts.meta);
+        scoped.setDependencyFact(dependencyName, 'testMeta', opts.meta);
     } else {
-        store.setDependencyFact(dependencyName, 'testMeta', defaultMeta);
+        scoped.setDependencyFact(dependencyName, 'testMeta', defaultMeta);
     }
 }
 

@@ -269,11 +269,13 @@ export async function reconcileIssues(
             // Build VersionContext and call consumer callback
             const versionContext: VersionContext = {
                 name: dep.name,
+                ecosystem: dep.ecosystem,
                 currentVersion: version.version,
                 latestVersion: version.latestVersion,
             };
 
-            const ctx = getLinearIssueSpec?.(versionContext, store);
+            const scopedStore = store.scoped(dep.ecosystem);
+            const ctx = getLinearIssueSpec?.(versionContext, scopedStore);
             if (!ctx) continue;
 
             const policy = ctx.policy ?? DEFAULT_POLICY;

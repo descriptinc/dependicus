@@ -84,6 +84,8 @@ export type GitHubIssueSpec = z.infer<typeof gitHubIssueSpecSchema>;
 export interface VersionContext {
     /** Dependency name (e.g. "react"). */
     name: string;
+    /** Ecosystem identifier (e.g. "npm", "go"). */
+    ecosystem: string;
     /** Currently installed version. */
     currentVersion: string;
     /** Latest version available on the registry. */
