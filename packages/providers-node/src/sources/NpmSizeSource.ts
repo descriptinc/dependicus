@@ -24,7 +24,8 @@ export class NpmSizeSource implements DataSource {
         await this.registryService.prefetchUnpackedSizes(packageNames);
 
         for (const dep of dependencies) {
-            const sizeMap = await this.registryService.getUnpackedSizes(dep.name);
+            const neededVersions = dep.versions.map((v) => v.version);
+            const sizeMap = await this.registryService.getUnpackedSizes(dep.name, neededVersions);
             const record: Record<string, number | undefined> = Object.fromEntries(sizeMap);
             store.setDependencyFact(dep.name, FactKeys.SIZE_MAP, record);
 

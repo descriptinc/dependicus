@@ -202,16 +202,23 @@ export class NpmRegistryService {
     /**
      * Get unpacked sizes for all versions of a package using the abbreviated packument.
      * One HTTP request per package returns dist.unpackedSize for every published version.
-     * Cache is invalidated when the lockfile changes (same lifecycle as full metadata).
+     * Cached permanently; re-fetched only when a required version is missing from the cache.
      */
-    async getUnpackedSizes(packageName: string): Promise<Map<string, number | undefined>> {
+    async getUnpackedSizes(
+        packageName: string,
+        requiredVersions?: string[],
+    ): Promise<Map<string, number | undefined>> {
         const cacheKey = `npm-sizes-${sanitizeCacheKey(packageName)}`;
 
-        if (await this.cacheService.isCacheValid(cacheKey, this.lockfilePath)) {
+        const cached = await this.cacheService.readPermanentCache(cacheKey);
+        if (cached !== undefined) {
             try {
-                const cached = await this.cacheService.readCache(cacheKey);
                 const entries: Array<[string, number]> = JSON.parse(cached);
-                return new Map(entries);
+                const map = new Map(entries);
+                // Re-fetch if the cache is missing any version the caller needs
+                if (!requiredVersions || requiredVersions.every((v) => map.has(v))) {
+                    return map;
+                }
             } catch {
                 // Corrupt cache; fall through to fetch
             }
@@ -243,11 +250,7 @@ export class NpmRegistryService {
             const definedEntries = [...sizeMap.entries()].filter(
                 (entry): entry is [string, number] => entry[1] !== undefined,
             );
-            await this.cacheService.writeCache(
-                cacheKey,
-                JSON.stringify(definedEntries),
-                this.lockfilePath,
-            );
+            await this.cacheService.writePermanentCache(cacheKey, JSON.stringify(definedEntries));
 
             return sizeMap;
         } catch {
@@ -262,7 +265,7 @@ export class NpmRegistryService {
         const toFetch: string[] = [];
         for (const name of packageNames) {
             const cacheKey = `npm-sizes-${sanitizeCacheKey(name)}`;
-            if (!(await this.cacheService.isCacheValid(cacheKey, this.lockfilePath))) {
+            if (!this.cacheService.hasPermanentCache(cacheKey)) {
                 toFetch.push(name);
             }
         }
