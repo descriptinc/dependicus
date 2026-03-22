@@ -105,10 +105,21 @@ describe('getUpdateType', () => {
         expect(getUpdateType('invalid', '1.0.0')).toBeUndefined();
     });
 
-    it('returns undefined when latest is a prerelease', () => {
+    it('returns undefined when stable would update to prerelease', () => {
         expect(getUpdateType('1.0.0', '2.0.0-beta.1')).toBeUndefined();
         expect(getUpdateType('1.0.0', '1.1.0-alpha')).toBeUndefined();
         expect(getUpdateType('1.0.0', '1.0.1-rc.1')).toBeUndefined();
+    });
+
+    it('handles 2-segment versions via coercion', () => {
+        expect(getUpdateType('1.7', '1.8')).toBe('minor');
+        expect(getUpdateType('22.22.0', '25')).toBe('major');
+        expect(getUpdateType('3.14.3', '3.14')).toBeUndefined(); // 3.14.3 >= 3.14.0
+    });
+
+    it('handles prerelease-to-prerelease updates', () => {
+        expect(getUpdateType('1.0.0-rc.5', '1.0.0-rc.10')).toBe('patch');
+        expect(getUpdateType('1.4.0-r.1', '1.5.0-r.1')).toBe('minor');
     });
 });
 

@@ -1,4 +1,9 @@
-import { parse as parseSemver, diff as diffSemver, compare as compareSemver } from 'semver';
+import {
+    parse as parseSemver,
+    coerce as coerceSemver,
+    diff as diffSemver,
+    compare as compareSemver,
+} from 'semver';
 import type { PackageVersionInfo } from '../types';
 
 /**
@@ -39,21 +44,20 @@ export function getUpdateType(
     currentVersion: string,
     latestVersion: string,
 ): 'major' | 'minor' | 'patch' | undefined {
-    const current = parseSemver(currentVersion);
-    const latest = parseSemver(latestVersion);
+    const current = parseSemver(currentVersion) ?? coerceSemver(currentVersion);
+    const latest = parseSemver(latestVersion) ?? coerceSemver(latestVersion);
 
     if (!current || !latest) {
         return undefined;
     }
 
-    // Don't consider prereleases (e.g., "2.0.0-beta.1") as requiring updates
-    if (latest.prerelease.length > 0) {
+    // Don't suggest updating a stable version to a prerelease
+    if (latest.prerelease.length > 0 && current.prerelease.length === 0) {
         return undefined;
     }
 
     // Check if current >= latest (no update needed)
-    const comparison = compareSemver(currentVersion, latestVersion);
-    if (comparison >= 0) {
+    if (compareSemver(current, latest) >= 0) {
         return undefined;
     }
 
@@ -72,9 +76,8 @@ export function getUpdateType(
     if (diffType === 'patch') {
         return 'patch';
     }
-    // Prerelease diffs (prepatch, prerelease) - don't factor into updates
     if (diffType === 'prepatch' || diffType === 'prerelease') {
-        return undefined;
+        return 'patch';
     }
 
     return undefined;
