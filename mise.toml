@@ -157,6 +157,13 @@ dir = "{{config_root}}/packages/dependicus"
 interactive = true
 run = "pnpm publish"
 
+[tasks.prerelease]
+description = "Build, test, and publish a prerelease to NPM"
+depends = ["pnpm:build", "pnpm:test", "pnpm:typecheck"]
+dir = "{{config_root}}/packages/dependicus"
+interactive = true
+run = "pnpm publish --tag rc"
+
 [tasks.delete-node-modules]
 description = "Delete all node_modules directories"
 run = "rm -rf node_modules packages/*/node_modules"

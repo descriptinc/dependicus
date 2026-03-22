@@ -53,6 +53,8 @@ function mergeLinearIssueSpecs(
     fns: Array<(ctx: VersionContext, store: FactStore) => Partial<LinearIssueSpec> | undefined>,
 ): ((ctx: VersionContext, store: FactStore) => LinearIssueSpec | undefined) | undefined {
     if (fns.length === 0) return undefined;
+    const skipped: string[] = [];
+    let summarized = false;
     return (ctx, store) => {
         const partials = fns.map((fn) => fn(ctx, store)).filter((p) => p !== undefined);
         if (partials.length === 0) return undefined;
@@ -61,9 +63,15 @@ function mergeLinearIssueSpecs(
         if (allSections.length > 0) merged.descriptionSections = allSections;
         const result = linearIssueSpecSchema.safeParse(merged);
         if (!result.success) {
-            process.stderr.write(
-                `Warning: merged issue spec failed validation: ${result.error.message}\n`,
-            );
+            skipped.push(ctx.name);
+            if (!summarized) {
+                summarized = true;
+                queueMicrotask(() => {
+                    process.stderr.write(
+                        `Skipped ${skipped.length} dependencies with incomplete Linear issue specs: ${skipped.join(', ')}\n`,
+                    );
+                });
+            }
             return undefined;
         }
         return result.data;
@@ -76,6 +84,8 @@ function mergeGitHubIssueSpecs(
     >,
 ): ((ctx: GitHubVersionContext, store: FactStore) => GitHubIssueSpec | undefined) | undefined {
     if (fns.length === 0) return undefined;
+    const skipped: string[] = [];
+    let summarized = false;
     return (ctx, store) => {
         const partials = fns.map((fn) => fn(ctx, store)).filter((p) => p !== undefined);
         if (partials.length === 0) return undefined;
@@ -84,9 +94,15 @@ function mergeGitHubIssueSpecs(
         if (allSections.length > 0) merged.descriptionSections = allSections;
         const result = gitHubIssueSpecSchema.safeParse(merged);
         if (!result.success) {
-            process.stderr.write(
-                `Warning: merged GitHub issue spec failed validation: ${result.error.message}\n`,
-            );
+            skipped.push(ctx.name);
+            if (!summarized) {
+                summarized = true;
+                queueMicrotask(() => {
+                    process.stderr.write(
+                        `Skipped ${skipped.length} dependencies with incomplete GitHub issue specs: ${skipped.join(', ')}\n`,
+                    );
+                });
+            }
             return undefined;
         }
         return result.data;
