@@ -2,14 +2,23 @@
 set -e
 pm="$1"
 
+# Portable in-place sed: macOS requires -i '', GNU sed requires -i with no arg.
+sedi() {
+    if sed --version 2>/dev/null | grep -q GNU; then
+        sed -i "$@"
+    else
+        sed -i '' "$@"
+    fi
+}
+
 # npm doesn't understand "workspace:*", so we rewrite to "*" before install.
 # Other PMs understand "workspace:*" natively, so we restore it.
 rewrite_workspace_deps_for_npm() {
-    sed -i '' 's/"workspace:\*"/"*"/g' packages/*/package.json
+    sedi 's/"workspace:\*"/"*"/g' packages/*/package.json
 }
 
 restore_workspace_deps() {
-    sed -i '' 's/"\(@dependicus\/[^"]*\)": "\*"/"\1": "workspace:*"/g' packages/*/package.json
+    sedi 's/"\(@dependicus\/[^"]*\)": "\*"/"\1": "workspace:*"/g' packages/*/package.json
 }
 
 echo "Switching to $pm..."
