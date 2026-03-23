@@ -19,7 +19,6 @@ import {
     isWithinCooldown,
     isWithinNotificationRateLimit,
     hasMajorVersionSinceLastUpdate,
-    getDetailFilename,
 } from '@dependicus/core';
 import { LinearService, DependicusIssue } from './LinearService';
 import type {
@@ -39,16 +38,14 @@ import {
 export interface IssueReconcilerConfig {
     linearApiKey: string;
     dryRun?: boolean;
-    /** Base URL for Dependicus HTML pages (for links in issue descriptions) */
-    dependicusBaseUrl: string;
     /** Builds the full detail page URL for a given package version. */
-    getDetailUrl?: DetailUrlFn;
+    getDetailUrl: DetailUrlFn;
     /** Cooldown days before creating issues for newly-published versions */
     cooldownDays?: number;
     /** Whether to restrict new issue creation (e.g., only on main branch) */
     allowNewIssues?: boolean;
     /** Provider info map (ecosystem -> ProviderInfo) for presentation metadata */
-    providerInfoMap?: Map<string, ProviderInfo>;
+    providerInfoMap: Map<string, ProviderInfo>;
     /** Skip updating issues whose Linear state name (case-insensitive) matches any entry. */
     skipStateNames?: string[];
     /** Default rate limit days for notification throttling. Used when per-policy rateLimitDays is not set. */
@@ -237,13 +234,7 @@ export async function reconcileIssues(
     const dryRun = config.dryRun ?? false;
     const allowNewIssues = config.allowNewIssues ?? true;
     const configRateLimitDays = config.rateLimitDays;
-    const dependicusBaseUrl = config.dependicusBaseUrl;
-    const getDetailUrl: DetailUrlFn =
-        config.getDetailUrl ??
-        ((_eco, pkg, ver) => {
-            const filename = getDetailFilename(pkg, ver);
-            return `${dependicusBaseUrl}/details/${filename}`;
-        });
+    const getDetailUrl = config.getDetailUrl;
 
     const skipStateNamesSet = new Set((config.skipStateNames ?? []).map((s) => s.toLowerCase()));
 
@@ -516,7 +507,10 @@ export async function reconcileIssues(
             effectiveLatestVersion,
             { notificationsOnly },
         );
-        const providerInfo = config.providerInfoMap?.get(dep.ecosystem);
+        const providerInfo = config.providerInfoMap.get(dep.ecosystem);
+        if (!providerInfo) {
+            throw new Error(`No provider info for ecosystem "${dep.ecosystem}"`);
+        }
         const description = buildIssueDescription(
             dep,
             scopedStore,

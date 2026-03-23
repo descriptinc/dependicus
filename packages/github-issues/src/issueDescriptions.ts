@@ -41,7 +41,7 @@ export function buildIssueDescription(
     minVersion: string,
     effectiveLatestVersion: string,
     getDetailUrl: DetailUrlFn,
-    providerInfo?: ProviderInfo,
+    providerInfo: ProviderInfo,
     dueDate?: string,
 ): string {
     const { name, ecosystem, versions, worstCompliance } = dep;
@@ -99,15 +99,13 @@ export function buildIssueDescription(
         };
     });
 
-    const installCommand = providerInfo?.installCommand ?? 'install';
-    const supportsCatalog = providerInfo?.supportsCatalog ?? false;
-    const catalogFile = providerInfo?.catalogFile;
+    const { installCommand, supportsCatalog, catalogFile } = providerInfo;
     const patchHint =
-        providerInfo?.patchHint ??
+        providerInfo.patchHint ??
         'This dependency has local patches applied. When upgrading, check if the patches are still needed or should be removed.';
-    const updatePrefix = providerInfo?.updatePrefix ?? 'Update the version in:';
+    const updatePrefix = providerInfo.updatePrefix ?? 'Update the version in:';
     const updateSuffix =
-        providerInfo?.updateSuffix ?? `Then, run \`${installCommand}\` to update the lockfile.`;
+        providerInfo.updateSuffix ?? `Then, run \`${installCommand}\` to update the lockfile.`;
     const urlPatterns = store.getDependencyFact<Record<string, string>>(name, FactKeys.URLS) ?? {};
     const urls = resolveUrlPatterns(urlPatterns, { name, version: version.version });
 
@@ -172,7 +170,7 @@ export function buildGroupIssueDescription(
     group: OutdatedGroup,
     store: FactStore,
     getDetailUrl: DetailUrlFn,
-    providerInfoMap?: Map<string, ProviderInfo>,
+    providerInfoMap: Map<string, ProviderInfo>,
     dueDate?: string,
 ): string {
     const { groupName, dependencies, worstCompliance } = group;
@@ -180,12 +178,18 @@ export function buildGroupIssueDescription(
     const notificationsOnly = group.policy.type === 'fyi';
 
     const firstDep = dependencies[0];
-    const groupProviderInfo = firstDep ? providerInfoMap?.get(firstDep.ecosystem) : undefined;
-    const installCommand = groupProviderInfo?.installCommand ?? 'install';
-    const supportsCatalog = groupProviderInfo?.supportsCatalog ?? false;
-    const catalogFile = groupProviderInfo?.catalogFile;
+    if (!firstDep) {
+        throw new Error(`Group "${groupName}" has no dependencies`);
+    }
+    const groupProviderInfo = providerInfoMap.get(firstDep.ecosystem);
+    if (!groupProviderInfo) {
+        throw new Error(
+            `No provider info for ecosystem "${firstDep.ecosystem}" in group "${groupName}"`,
+        );
+    }
+    const { installCommand, supportsCatalog, catalogFile } = groupProviderInfo;
     const updateInstructions =
-        groupProviderInfo?.updateInstructions ??
+        groupProviderInfo.updateInstructions ??
         `Update each dependency's version in the appropriate config file, then run \`${installCommand}\`.`;
 
     const context = {

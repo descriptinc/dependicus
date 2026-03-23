@@ -10,6 +10,7 @@ import {
     readDependicusJson,
     mergeProviderDependencies,
     createDetailUrlBuilder,
+    buildProviderInfoMap,
     CacheService,
 } from '@dependicus/core';
 import type { FactStore, ProviderOutput, DependencyProvider } from '@dependicus/core';
@@ -346,6 +347,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                             effectiveConfig.dependicusBaseUrl,
                             providers,
                         );
+                        const providerInfoMap = buildProviderInfoMap(providers);
 
                         await reconcileIssues(
                             deps,
@@ -353,8 +355,8 @@ export function dependicusCli(config: DependicusCliConfig): {
                             {
                                 linearApiKey,
                                 dryRun: options.dryRun,
-                                dependicusBaseUrl: effectiveConfig.dependicusBaseUrl,
                                 getDetailUrl,
+                                providerInfoMap,
                                 cooldownDays:
                                     options.cooldownDays != null
                                         ? Number(options.cooldownDays)
@@ -447,6 +449,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                             effectiveConfig.dependicusBaseUrl,
                             providers,
                         );
+                        const providerInfoMap = buildProviderInfoMap(providers);
 
                         await reconcileGitHubIssues(
                             deps,
@@ -454,8 +457,8 @@ export function dependicusCli(config: DependicusCliConfig): {
                             {
                                 githubToken,
                                 dryRun: options.dryRun,
-                                dependicusBaseUrl: effectiveConfig.dependicusBaseUrl,
                                 getDetailUrl,
+                                providerInfoMap,
                                 cooldownDays:
                                     options.cooldownDays != null
                                         ? Number(options.cooldownDays)

@@ -66,7 +66,19 @@ function makeStore(dependencyName: string = 'test-pkg', version: string = '1.0.0
 const baseConfig: IssueReconcilerConfig = {
     githubToken: 'test-token',
     dryRun: false,
-    dependicusBaseUrl: 'https://example.com/dependicus',
+    getDetailUrl: (_eco, pkg, ver) => `https://example.com/details/${pkg}@${ver}.html`,
+    providerInfoMap: new Map([
+        [
+            'npm',
+            {
+                name: 'pnpm',
+                ecosystem: 'npm',
+                supportsCatalog: false,
+                installCommand: 'pnpm install',
+                urlPatterns: { Registry: 'https://www.npmjs.com/package/{{name}}' },
+            },
+        ],
+    ]),
 };
 
 function makeSpec(overrides: Partial<GitHubIssueSpec> = {}): GitHubIssueSpec {
