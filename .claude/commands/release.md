@@ -22,7 +22,6 @@
         ```bash
         gh release create v<version> --title "v<version>" --notes-file <(extract release notes from CHANGELOG.md for this version)
         ```
-    - Copy the release notes to the clipboard using `pbcopy`
 10. Bump to the next patch version with `-rc.0` suffix (e.g., `0.1.9` → `0.1.10-rc.0`), add a new unreleased section to CHANGELOG.md, run `mise update-all-lockfiles`, then commit and push:
     ```bash
     git add packages/dependicus/package.json CHANGELOG.md pnpm-lock.yaml package-lock.json yarn.lock bun.lock
