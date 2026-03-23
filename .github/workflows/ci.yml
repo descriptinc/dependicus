@@ -43,6 +43,13 @@ jobs:
             - run: pnpm run format:check
             - run: pnpm run lint
             - run: mise run check-versions
+            - name: Verify lockfiles are up to date
+              run: |
+                  mise run update-all-lockfiles
+                  if ! git diff --exit-code pnpm-lock.yaml package-lock.json yarn.lock bun.lock; then
+                    echo "Lockfiles are out of date. Run 'mise update-all-lockfiles' and commit the result."
+                    exit 1
+                  fi
 
     lint-bun:
         runs-on: ubuntu-latest
