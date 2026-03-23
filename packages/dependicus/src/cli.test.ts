@@ -260,8 +260,8 @@ describe('dependicusCli', () => {
                 {
                     linearApiKey: 'test-key',
                     dryRun: undefined,
-                    dependicusBaseUrl: 'https://example.com',
                     getDetailUrl: expect.any(Function),
+                    providerInfoMap: expect.any(Map),
                     cooldownDays: 7,
                     allowNewIssues: true,
                 },

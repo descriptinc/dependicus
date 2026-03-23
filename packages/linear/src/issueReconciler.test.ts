@@ -151,9 +151,21 @@ function populateFacts(
 const defaultConfig: IssueReconcilerConfig = {
     linearApiKey: 'test-key',
     dryRun: true,
-    dependicusBaseUrl: 'https://example.com/dependicus',
+    getDetailUrl: (_eco, pkg, ver) => `https://example.com/details/${pkg}@${ver}.html`,
     cooldownDays: 7,
     allowNewIssues: true,
+    providerInfoMap: new Map([
+        [
+            'npm',
+            {
+                name: 'pnpm',
+                ecosystem: 'npm',
+                supportsCatalog: false,
+                installCommand: 'pnpm install',
+                urlPatterns: { Registry: 'https://www.npmjs.com/package/{{name}}' },
+            },
+        ],
+    ]),
 };
 
 describe('reconcileIssues', () => {
