@@ -16,7 +16,7 @@ yarn = "4"
 [tasks.docs]
 description = "Build unified docs site (zensical + typedoc + dependicus) into docs-out/"
 depends = ["pnpm:build", "docs:zensical", "docs:typedoc", "docs:dependicus"]
-run = "rm -rf docs-out && mkdir -p docs-out && cp -r docs/site docs-out/dependicus && cp -r packages/dependicus/typedoc-out docs-out/dependicus/api && cp -r dependicus-out docs-out/dependicus/dependencies"
+run = "rm -rf docs-out/dependicus && mkdir -p docs-out && cp -r docs/site docs-out/dependicus && cp -r packages/dependicus/typedoc-out docs-out/dependicus/api && cp -r dependicus-out docs-out/dependicus/dependencies"
 
 [tasks."docs:zensical"]
 description = "Build zensical docs"
