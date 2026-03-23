@@ -12,9 +12,10 @@
     ```
 6. Increment the rc number: `-rc.5` → `-rc.6`
 7. Update the version in `packages/dependicus/package.json`
-8. Commit and push:
+8. Run `mise update-all-lockfiles` to update all lockfiles
+9. Commit and push:
     ```bash
-    git add packages/dependicus/package.json
+    git add packages/dependicus/package.json pnpm-lock.yaml package-lock.json yarn.lock bun.lock
     git commit -m "Begin v<new-version> development"
     git push origin main
     ```
