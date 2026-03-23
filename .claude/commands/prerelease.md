@@ -3,11 +3,12 @@
 3. Validate the version is in format `X.Y.Z-rc.N` (e.g., `0.1.9-rc.5`)
     - If not in this format, ERROR and tell the user to manually fix it first
 4. **STOP and ask the user to run `mise prerelease`**. Wait for them to confirm that the publish succeeded before continuing.
-5. After the user confirms, tag and push:
+5. After the user confirms, tag, push, and create a GitHub prerelease:
     ```bash
     git tag v<current-version>
     git push origin main
     git push origin v<current-version>
+    gh release create v<current-version> --prerelease --title "v<current-version>" --notes ""
     ```
 6. Increment the rc number: `-rc.5` → `-rc.6`
 7. Update the version in `packages/dependicus/package.json`

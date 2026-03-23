@@ -17,7 +17,11 @@
         git push origin main
         git push origin v<version>
         ```
-    - Copy the release notes for this version from CHANGELOG.md to the clipboard using `pbcopy`
+    - Create a GitHub release with the changelog notes for this version:
+        ```bash
+        gh release create v<version> --title "v<version>" --notes-file <(extract release notes from CHANGELOG.md for this version)
+        ```
+    - Copy the release notes to the clipboard using `pbcopy`
 9. Final commit: bump to the next patch version with `-rc.0` suffix (e.g., `0.1.9` → `0.1.10-rc.0`), add a new unreleased section to CHANGELOG.md, commit and push:
     ```bash
     git add packages/dependicus/package.json CHANGELOG.md
