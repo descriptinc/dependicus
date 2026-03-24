@@ -2,7 +2,7 @@
 
 Dependicus is a dependency governance tool for monorepos. It pulls data from your lockfile (or tool config), the npm registry, and GitHub, then produces an interactive dashboard, Linear tickets, and GitHub Issues so you can make informed decisions about your dependency graph at an organizational scale.
 
-If you maintain a monorepo with multiple teams, dozens of workspace packages, and hundreds of dependencies, Dependicus gives you the visibility that automated-PR tools don't: which packages are behind, by how much, who owns them, and where teams have drifted to different versions of the same dependency. You can see [our own dashboard](../dependencies/index.html) for a sense of what it looks like in practice.
+If you maintain a monorepo with multiple teams, dozens of workspace packages, and hundreds of dependencies, Dependicus gives you the visibility that automated-PR tools don't: which packages are behind, by how much, who owns them, and where teams have drifted to different versions of the same dependency. You can see [our own dashboard](/dependicus/dependencies/) for a sense of what it looks like in practice.
 
 Dependicus has a plugin system so you can customize it to your unique needs. It's a young open source project, but we use it daily at [Descript](https://descript.com).
 
