@@ -531,13 +531,14 @@ describe('reconcileIssues', () => {
         expect(createArg.delegateId).toBe('agent-123');
     });
 
-    it('does not delegate non-patch updates', async () => {
+    it('does not delegate major updates', async () => {
         const conditionalGetLinearIssueSpec = (
             context: VersionContext,
             s: FactStore,
         ): LinearIssueSpec | undefined => {
             const m = s.getDependencyFact<TestMeta>(context.name, 'testMeta');
             if (!m || m.notificationOptOut) return undefined;
+            const updateType = getUpdateType(context.currentVersion, context.latestVersion)!;
             const thresholdDaysMap: Record<string, number> = {
                 major: 360,
                 minor: 180,
@@ -546,13 +547,10 @@ describe('reconcileIssues', () => {
             return {
                 policy: { type: 'dueDate' },
                 daysOverdue: 30,
-                thresholdDays:
-                    thresholdDaysMap[
-                        getUpdateType(context.currentVersion, context.latestVersion)!
-                    ] ?? 360,
+                thresholdDays: thresholdDaysMap[updateType] ?? 360,
                 targetVersion: context.latestVersion,
                 assignment:
-                    getUpdateType(context.currentVersion, context.latestVersion)! === 'patch'
+                    (updateType === 'patch' || updateType === 'minor')
                         ? { type: 'delegate', assigneeId: 'agent-123' }
                         : { type: 'unassigned' },
                 teamId: 'linear-team-123',
@@ -573,6 +571,59 @@ describe('reconcileIssues', () => {
         expect(mockClient.createIssue).toHaveBeenCalled();
         const createArg = mockClient.createIssue.mock.calls[0]![0];
         expect(createArg.delegateId).toBeUndefined();
+    });
+
+    it('delegates minor updates', async () => {
+        const conditionalGetLinearIssueSpec = (
+            context: VersionContext,
+            s: FactStore,
+        ): LinearIssueSpec | undefined => {
+            const m = s.getDependencyFact<TestMeta>(context.name, 'testMeta');
+            if (!m || m.notificationOptOut) return undefined;
+            const updateType = getUpdateType(context.currentVersion, context.latestVersion)!;
+            const thresholdDaysMap: Record<string, number> = {
+                major: 360,
+                minor: 180,
+                patch: 90,
+            };
+            return {
+                policy: { type: 'dueDate' },
+                daysOverdue: 30,
+                thresholdDays: thresholdDaysMap[updateType] ?? 360,
+                targetVersion: context.latestVersion,
+                assignment:
+                    (updateType === 'patch' || updateType === 'minor')
+                        ? { type: 'delegate', assigneeId: 'agent-123' }
+                        : { type: 'unassigned' },
+                teamId: 'linear-team-123',
+                ownerLabel: `${m.surfaceId} (${m.teamName})`,
+            };
+        };
+
+        const v = makeVersion({
+            version: '1.0.0',
+            latestVersion: '1.1.0',
+        });
+        const vb: PackageVersionInfo[] = [
+            {
+                version: '1.1.0',
+                publishDate: '2024-03-01',
+                isPrerelease: false,
+                registryUrl: 'https://www.npmjs.com/package/test-pkg/v/1.1.0',
+            },
+        ];
+        populateFacts(store, 'test-pkg', v, { versionsBetween: vb });
+        const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
+
+        const config: IssueReconcilerConfig = {
+            ...defaultConfig,
+            dryRun: false,
+        };
+
+        await reconcileIssues(deps, store, config, conditionalGetLinearIssueSpec);
+        expect(mockClient.createIssue).toHaveBeenCalled();
+        const createArg = mockClient.createIssue.mock.calls[0]![0];
+        expect(createArg.delegateId).toBe('agent-123');
     });
 
     it('does not delegate when assignment is unassigned', async () => {

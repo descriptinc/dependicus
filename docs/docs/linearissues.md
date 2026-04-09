@@ -40,9 +40,9 @@ void dependicusCli({
             if (isDeprecated) return undefined;
 
             // SLA-enforced issues for minor/patch.
-            // Auto-assign patch releases to a bot — but not if the
-            // dependency has local patches applied, since those need
-            // human attention when updating.
+            // Auto-assign minor and patch releases to a bot — but not
+            // if the dependency has local patches applied, since those
+            // need human attention when updating.
             const isPatched = store.getVersionFact<boolean>(
                 name,
                 currentVersion,
@@ -52,7 +52,7 @@ void dependicusCli({
                 teamId,
                 policy: { type: 'dueDate' },
                 assignment:
-                    updateType === 'patch' && !isPatched
+                    (updateType === 'patch' || updateType === 'minor') && !isPatched
                         ? { type: 'delegate', assigneeId: 'your-bot-user-uuid' }
                         : { type: 'unassigned' },
             };
