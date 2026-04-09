@@ -550,7 +550,7 @@ describe('reconcileIssues', () => {
                 thresholdDays: thresholdDaysMap[updateType] ?? 360,
                 targetVersion: context.latestVersion,
                 assignment:
-                    (updateType === 'patch' || updateType === 'minor')
+                    updateType === 'patch' || updateType === 'minor'
                         ? { type: 'delegate', assigneeId: 'agent-123' }
                         : { type: 'unassigned' },
                 teamId: 'linear-team-123',
@@ -592,7 +592,7 @@ describe('reconcileIssues', () => {
                 thresholdDays: thresholdDaysMap[updateType] ?? 360,
                 targetVersion: context.latestVersion,
                 assignment:
-                    (updateType === 'patch' || updateType === 'minor')
+                    updateType === 'patch' || updateType === 'minor'
                         ? { type: 'delegate', assigneeId: 'agent-123' }
                         : { type: 'unassigned' },
                 teamId: 'linear-team-123',
