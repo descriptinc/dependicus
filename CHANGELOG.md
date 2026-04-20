@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- Recommended catalog YAML now wraps scoped package names (those containing `/`) in single quotes so the snippet is valid YAML
+
 ### Removed
 
 ## 0.1.9 - 2026-03-23
