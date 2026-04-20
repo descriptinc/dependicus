@@ -167,3 +167,7 @@ run = "pnpm publish --tag rc"
 [tasks.delete-node-modules]
 description = "Delete all node_modules directories"
 run = "rm -rf node_modules packages/*/node_modules"
+
+[tasks."bootstrap:cloud-env"]
+description = "Bootstrap cloud/dev environment using repo script"
+run = "bash scripts/bootstrap-cloud-env.sh"

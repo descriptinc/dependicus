@@ -7,6 +7,12 @@ mise install
 hk install
 ```
 
+For cloud agents/ephemeral environments, you can run the repo-owned bootstrap:
+
+```sh
+mise run bootstrap:cloud-env
+```
+
 The repo [supports all major Node.js package managers](https://github.com/descriptinc/dependicus/blob/main/EVERY_NODE_PACKAGE_MANAGER_WORKS.md) (pnpm, bun, yarn, and npm). Use mise tasks to switch between them:
 
 ```sh
