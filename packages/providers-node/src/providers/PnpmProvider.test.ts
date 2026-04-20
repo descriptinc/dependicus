@@ -86,20 +86,53 @@ describe('PnpmProvider', () => {
             });
         });
 
-        it('runs `pnpm install` first when node_modules/.pnpm is missing', async () => {
+        it('runs `pnpm install` first when DEPENDICUS_ALLOW_INSTALL=1 and node_modules/.pnpm is missing', async () => {
             writeWorkspaceYaml('');
-            const cacheService = createMockCacheService();
-            const provider = new PnpmProvider(cacheService, tempDir);
-            mockExecSync
-                .mockReturnValueOnce('') // pnpm install
-                .mockReturnValueOnce(JSON.stringify(samplePackages)); // pnpm -r list
+            const previous = process.env.DEPENDICUS_ALLOW_INSTALL;
+            process.env.DEPENDICUS_ALLOW_INSTALL = '1';
+            try {
+                const cacheService = createMockCacheService();
+                const provider = new PnpmProvider(cacheService, tempDir);
+                mockExecSync
+                    .mockReturnValueOnce('') // pnpm install
+                    .mockReturnValueOnce(JSON.stringify(samplePackages)); // pnpm -r list
 
-            const result = await provider.getPackages();
+                const result = await provider.getPackages();
 
-            expect(result).toEqual(samplePackages);
-            expect(mockExecSync).toHaveBeenCalledTimes(2);
-            expect(mockExecSync.mock.calls[0]![0]).toBe('pnpm install --prefer-frozen-lockfile');
-            expect(mockExecSync.mock.calls[1]![0]).toBe('pnpm -r list --json --depth=0');
+                expect(result).toEqual(samplePackages);
+                expect(mockExecSync).toHaveBeenCalledTimes(2);
+                expect(mockExecSync.mock.calls[0]![0]).toBe(
+                    'pnpm install --prefer-frozen-lockfile',
+                );
+                expect(mockExecSync.mock.calls[1]![0]).toBe('pnpm -r list --json --depth=0');
+            } finally {
+                if (previous === undefined) {
+                    delete process.env.DEPENDICUS_ALLOW_INSTALL;
+                } else {
+                    process.env.DEPENDICUS_ALLOW_INSTALL = previous;
+                }
+            }
+        });
+
+        it('skips the install and warns when DEPENDICUS_ALLOW_INSTALL is not set', async () => {
+            writeWorkspaceYaml('');
+            const previous = process.env.DEPENDICUS_ALLOW_INSTALL;
+            delete process.env.DEPENDICUS_ALLOW_INSTALL;
+            try {
+                const cacheService = createMockCacheService();
+                const provider = new PnpmProvider(cacheService, tempDir);
+                mockExecSync.mockReturnValueOnce(JSON.stringify(samplePackages));
+
+                const result = await provider.getPackages();
+
+                expect(result).toEqual(samplePackages);
+                expect(mockExecSync).toHaveBeenCalledTimes(1);
+                expect(mockExecSync.mock.calls[0]![0]).toBe('pnpm -r list --json --depth=0');
+            } finally {
+                if (previous !== undefined) {
+                    process.env.DEPENDICUS_ALLOW_INSTALL = previous;
+                }
+            }
         });
 
         it('uses disk cache when lockfile unchanged', async () => {

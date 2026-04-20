@@ -14,6 +14,11 @@ permissions:
 
 env:
     MISE_NODE_VERSION: '20'
+    # Allow dependicus to reinstall node_modules when a provider needs its own
+    # install layout (e.g. PnpmProvider reinstalls with pnpm if the tree was
+    # populated by another package manager). Destructive by design, so opt in
+    # only in CI — local runs keep the working tree intact.
+    DEPENDICUS_ALLOW_INSTALL: '1'
 
 jobs:
     check-pnpm:

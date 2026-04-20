@@ -15,7 +15,7 @@
 
 ### Fixed
 
-- `PnpmProvider` now runs `pnpm install --prefer-frozen-lockfile` if it doesn't find a pnpm-populated `node_modules/.pnpm` before running `pnpm -r list`. Previously, when another package manager had installed `node_modules` (bun, yarn, npm, or aube), `pnpm -r list` returned workspace packages with empty dependencies, so the pnpm tab in CI artifacts from non-pnpm jobs showed zero deps.
+- `PnpmProvider` now detects when `node_modules/.pnpm` is missing (because another package manager populated `node_modules`) and, if `DEPENDICUS_ALLOW_INSTALL=1` is set, runs `pnpm install --prefer-frozen-lockfile` before `pnpm -r list`. Without that env var, it emits a warning and proceeds. The repo's CI workflow sets `DEPENDICUS_ALLOW_INSTALL=1`, so CI artifacts from non-pnpm jobs now show correct pnpm dep counts instead of empty ones. Local runs are never modified without the opt-in.
 - Recommended catalog YAML snippets are now idiomatic YAML
     - Scoped package names (those containing `/`) are wrapped in single quotes so the snippet is valid YAML
     - Version numbers are no longer double-quoted
