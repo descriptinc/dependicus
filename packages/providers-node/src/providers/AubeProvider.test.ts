@@ -29,116 +29,180 @@ function createMockCacheService(overrides: Partial<CacheService> = {}): CacheSer
     } as unknown as CacheService;
 }
 
-const samplePackages: PackageInfo[] = [
+// Shape of `aube list --json --depth=0` (root-only): a single-element array
+// containing the root importer with its devDependencies populated.
+const sampleRootListOutput: PackageInfo[] = [
+    {
+        name: 'my-monorepo',
+        version: '0.0.0',
+        path: '/repo',
+        devDependencies: {
+            oxfmt: { from: 'oxfmt', version: '0.35.0', resolved: '', path: '' },
+            tsx: { from: 'tsx', version: '4.21.0', resolved: '', path: '' },
+        },
+    } as PackageInfo,
+];
+
+// Shape of `aube -r list --json --depth=0`: every workspace package except
+// the root. Workspace-to-workspace deps are inlined with the linked package's
+// version (not a link: marker), so they look like registry deps and must be
+// filtered out by name.
+const sampleWorkspaceListOutput: PackageInfo[] = [
+    {
+        name: '@myapp/shared',
+        version: '1.0.0',
+        path: '/repo/packages/shared',
+    } as PackageInfo,
     {
         name: '@myapp/web',
         version: '1.0.0',
-        path: '/repo/apps/web',
+        path: '/repo/packages/web',
         dependencies: {
             react: { from: 'react', version: '18.2.0', resolved: '', path: '' },
+            '@myapp/shared': {
+                from: '@myapp/shared',
+                version: '1.0.0',
+                resolved: '',
+                path: '',
+            },
         },
-    },
-    {
-        name: '@myapp/api',
-        version: '1.0.0',
-        path: '/repo/services/api',
         devDependencies: {
-            jest: { from: 'jest', version: '29.0.0', resolved: '', path: '' },
+            vitest: { from: 'vitest', version: '4.1.0', resolved: '', path: '' },
         },
-    },
+    } as PackageInfo,
 ];
 
 describe('AubeProvider', () => {
-    let tempDir: string;
+    let tmpDir: string;
 
     beforeEach(() => {
         vi.clearAllMocks();
-        tempDir = mkdtempSync(join(tmpdir(), 'aube-provider-test-'));
+        tmpDir = mkdtempSync(join(tmpdir(), 'aube-provider-test-'));
     });
 
     afterEach(() => {
-        rmSync(tempDir, { recursive: true, force: true });
+        rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    function writeWorkspaceYaml(content: string): void {
-        writeFileSync(join(tempDir, 'pnpm-workspace.yaml'), content);
+    function wireAubeListMocks(): void {
+        mockExecSync.mockImplementation((command: unknown) => {
+            if (typeof command !== 'string') throw new Error(`unexpected exec ${String(command)}`);
+            if (command.startsWith('aube -r ')) {
+                return JSON.stringify(sampleWorkspaceListOutput);
+            }
+            if (command.startsWith('aube list')) {
+                return JSON.stringify(sampleRootListOutput);
+            }
+            throw new Error(`unexpected exec: ${command}`);
+        });
     }
 
     describe('getPackages', () => {
-        it('runs aube list and returns parsed packages', async () => {
-            writeWorkspaceYaml('');
-            const cacheService = createMockCacheService();
-            const provider = new AubeProvider(cacheService, tempDir);
-            mockExecSync.mockReturnValue(JSON.stringify(samplePackages));
+        it('concatenates root and workspace list output', async () => {
+            wireAubeListMocks();
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
-            const result = await provider.getPackages();
+            const packages = await provider.getPackages();
 
-            expect(result).toEqual(samplePackages);
-            expect(mockExecSync).toHaveBeenCalledWith('aube -r list --json --depth=0', {
-                encoding: 'utf-8',
-                maxBuffer: expect.any(Number),
-                cwd: tempDir,
+            expect(packages.map((p) => p.name).sort()).toEqual([
+                '@myapp/shared',
+                '@myapp/web',
+                'my-monorepo',
+            ]);
+
+            const root = packages.find((p) => p.name === 'my-monorepo');
+            expect(root!.devDependencies).toEqual({
+                oxfmt: { from: 'oxfmt', version: '0.35.0', resolved: '', path: '' },
+                tsx: { from: 'tsx', version: '4.21.0', resolved: '', path: '' },
             });
         });
 
-        it('uses disk cache when lockfile unchanged', async () => {
-            writeWorkspaceYaml('');
+        it('filters workspace-to-workspace deps that aube inlines as registry deps', async () => {
+            wireAubeListMocks();
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
+
+            const packages = await provider.getPackages();
+
+            const web = packages.find((p) => p.name === '@myapp/web');
+            // @myapp/shared is another workspace package, so it must be
+            // stripped even though aube listed it with a concrete version.
+            expect(web!.dependencies).toEqual({
+                react: { from: 'react', version: '18.2.0', resolved: '', path: '' },
+            });
+            expect(web!.devDependencies).toEqual({
+                vitest: { from: 'vitest', version: '4.1.0', resolved: '', path: '' },
+            });
+        });
+
+        it('runs aube with --json --depth=0 both non-recursively and recursively, with rootDir as cwd', async () => {
+            wireAubeListMocks();
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
+
+            await provider.getPackages();
+
+            const calls = mockExecSync.mock.calls.map((c) => c[0]);
+            expect(calls).toContain('aube list --json --depth=0');
+            expect(calls).toContain('aube -r list --json --depth=0');
+            for (const call of mockExecSync.mock.calls) {
+                expect(call[1]).toMatchObject({ cwd: tmpDir });
+            }
+        });
+
+        it('uses cache when lockfile unchanged', async () => {
             const cacheService = createMockCacheService({
                 isCacheValid: vi.fn().mockResolvedValue(true),
-                readCache: vi.fn().mockResolvedValue(JSON.stringify(samplePackages)),
+                readCache: vi.fn().mockImplementation((key: string) => {
+                    if (key === 'aube-list')
+                        return Promise.resolve(JSON.stringify(sampleRootListOutput));
+                    if (key === 'aube-list--r')
+                        return Promise.resolve(JSON.stringify(sampleWorkspaceListOutput));
+                    return Promise.resolve('');
+                }),
             });
-            const provider = new AubeProvider(cacheService, tempDir);
+            const provider = new AubeProvider(cacheService, tmpDir);
 
-            const result = await provider.getPackages();
+            const packages = await provider.getPackages();
 
-            expect(result).toEqual(samplePackages);
             expect(mockExecSync).not.toHaveBeenCalled();
-            expect(cacheService.readCache).toHaveBeenCalledWith('aube-list');
+            expect(packages).toHaveLength(3);
         });
 
         it('caches in memory on subsequent calls', async () => {
-            writeWorkspaceYaml('');
-            const cacheService = createMockCacheService();
-            const provider = new AubeProvider(cacheService, tempDir);
-            mockExecSync.mockReturnValue(JSON.stringify(samplePackages));
+            wireAubeListMocks();
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
-            const result1 = await provider.getPackages();
-            const result2 = await provider.getPackages();
+            const first = await provider.getPackages();
+            const second = await provider.getPackages();
 
-            expect(result1).toBe(result2);
-            expect(mockExecSync).toHaveBeenCalledTimes(1);
+            expect(first).toBe(second);
+            // Two calls total for the first run; second call is fully cached.
+            expect(mockExecSync).toHaveBeenCalledTimes(2);
         });
     });
 
     describe('isInCatalog', () => {
-        it('returns true when version satisfies catalog range', () => {
-            writeWorkspaceYaml(`
-catalog:
-  react: ^18.2.0
-`);
-            const provider = new AubeProvider(createMockCacheService(), tempDir);
+        it('returns true when version satisfies catalog range from pnpm-workspace.yaml', () => {
+            writeFileSync(
+                join(tmpDir, 'pnpm-workspace.yaml'),
+                `catalog:\n  react: ^18.0.0\n  typescript: ~5.3.0\n`,
+            );
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
             expect(provider.isInCatalog('react', '18.2.0')).toBe(true);
-            expect(provider.isInCatalog('react', '18.3.1')).toBe(true);
+            expect(provider.isInCatalog('typescript', '5.3.3')).toBe(true);
         });
 
         it('returns false when version does not satisfy catalog range', () => {
-            writeWorkspaceYaml(`
-catalog:
-  react: ^18.2.0
-`);
-            const provider = new AubeProvider(createMockCacheService(), tempDir);
+            writeFileSync(join(tmpDir, 'pnpm-workspace.yaml'), `catalog:\n  react: ^18.0.0\n`);
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
             expect(provider.isInCatalog('react', '17.0.0')).toBe(false);
             expect(provider.isInCatalog('react', '19.0.0')).toBe(false);
         });
 
         it('returns false for packages not in catalog', () => {
-            writeWorkspaceYaml(`
-catalog:
-  react: ^18.2.0
-`);
-            const provider = new AubeProvider(createMockCacheService(), tempDir);
+            writeFileSync(join(tmpDir, 'pnpm-workspace.yaml'), `catalog:\n  react: ^18.0.0\n`);
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
             expect(provider.isInCatalog('vue', '3.0.0')).toBe(false);
         });
@@ -146,47 +210,41 @@ catalog:
 
     describe('hasInCatalog', () => {
         it('returns true for packages in catalog', () => {
-            writeWorkspaceYaml(`
-catalog:
-  react: ^18.2.0
-  typescript: ~5.3.0
-`);
-            const provider = new AubeProvider(createMockCacheService(), tempDir);
+            writeFileSync(
+                join(tmpDir, 'pnpm-workspace.yaml'),
+                `catalog:\n  react: ^18.0.0\n  lodash: ^4.0.0\n`,
+            );
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
             expect(provider.hasInCatalog('react')).toBe(true);
-            expect(provider.hasInCatalog('typescript')).toBe(true);
+            expect(provider.hasInCatalog('lodash')).toBe(true);
         });
 
         it('returns false for packages not in catalog', () => {
-            writeWorkspaceYaml(`
-catalog:
-  react: ^18.2.0
-`);
-            const provider = new AubeProvider(createMockCacheService(), tempDir);
+            writeFileSync(join(tmpDir, 'pnpm-workspace.yaml'), `catalog:\n  react: ^18.0.0\n`);
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
-            expect(provider.hasInCatalog('vue')).toBe(false);
+            expect(provider.hasInCatalog('express')).toBe(false);
         });
     });
 
     describe('isPatched', () => {
         it('returns true for patched packages', () => {
-            writeWorkspaceYaml(`
-patchedDependencies:
-  react@18.2.0: patches/react@18.2.0.patch
-  lodash@4.17.21: patches/lodash@4.17.21.patch
-`);
-            const provider = new AubeProvider(createMockCacheService(), tempDir);
+            writeFileSync(
+                join(tmpDir, 'pnpm-workspace.yaml'),
+                `patchedDependencies:\n  react@18.2.0: patches/react@18.2.0.patch\n`,
+            );
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
             expect(provider.isPatched('react', '18.2.0')).toBe(true);
-            expect(provider.isPatched('lodash', '4.17.21')).toBe(true);
         });
 
         it('returns false for non-patched packages', () => {
-            writeWorkspaceYaml(`
-patchedDependencies:
-  react@18.2.0: patches/react@18.2.0.patch
-`);
-            const provider = new AubeProvider(createMockCacheService(), tempDir);
+            writeFileSync(
+                join(tmpDir, 'pnpm-workspace.yaml'),
+                `patchedDependencies:\n  react@18.2.0: patches/react@18.2.0.patch\n`,
+            );
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
             expect(provider.isPatched('react', '18.3.0')).toBe(false);
             expect(provider.isPatched('vue', '3.0.0')).toBe(false);

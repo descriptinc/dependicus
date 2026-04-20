@@ -5,6 +5,7 @@ import { load } from 'js-yaml';
 import { satisfies, validRange } from 'semver';
 import type {
     PackageInfo,
+    DependencyInfo,
     DependencyProvider,
     SourceContext,
     DataSource,
@@ -72,25 +73,61 @@ export class AubeProvider implements DependencyProvider {
             return this.cachedPackages;
         }
 
-        const cacheKey = 'aube-list';
-        let output: string;
+        // `aube -r list` covers workspace packages but omits the root importer,
+        // and its JSON does not mark workspace-to-workspace links as such —
+        // the linked package's actual version is inlined, making them
+        // indistinguishable from registry deps. We therefore:
+        //   1. Run both `aube list` (root only) and `aube -r list` (workspaces)
+        //      and concatenate them so root devDeps aren't lost.
+        //   2. Build the set of workspace package names from the combined
+        //      output, and drop any dep whose name is in that set (those are
+        //      the workspace links aube inlined).
+        const rootOutput = await this.runAubeList([]);
+        const workspaceOutput = await this.runAubeList(['-r']);
 
-        if (await this.cacheService.isCacheValid(cacheKey, this.lockfilePath)) {
-            process.stderr.write('Using cached aube list output (lockfile unchanged)\n');
-            output = await this.cacheService.readCache(cacheKey);
-        } else {
-            process.stderr.write('Running: aube -r list --json --depth=0\n');
-            output = execSync('aube -r list --json --depth=0', {
-                encoding: 'utf-8',
-                maxBuffer: BUFFER_SIZES.SMALL,
-                cwd: this.rootDir,
-            });
-            await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
+        const rootPackages = JSON.parse(rootOutput) as PackageInfo[];
+        const workspacePackages = JSON.parse(workspaceOutput) as PackageInfo[];
+
+        // The root importer shows up in `aube list` as a single entry. Dedupe
+        // by path in case a future aube version includes the root in -r output.
+        const byPath = new Map<string, PackageInfo>();
+        for (const pkg of [...rootPackages, ...workspacePackages]) {
+            byPath.set(pkg.path, pkg);
         }
+        const combined = Array.from(byPath.values());
 
-        this.cachedPackages = JSON.parse(output) as PackageInfo[];
+        const workspaceNames = new Set(combined.map((p) => p.name));
+        this.cachedPackages = combined.map((pkg) => ({
+            ...pkg,
+            dependencies: stripWorkspaceDeps(pkg.dependencies, workspaceNames),
+            devDependencies: stripWorkspaceDeps(pkg.devDependencies, workspaceNames),
+        }));
+
         process.stderr.write(`Found ${this.cachedPackages.length} packages\n`);
         return this.cachedPackages;
+    }
+
+    private async runAubeList(extraFlags: readonly string[]): Promise<string> {
+        const cmd = `aube ${extraFlags.join(' ')} list --json --depth=0`
+            .replace(/\s+/g, ' ')
+            .trim();
+        const cacheKey = `aube-list${extraFlags.length ? '-' + extraFlags.join('') : ''}`;
+
+        if (await this.cacheService.isCacheValid(cacheKey, this.lockfilePath)) {
+            process.stderr.write(
+                `Using cached aube list output (lockfile unchanged): ${cacheKey}\n`,
+            );
+            return this.cacheService.readCache(cacheKey);
+        }
+
+        process.stderr.write(`Running: ${cmd}\n`);
+        const output = execSync(cmd, {
+            encoding: 'utf-8',
+            maxBuffer: BUFFER_SIZES.SMALL,
+            cwd: this.rootDir,
+        });
+        await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
+        return output;
     }
 
     isInCatalog(name: string, version: string): boolean {
@@ -132,4 +169,17 @@ export class AubeProvider implements DependencyProvider {
         const registryService = new NpmRegistryService(this.cacheService, this.lockfilePath);
         return resolveNpmMetadata(registryService, packages);
     }
+}
+
+function stripWorkspaceDeps(
+    deps: Record<string, DependencyInfo> | undefined,
+    workspaceNames: Set<string>,
+): Record<string, DependencyInfo> | undefined {
+    if (!deps) return undefined;
+    const filtered: Record<string, DependencyInfo> = {};
+    for (const [name, info] of Object.entries(deps)) {
+        if (workspaceNames.has(name)) continue;
+        filtered[name] = info;
+    }
+    return Object.keys(filtered).length > 0 ? filtered : undefined;
 }

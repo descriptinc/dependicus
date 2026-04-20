@@ -7,7 +7,7 @@
 ### Added
 
 - aube package manager support
-    - New `AubeProvider` in `@dependicus/providers-node` reads `aube-lock.yaml` via `aube -r list --json --depth=0` and reuses aube's pnpm-compatible `pnpm-workspace.yaml` for catalog and patch metadata
+    - New `AubeProvider` in `@dependicus/providers-node` runs `aube list` (root) and `aube -r list` (workspaces) and reuses aube's pnpm-compatible `pnpm-workspace.yaml` for catalog and patch metadata. Workspace-to-workspace deps that aube inlines as concrete versions are stripped by name so they don't show up as registry dependencies.
     - Auto-detection covers the `aube/` user agent and an `aube-lock.yaml` lockfile fallback
     - `--provider aube` is accepted by the CLI alongside the existing provider names
 
