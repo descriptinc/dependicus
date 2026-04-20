@@ -59,4 +59,27 @@ describe('helpers', () => {
             expect(helpers.slice('not-array' as unknown as unknown[], 0, 1)).toEqual([]);
         });
     });
+
+    describe('yamlKey', () => {
+        it('quotes scoped package names containing a slash', () => {
+            expect(helpers.yamlKey('@scope/pkg')).toBe("'@scope/pkg'");
+        });
+
+        it('quotes any name containing a slash', () => {
+            expect(helpers.yamlKey('foo/bar')).toBe("'foo/bar'");
+        });
+
+        it('leaves unscoped names unquoted', () => {
+            expect(helpers.yamlKey('lodash')).toBe('lodash');
+        });
+
+        it('returns empty string as-is', () => {
+            expect(helpers.yamlKey('')).toBe('');
+        });
+
+        it('passes through non-string values unchanged', () => {
+            expect(helpers.yamlKey(undefined as unknown as string)).toBe(undefined);
+            expect(helpers.yamlKey(null as unknown as string)).toBe(null);
+        });
+    });
 });
