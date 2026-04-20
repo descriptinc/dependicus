@@ -325,7 +325,7 @@ describe('buildIssueDescription', () => {
             testGetDetailUrl,
             npmProviderInfo,
         );
-        expect(result).toContain("'@scope/my-pkg': \"2.0.0\"");
+        expect(result).toContain("'@scope/my-pkg': 2.0.0");
     });
 
     it('does not quote unscoped package names in catalog YAML', () => {
@@ -339,7 +339,7 @@ describe('buildIssueDescription', () => {
             testGetDetailUrl,
             npmProviderInfo,
         );
-        expect(result).toContain('test-pkg: "2.0.0"');
+        expect(result).toContain('test-pkg: 2.0.0');
         expect(result).not.toContain("'test-pkg'");
     });
 });
@@ -429,7 +429,7 @@ describe('buildGroupIssueDescription', () => {
             npmProviderInfoMap,
         );
         expect(result).toContain('```yaml');
-        expect(result).toContain('react: "2.0.0"');
+        expect(result).toContain('react: 2.0.0');
     });
 
     it('quotes scoped package names in group catalog YAML', () => {
@@ -452,8 +452,8 @@ describe('buildGroupIssueDescription', () => {
             testGetDetailUrl,
             npmProviderInfoMap,
         );
-        expect(result).toContain("'@scope/pkg-a': \"2.0.0\"");
-        expect(result).toContain('pkg-b: "2.0.0"');
+        expect(result).toContain("'@scope/pkg-a': 2.0.0");
+        expect(result).toContain('pkg-b: 2.0.0');
         expect(result).not.toContain("'pkg-b'");
     });
 });
