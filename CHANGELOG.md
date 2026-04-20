@@ -15,6 +15,7 @@
 
 ### Fixed
 
+- `PnpmProvider` now runs `pnpm install --prefer-frozen-lockfile` if it doesn't find a pnpm-populated `node_modules/.pnpm` before running `pnpm -r list`. Previously, when another package manager had installed `node_modules` (bun, yarn, npm, or aube), `pnpm -r list` returned workspace packages with empty dependencies, so the pnpm tab in CI artifacts from non-pnpm jobs showed zero deps.
 - Recommended catalog YAML snippets are now idiomatic YAML
     - Scoped package names (those containing `/`) are wrapped in single quotes so the snippet is valid YAML
     - Version numbers are no longer double-quoted

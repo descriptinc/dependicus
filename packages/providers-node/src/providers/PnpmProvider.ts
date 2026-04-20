@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { load } from 'js-yaml';
 import { satisfies, validRange } from 'semver';
@@ -79,10 +79,25 @@ export class PnpmProvider implements DependencyProvider {
             process.stderr.write('Using cached pnpm list output (lockfile unchanged)\n');
             output = await this.cacheService.readCache(cacheKey);
         } else {
+            // `pnpm -r list` reads state from node_modules/.pnpm/. If another
+            // PM populated node_modules (bun, yarn, npm, aube), pnpm will run
+            // but return workspace packages with empty dependency maps. Detect
+            // that and reinstall with pnpm so the list is accurate.
+            if (!existsSync(join(this.rootDir, 'node_modules', '.pnpm'))) {
+                process.stderr.write(
+                    'node_modules/.pnpm not found; running `pnpm install` so pnpm -r list reports accurate results\n',
+                );
+                execSync('pnpm install --prefer-frozen-lockfile', {
+                    stdio: 'inherit',
+                    cwd: this.rootDir,
+                });
+            }
+
             process.stderr.write('Running: pnpm -r list --json --depth=0\n');
             output = execSync('pnpm -r list --json --depth=0', {
                 encoding: 'utf-8',
                 maxBuffer: BUFFER_SIZES.SMALL,
+                cwd: this.rootDir,
             });
             await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
         }
