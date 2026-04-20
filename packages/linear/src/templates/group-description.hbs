@@ -40,7 +40,7 @@ Update each dependency in the `{{catalogFile}}` catalog (if applicable) or indiv
 ```yaml
 catalog:
 {{#each dependencies}}
-  {{this.name}}: "{{this.effectiveLatestVersion}}"
+  {{yamlKey this.name}}: "{{this.effectiveLatestVersion}}"
 {{/each}}
 ```
 

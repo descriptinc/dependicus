@@ -38,7 +38,7 @@ This dependency is managed in the catalog. Edit `{{catalogFile}}`:
 
 ```yaml
 catalog:
-  {{name}}: "{{effectiveLatestVersion}}"
+  {{yamlKey name}}: "{{effectiveLatestVersion}}"
 ```
 
 Then, run `{{installCommand}}` to update the lockfile.
@@ -50,7 +50,7 @@ This dependency is used by {{usedByCount}} packages. Consider adding it to the c
 
 ```yaml
 catalog:
-  {{name}}: "{{effectiveLatestVersion}}"
+  {{yamlKey name}}: "{{effectiveLatestVersion}}"
 ```
 
 2. **Update each package** to use `"{{name}}": "catalog:"` instead of the version number.

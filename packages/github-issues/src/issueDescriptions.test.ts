@@ -313,6 +313,35 @@ describe('buildIssueDescription', () => {
         );
         expect(result).toContain('automatically created by Dependicus');
     });
+
+    it('quotes scoped package names in catalog YAML', () => {
+        const dep = makeDependency({ name: '@scope/my-pkg' });
+        const store = makeStore(dep);
+        const result = buildIssueDescription(
+            dep,
+            store,
+            '1.1.0',
+            '2.0.0',
+            testGetDetailUrl,
+            npmProviderInfo,
+        );
+        expect(result).toContain("'@scope/my-pkg': \"2.0.0\"");
+    });
+
+    it('does not quote unscoped package names in catalog YAML', () => {
+        const dep = makeDependency({ name: 'test-pkg' });
+        const store = makeStore(dep);
+        const result = buildIssueDescription(
+            dep,
+            store,
+            '1.1.0',
+            '2.0.0',
+            testGetDetailUrl,
+            npmProviderInfo,
+        );
+        expect(result).toContain('test-pkg: "2.0.0"');
+        expect(result).not.toContain("'test-pkg'");
+    });
 });
 
 describe('buildGroupIssueDescription', () => {
@@ -401,6 +430,31 @@ describe('buildGroupIssueDescription', () => {
         );
         expect(result).toContain('```yaml');
         expect(result).toContain('react: "2.0.0"');
+    });
+
+    it('quotes scoped package names in group catalog YAML', () => {
+        const group: OutdatedGroup = {
+            groupName: 'scoped-group',
+            dependencies: [
+                makeDependency({ name: '@scope/pkg-a' }),
+                makeDependency({ name: 'pkg-b' }),
+            ],
+            owner: 'myorg',
+            repo: 'myrepo',
+            policy: { type: 'dueDate' },
+            worstCompliance: { updateType: 'major', daysOverdue: 0, thresholdDays: 360 },
+        };
+
+        const store = makeGroupStore(group);
+        const result = buildGroupIssueDescription(
+            group,
+            store,
+            testGetDetailUrl,
+            npmProviderInfoMap,
+        );
+        expect(result).toContain("'@scope/pkg-a': \"2.0.0\"");
+        expect(result).toContain('pkg-b: "2.0.0"');
+        expect(result).not.toContain("'pkg-b'");
     });
 });
 
