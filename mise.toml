@@ -10,7 +10,7 @@ pkl = "0.30.2"
 pnpm = "10.27.0"
 rust = "latest"
 uv = "0.10.7"
-yarn = "4"
+yarn = "4.14.1"
 
 
 [tasks.docs]
