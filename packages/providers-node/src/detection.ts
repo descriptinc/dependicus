@@ -5,6 +5,7 @@ import { PnpmProvider } from './providers/PnpmProvider';
 import { BunProvider } from './providers/BunProvider';
 import { YarnProvider } from './providers/YarnProvider';
 import { NpmProvider } from './providers/NpmProvider';
+import { AubeProvider } from './providers/AubeProvider';
 
 /**
  * Detect the active package manager from the runtime environment.
@@ -12,10 +13,14 @@ import { NpmProvider } from './providers/NpmProvider';
  * - pnpm sets `npm_config_user_agent` starting with "pnpm/"
  * - yarn sets `npm_config_user_agent` starting with "yarn/"
  * - npm sets `npm_config_user_agent` starting with "npm/"
+ * - aube sets `npm_config_user_agent` starting with "aube/"
  */
-export function detectNodeRuntime(): 'bun' | 'pnpm' | 'yarn' | 'npm' | undefined {
+export function detectNodeRuntime(): 'bun' | 'pnpm' | 'yarn' | 'npm' | 'aube' | undefined {
     if (process.versions.bun) {
         return 'bun';
+    }
+    if (process.env.npm_config_user_agent?.startsWith('aube/')) {
+        return 'aube';
     }
     if (process.env.npm_config_user_agent?.startsWith('pnpm/')) {
         return 'pnpm';
@@ -56,6 +61,9 @@ export function detectNodeProviders(
     if (existsSync(join(rootDir, 'package-lock.json'))) {
         providers.push(new NpmProvider(cacheService, rootDir));
     }
+    if (existsSync(join(rootDir, 'aube-lock.yaml'))) {
+        providers.push(new AubeProvider(cacheService, rootDir));
+    }
     return providers;
 }
 
@@ -82,8 +90,13 @@ export function createNodeProvidersByName(
             case 'npm':
                 providers.push(new NpmProvider(cacheService, rootDir));
                 break;
+            case 'aube':
+                providers.push(new AubeProvider(cacheService, rootDir));
+                break;
             default:
-                throw new Error(`Unknown node provider: ${name}. Supported: pnpm, bun, yarn, npm`);
+                throw new Error(
+                    `Unknown node provider: ${name}. Supported: pnpm, bun, yarn, npm, aube`,
+                );
         }
     }
     return providers;

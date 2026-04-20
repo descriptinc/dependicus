@@ -6,6 +6,11 @@
 
 ### Added
 
+- aube package manager support
+    - New `AubeProvider` in `@dependicus/providers-node` reads `aube-lock.yaml` via `aube -r list --json --depth=0` and reuses aube's pnpm-compatible `pnpm-workspace.yaml` for catalog and patch metadata
+    - Auto-detection covers the `aube/` user agent and an `aube-lock.yaml` lockfile fallback
+    - `--provider aube` is accepted by the CLI alongside the existing provider names
+
 ### Changed
 
 ### Fixed

@@ -20,4 +20,4 @@ graph LR
     dependicus-make-github-issues --> github-issues["GitHub Issues"]
 ```
 
-Dependicus supports [pnpm](https://pnpm.io/), [bun](https://bun.sh/), [yarn](https://yarnpkg.com/), [npm](https://www.npmjs.com/), [mise](https://mise.jdx.dev/), [uv](https://docs.astral.sh/uv/), [Go](https://go.dev/), and [Rust](https://www.rust-lang.org/) as dependency providers, with auto-detection of the active one. See [Package Managers](./package-managers.md) for details.
+Dependicus supports [pnpm](https://pnpm.io/), [bun](https://bun.sh/), [yarn](https://yarnpkg.com/), [npm](https://www.npmjs.com/), [aube](https://aube.en.dev/), [mise](https://mise.jdx.dev/), [uv](https://docs.astral.sh/uv/), [Go](https://go.dev/), and [Rust](https://www.rust-lang.org/) as dependency providers, with auto-detection of the active one. See [Package Managers](./package-managers.md) for details.

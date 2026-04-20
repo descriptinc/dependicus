@@ -1,10 +1,10 @@
 # Package Managers
 
-Dependicus supports pnpm, bun, yarn, npm, mise, uv, Go modules, and Rust crates as dependency providers. For Node.js package managers it reads the lockfile and workspace structure. For mise it reads `mise.toml` and queries the mise CLI for tool versions. For Python projects managed by uv it reads the CycloneDX SBOM export and queries the PyPI registry. For Go modules it runs `go list -m -json all` and queries the Go module proxy. For Rust projects it runs `cargo metadata` and queries the crates.io API.
+Dependicus supports pnpm, bun, yarn, npm, aube, mise, uv, Go modules, and Rust crates as dependency providers. For Node.js package managers it reads the lockfile and workspace structure. For mise it reads `mise.toml` and queries the mise CLI for tool versions. For Python projects managed by uv it reads the CycloneDX SBOM export and queries the PyPI registry. For Go modules it runs `go list -m -json all` and queries the Go module proxy. For Rust projects it runs `cargo metadata` and queries the crates.io API.
 
 See the individual provider pages for details on each:
 
-- [Node.js (pnpm, bun, yarn, npm)](providers/node.md) — catalog support, patching, Node-specific auto-detection
+- [Node.js (pnpm, bun, yarn, npm, aube)](providers/node.md) — catalog support, patching, Node-specific auto-detection
 - [Mise](providers/mise.md) — polyglot tool version management
 - [Python (uv)](providers/uv.md) — CycloneDX SBOM-based dependency tracking
 - [Go](providers/go.md) — Go module proxy integration
@@ -16,6 +16,7 @@ When you run Dependicus without specifying a provider, it uses a two-step detect
 
 1. Runtime detection. If the current process was launched by a known package manager, Dependicus uses that provider:
     - `process.versions.bun` is set &rarr; bun
+    - `process.env.npm_config_user_agent` starts with `"aube/"` &rarr; aube
     - `process.env.npm_config_user_agent` starts with `"pnpm/"` &rarr; pnpm
     - `process.env.npm_config_user_agent` starts with `"yarn/"` &rarr; yarn
     - `process.env.npm_config_user_agent` starts with `"npm/"` &rarr; npm
@@ -25,6 +26,7 @@ When you run Dependicus without specifying a provider, it uses a two-step detect
     - `bun.lock` &rarr; bun
     - `yarn.lock` &rarr; yarn
     - `package-lock.json` &rarr; npm
+    - `aube-lock.yaml` &rarr; aube
     - `mise.toml` &rarr; mise
     - `uv.lock` (anywhere in the repo) &rarr; uv
     - `go.mod` (anywhere in the repo) &rarr; go
@@ -41,6 +43,7 @@ dependicus update --provider pnpm
 dependicus update --provider bun
 dependicus update --provider yarn
 dependicus update --provider npm
+dependicus update --provider aube
 dependicus update --provider mise
 dependicus update --provider uv
 dependicus update --provider go
@@ -65,11 +68,11 @@ dependicus update --provider pnpm --provider bun
 
 ## Provider capabilities
 
-| Capability         | pnpm                            | bun                        | yarn                                   | npm                        | mise             | uv                                | go                     | rust                                |
-| ------------------ | ------------------------------- | -------------------------- | -------------------------------------- | -------------------------- | ---------------- | --------------------------------- | ---------------------- | ----------------------------------- |
-| Dependency listing | `pnpm -r list --json --depth=0` | Parses `bun.lock` directly | Parses `yarn.lock` directly            | Parses `package-lock.json` | `mise ls --json` | `uv export --format cyclonedx1.5` | `go list -m -json all` | `cargo metadata --format-version 1` |
-| Catalog            | `pnpm-workspace.yaml`           | `package.json`             | Not supported                          | Not supported              | Not supported    | Not supported                     | Not supported          | Not supported                       |
-| Patched packages   | Yes                             | No                         | Yes (`patch:` protocol in `yarn.lock`) | No                         | No               | No                                | No                     | No                                  |
-| Lockfile           | `pnpm-lock.yaml`                | `bun.lock`                 | `yarn.lock`                            | `package-lock.json`        | `mise.toml`      | `uv.lock`                         | `go.sum`               | `Cargo.lock`                        |
-| Publish dates      | Yes (npm registry)              | Yes (npm registry)         | Yes (npm registry)                     | Yes (npm registry)         | No               | Yes (PyPI registry)               | Yes (Go module proxy)  | Yes (crates.io)                     |
-| Ecosystem          | npm                             | npm                        | npm                                    | npm                        | mise             | pypi                              | gomod                  | cargo                               |
+| Capability         | pnpm                            | bun                        | yarn                                   | npm                        | aube                            | mise             | uv                                | go                     | rust                                |
+| ------------------ | ------------------------------- | -------------------------- | -------------------------------------- | -------------------------- | ------------------------------- | ---------------- | --------------------------------- | ---------------------- | ----------------------------------- |
+| Dependency listing | `pnpm -r list --json --depth=0` | Parses `bun.lock` directly | Parses `yarn.lock` directly            | Parses `package-lock.json` | `aube -r list --json --depth=0` | `mise ls --json` | `uv export --format cyclonedx1.5` | `go list -m -json all` | `cargo metadata --format-version 1` |
+| Catalog            | `pnpm-workspace.yaml`           | `package.json`             | Not supported                          | Not supported              | `pnpm-workspace.yaml`           | Not supported    | Not supported                     | Not supported          | Not supported                       |
+| Patched packages   | Yes                             | No                         | Yes (`patch:` protocol in `yarn.lock`) | No                         | Yes (pnpm-compatible)           | No               | No                                | No                     | No                                  |
+| Lockfile           | `pnpm-lock.yaml`                | `bun.lock`                 | `yarn.lock`                            | `package-lock.json`        | `aube-lock.yaml`                | `mise.toml`      | `uv.lock`                         | `go.sum`               | `Cargo.lock`                        |
+| Publish dates      | Yes (npm registry)              | Yes (npm registry)         | Yes (npm registry)                     | Yes (npm registry)         | Yes (npm registry)              | No               | Yes (PyPI registry)               | Yes (Go module proxy)  | Yes (crates.io)                     |
+| Ecosystem          | npm                             | npm                        | npm                                    | npm                        | npm                             | mise             | pypi                              | gomod                  | cargo                               |

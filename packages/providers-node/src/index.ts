@@ -3,6 +3,7 @@ export { PnpmProvider } from './providers/PnpmProvider';
 export { BunProvider } from './providers/BunProvider';
 export { YarnProvider } from './providers/YarnProvider';
 export { NpmProvider } from './providers/NpmProvider';
+export { AubeProvider } from './providers/AubeProvider';
 
 // Services
 export { NpmRegistryService } from './services/NpmRegistryService';
