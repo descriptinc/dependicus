@@ -296,7 +296,7 @@ describe('buildIssueDescription', () => {
             npmProviderInfo,
         );
         expect(result).toContain('managed in the catalog');
-        expect(result).toContain('  test-pkg: "2.0.0"');
+        expect(result).toContain('  test-pkg: 2.0.0');
     });
 
     it('shows non-catalog How to Update for single consumer', () => {
@@ -336,6 +336,35 @@ describe('buildIssueDescription', () => {
         );
         expect(result).toContain('used by 2 packages');
         expect(result).toContain('Consider adding it to the catalog');
+    });
+
+    it('quotes scoped package names in catalog YAML', () => {
+        const pkg = makeDependency({ name: '@scope/my-pkg' });
+        const store = makeStore(pkg);
+        const result = buildIssueDescription(
+            pkg,
+            store,
+            '1.1.0',
+            '2.0.0',
+            testGetDetailUrl,
+            npmProviderInfo,
+        );
+        expect(result).toContain("'@scope/my-pkg': 2.0.0");
+    });
+
+    it('does not quote unscoped package names in catalog YAML', () => {
+        const pkg = makeDependency({ name: 'test-pkg' });
+        const store = makeStore(pkg);
+        const result = buildIssueDescription(
+            pkg,
+            store,
+            '1.1.0',
+            '2.0.0',
+            testGetDetailUrl,
+            npmProviderInfo,
+        );
+        expect(result).toContain('test-pkg: 2.0.0');
+        expect(result).not.toContain("'test-pkg'");
     });
 
     it('includes patch warning when patched', () => {
@@ -673,7 +702,31 @@ describe('buildGroupIssueDescription', () => {
         );
         expect(result).toContain('```yaml');
         expect(result).toContain('catalog:');
-        expect(result).toContain('react: "2.0.0"');
+        expect(result).toContain('react: 2.0.0');
+    });
+
+    it('quotes scoped package names in group catalog YAML', () => {
+        const group: OutdatedGroup = {
+            groupName: 'scoped-group',
+            dependencies: [
+                makeDependency({ name: '@scope/pkg-a' }),
+                makeDependency({ name: 'pkg-b' }),
+            ],
+            teamId: 'team-123',
+            policy: { type: 'dueDate' },
+            worstCompliance: { updateType: 'major', daysOverdue: 0, thresholdDays: 360 },
+        };
+
+        const store = makeGroupStore(group);
+        const result = buildGroupIssueDescription(
+            group,
+            store,
+            testGetDetailUrl,
+            npmProviderInfoMap,
+        );
+        expect(result).toContain("'@scope/pkg-a': 2.0.0");
+        expect(result).toContain('pkg-b: 2.0.0');
+        expect(result).not.toContain("'pkg-b'");
     });
 
     it('includes AI agent instructions and footer', () => {

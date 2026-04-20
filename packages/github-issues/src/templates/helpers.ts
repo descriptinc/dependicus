@@ -38,4 +38,12 @@ export const helpers = {
         if (!Array.isArray(arr)) return [];
         return arr.slice(start, end);
     },
+
+    /** Format a package name as a YAML key, quoting it if it contains a slash. */
+    yamlKey: (name: string): string => {
+        if (typeof name === 'string' && name.includes('/')) {
+            return `'${name}'`;
+        }
+        return name;
+    },
 };
