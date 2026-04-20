@@ -277,7 +277,11 @@ jobs:
             - uses: jdx/mise-action@v2
             - run: mise exec -- aube install
             - run: mise run aube:build
-            - run: mise exec -- aube run typedoc
+            # --no-install: aube's auto-install can't see the parent workspace
+            # when invoked from a sub-package and would try to resolve
+            # workspace deps from the registry. The root install above already
+            # set everything up.
+            - run: mise exec -- aube run --no-install typedoc
               working-directory: packages/dependicus
             - uses: actions/upload-artifact@v4
               with:
