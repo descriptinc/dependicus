@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { load } from 'js-yaml';
 import { satisfies, validRange } from 'semver';
@@ -107,6 +107,41 @@ export class AubeProvider implements DependencyProvider {
         return this.cachedPackages;
     }
 
+    private installStateEnsured = false;
+
+    /**
+     * Symmetric to PnpmProvider: `aube list` reads from the aube store
+     * under node_modules/.aube/. If another PM populated node_modules
+     * (or PnpmProvider reinstalled on top of an aube tree earlier in
+     * this run), the install state can drift from aube-lock.yaml. When
+     * DEPENDICUS_ALLOW_INSTALL=1 is set, reinstall with aube so the
+     * list command always reads from fresh, aube-owned state. Without
+     * the env var, warn and proceed. Only invoked on cache miss so
+     * fully-cached runs never touch the working tree.
+     */
+    private ensureInstallState(): void {
+        if (this.installStateEnsured) return;
+        this.installStateEnsured = true;
+
+        if (existsSync(join(this.rootDir, 'node_modules', '.aube'))) {
+            return;
+        }
+        if (process.env.DEPENDICUS_ALLOW_INSTALL === '1') {
+            process.stderr.write(
+                'node_modules/.aube not found; running `aube install --frozen-lockfile` (DEPENDICUS_ALLOW_INSTALL=1)\n',
+            );
+            execSync('aube install --frozen-lockfile', {
+                stdio: 'inherit',
+                cwd: this.rootDir,
+            });
+        } else {
+            process.stderr.write(
+                'Warning: node_modules/.aube not found. `aube list` may report stale data. ' +
+                    'Run `aube install` first, or set DEPENDICUS_ALLOW_INSTALL=1 to let dependicus reinstall automatically.\n',
+            );
+        }
+    }
+
     private async runAubeList(extraFlags: readonly string[]): Promise<string> {
         const cmd = `aube ${extraFlags.join(' ')} list --json --depth=0`
             .replace(/\s+/g, ' ')
@@ -119,6 +154,8 @@ export class AubeProvider implements DependencyProvider {
             );
             return this.cacheService.readCache(cacheKey);
         }
+
+        this.ensureInstallState();
 
         process.stderr.write(`Running: ${cmd}\n`);
         const output = execSync(cmd, {

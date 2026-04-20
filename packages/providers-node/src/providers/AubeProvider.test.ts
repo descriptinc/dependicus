@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { CacheService, PackageInfo } from '@dependicus/core';
@@ -74,15 +74,29 @@ const sampleWorkspaceListOutput: PackageInfo[] = [
 
 describe('AubeProvider', () => {
     let tmpDir: string;
+    let savedAllowInstall: string | undefined;
 
     beforeEach(() => {
         vi.clearAllMocks();
         tmpDir = mkdtempSync(join(tmpdir(), 'aube-provider-test-'));
+        savedAllowInstall = process.env.DEPENDICUS_ALLOW_INSTALL;
+        // Most tests exercise the "install state already matches" path. Opt
+        // out of the reinstall guard by default; the guard gets its own tests.
+        delete process.env.DEPENDICUS_ALLOW_INSTALL;
     });
 
     afterEach(() => {
         rmSync(tmpDir, { recursive: true, force: true });
+        if (savedAllowInstall === undefined) {
+            delete process.env.DEPENDICUS_ALLOW_INSTALL;
+        } else {
+            process.env.DEPENDICUS_ALLOW_INSTALL = savedAllowInstall;
+        }
     });
+
+    function markAsAubeInstalled(): void {
+        mkdirSync(join(tmpDir, 'node_modules', '.aube'), { recursive: true });
+    }
 
     function wireAubeListMocks(): void {
         mockExecSync.mockImplementation((command: unknown) => {
@@ -99,6 +113,7 @@ describe('AubeProvider', () => {
 
     describe('getPackages', () => {
         it('concatenates root and workspace list output', async () => {
+            markAsAubeInstalled();
             wireAubeListMocks();
             const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
@@ -118,6 +133,7 @@ describe('AubeProvider', () => {
         });
 
         it('filters workspace-to-workspace deps that aube inlines as registry deps', async () => {
+            markAsAubeInstalled();
             wireAubeListMocks();
             const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
@@ -135,6 +151,7 @@ describe('AubeProvider', () => {
         });
 
         it('runs aube with --json --depth=0 both non-recursively and recursively, with rootDir as cwd', async () => {
+            markAsAubeInstalled();
             wireAubeListMocks();
             const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
@@ -146,6 +163,42 @@ describe('AubeProvider', () => {
             for (const call of mockExecSync.mock.calls) {
                 expect(call[1]).toMatchObject({ cwd: tmpDir });
             }
+        });
+
+        it('runs `aube install` first when DEPENDICUS_ALLOW_INSTALL=1 and node_modules/.aube is missing', async () => {
+            process.env.DEPENDICUS_ALLOW_INSTALL = '1';
+            mockExecSync.mockImplementation((command: unknown) => {
+                if (typeof command !== 'string') throw new Error('unexpected');
+                if (command === 'aube install --frozen-lockfile') return '';
+                if (command.startsWith('aube -r '))
+                    return JSON.stringify(sampleWorkspaceListOutput);
+                if (command.startsWith('aube list')) return JSON.stringify(sampleRootListOutput);
+                throw new Error(`unexpected exec: ${command}`);
+            });
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
+
+            await provider.getPackages();
+
+            const commands = mockExecSync.mock.calls.map((c) => c[0]);
+            expect(commands[0]).toBe('aube install --frozen-lockfile');
+            expect(commands.slice(1).sort()).toEqual([
+                'aube -r list --json --depth=0',
+                'aube list --json --depth=0',
+            ]);
+        });
+
+        it('skips the install and warns when DEPENDICUS_ALLOW_INSTALL is not set', async () => {
+            wireAubeListMocks();
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
+
+            await provider.getPackages();
+
+            const commands = mockExecSync.mock.calls.map((c) => c[0]);
+            expect(commands).not.toContain('aube install --frozen-lockfile');
+            expect(commands.sort()).toEqual([
+                'aube -r list --json --depth=0',
+                'aube list --json --depth=0',
+            ]);
         });
 
         it('uses cache when lockfile unchanged', async () => {
