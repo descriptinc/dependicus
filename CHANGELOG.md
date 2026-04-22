@@ -2,7 +2,7 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.1.10 - Unreleased
+## 0.1.10 - 2026-04-22
 
 ### Added
 
@@ -12,16 +12,12 @@
     - Auto-detection covers the `aube/` user agent and an `aube-lock.yaml` lockfile fallback
     - `--provider aube` is accepted by the CLI alongside the existing provider names
 
-### Changed
-
 ### Fixed
 
 - `PnpmProvider` now detects when `node_modules/.pnpm` is missing (because another package manager populated `node_modules`) and, if `DEPENDICUS_ALLOW_INSTALL=1` is set, runs `pnpm install --prefer-frozen-lockfile` before `pnpm -r list`. Without that env var, it emits a warning and proceeds. The repo's CI workflow sets `DEPENDICUS_ALLOW_INSTALL=1`, so CI artifacts from non-pnpm jobs now show correct pnpm dep counts instead of empty ones. Local runs are never modified without the opt-in.
 - Recommended catalog YAML snippets are now idiomatic YAML
     - Scoped package names (those containing `/`) are wrapped in single quotes so the snippet is valid YAML
     - Version numbers are no longer double-quoted
-
-### Removed
 
 ## 0.1.9 - 2026-03-23
 
