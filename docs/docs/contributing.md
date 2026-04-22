@@ -7,22 +7,23 @@ mise install
 hk install
 ```
 
-The repo [supports all major Node.js package managers](https://github.com/descriptinc/dependicus/blob/main/EVERY_NODE_PACKAGE_MANAGER_WORKS.md) (pnpm, bun, yarn, and npm). Use mise tasks to switch between them:
+The repo [supports all major Node.js package managers](https://github.com/descriptinc/dependicus/blob/main/EVERY_NODE_PACKAGE_MANAGER_WORKS.md) (pnpm, bun, yarn, npm, and aube). Use mise tasks to switch between them:
 
 ```sh
 mise run switch:pnpm   # delete node_modules and reinstall with pnpm
 mise run switch:bun    # delete node_modules and reinstall with bun
 mise run switch:yarn   # delete node_modules and reinstall with yarn
 mise run switch:npm    # delete node_modules and reinstall with npm
+mise run switch:aube   # delete node_modules and reinstall with aube
 mise run which-pm      # show which PM last installed node_modules
 ```
 
 Build, test, and typecheck tasks are namespaced by package manager:
 
 ```sh
-mise run pnpm:build    # or bun:build, yarn:build, npm:build
-mise run pnpm:test     # or bun:test, yarn:test, npm:test
-mise run pnpm:typecheck # or bun:typecheck, yarn:typecheck, npm:typecheck
+mise run pnpm:build    # or bun:build, yarn:build, npm:build, aube:build
+mise run pnpm:test     # or bun:test, yarn:test, npm:test, aube:test
+mise run pnpm:typecheck # or bun:typecheck, yarn:typecheck, npm:typecheck, aube:typecheck
 ```
 
 ## Discussion

@@ -14,6 +14,11 @@ permissions:
 
 env:
     MISE_NODE_VERSION: '20'
+    # Allow dependicus to reinstall node_modules when a provider needs its own
+    # install layout (e.g. PnpmProvider reinstalls with pnpm if the tree was
+    # populated by another package manager). Destructive by design, so opt in
+    # only in CI — local runs keep the working tree intact.
+    DEPENDICUS_ALLOW_INSTALL: '1'
 
 jobs:
     check-pnpm:
@@ -46,7 +51,7 @@ jobs:
             - name: Verify lockfiles are up to date
               run: |
                   mise run update-all-lockfiles
-                  if ! git diff --exit-code pnpm-lock.yaml package-lock.json yarn.lock bun.lock; then
+                  if ! git diff --exit-code pnpm-lock.yaml package-lock.json yarn.lock bun.lock aube-lock.yaml; then
                     echo "Lockfiles are out of date. Run 'mise update-all-lockfiles' and commit the result."
                     exit 1
                   fi
@@ -112,7 +117,7 @@ jobs:
                   path: .dependicus-cache
                   key: dependicus-pnpm-cache-${{ github.sha }}
                   restore-keys: dependicus-pnpm-cache-
-            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider aube --provider mise --provider uv --provider go --provider rust
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
@@ -132,7 +137,7 @@ jobs:
                   path: .dependicus-cache
                   key: dependicus-bun-cache-${{ github.sha }}
                   restore-keys: dependicus-bun-cache-
-            - run: bun run packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust
+            - run: bun run packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider aube --provider mise --provider uv --provider go --provider rust
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
@@ -170,7 +175,7 @@ jobs:
                   path: .dependicus-cache
                   key: dependicus-yarn-cache-${{ github.sha }}
                   restore-keys: dependicus-yarn-cache-
-            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider aube --provider mise --provider uv --provider go --provider rust
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
@@ -244,12 +249,68 @@ jobs:
                   path: .dependicus-cache
                   key: dependicus-npm-cache-${{ github.sha }}
                   restore-keys: dependicus-npm-cache-
-            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider aube --provider mise --provider uv --provider go --provider rust
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - uses: actions/upload-artifact@v4
               with:
                   name: dependicus-npm
+                  path: dependicus-out
+
+    check-aube:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: mise exec -- aube install
+            - run: mise run aube:typecheck
+            - run: mise run aube:test
+
+    lint-aube:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: mise exec -- aube install
+            - run: mise exec -- aube run format:check
+            - run: mise exec -- aube run lint
+
+    typedoc-aube:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: mise exec -- aube install
+            - run: mise run aube:build
+            # --no-install: aube's auto-install can't see the parent workspace
+            # when invoked from a sub-package and would try to resolve
+            # workspace deps from the registry. The root install above already
+            # set everything up.
+            - run: mise exec -- aube run --no-install typedoc
+              working-directory: packages/dependicus
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: typedoc-aube
+                  path: packages/dependicus/typedoc-out
+
+    dependicus-aube:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jdx/mise-action@v2
+            - run: mise exec -- aube install
+            - run: mise run aube:build
+            - uses: actions/cache@v4
+              with:
+                  path: .dependicus-cache
+                  key: dependicus-aube-cache-${{ github.sha }}
+                  restore-keys: dependicus-aube-cache-
+            - run: node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider aube --provider mise --provider uv --provider go --provider rust
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: dependicus-aube
                   path: dependicus-out
 
     bundle-check:
@@ -305,19 +366,23 @@ jobs:
                 check-bun,
                 check-npm,
                 check-yarn,
+                check-aube,
                 lint-pnpm,
                 lint-bun,
                 lint-npm,
                 lint-yarn,
+                lint-aube,
                 zensical,
                 typedoc-pnpm,
                 typedoc-bun,
                 typedoc-npm,
                 typedoc-yarn,
+                typedoc-aube,
                 dependicus-pnpm,
                 dependicus-bun,
                 dependicus-npm,
                 dependicus-yarn,
+                dependicus-aube,
             ]
         runs-on: ubuntu-latest
         permissions:
@@ -363,6 +428,14 @@ jobs:
               with:
                   name: dependicus-npm
                   path: site/npm/dependencies
+            - uses: actions/download-artifact@v4
+              with:
+                  name: typedoc-aube
+                  path: site/aube/api
+            - uses: actions/download-artifact@v4
+              with:
+                  name: dependicus-aube
+                  path: site/aube/dependencies
             - uses: actions/upload-pages-artifact@v3
               with:
                   path: site

@@ -119,7 +119,11 @@ function detectProviders(cacheService: CacheService, repoRoot: string): Dependen
 
 function allProviders(cacheService: CacheService, repoRoot: string): DependencyProvider[] {
     return [
-        ...createNodeProvidersByName(['pnpm', 'bun', 'yarn', 'npm'], cacheService, repoRoot),
+        ...createNodeProvidersByName(
+            ['pnpm', 'bun', 'yarn', 'npm', 'aube'],
+            cacheService,
+            repoRoot,
+        ),
         new MiseProvider(cacheService, repoRoot),
         new UvProvider(cacheService, repoRoot),
         new GoProvider(cacheService, repoRoot),
@@ -191,7 +195,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                 .option('--repo-root <path>', 'Root directory of the project (default: cwd)')
                 .option(
                     '--provider <name>',
-                    'Dependency provider to use (repeatable): pnpm, bun, yarn, mise, uv, go, rust (default: auto-detect)',
+                    'Dependency provider to use (repeatable): pnpm, bun, yarn, npm, aube, mise, uv, go, rust (default: auto-detect)',
                     collect,
                     [] as string[],
                 )

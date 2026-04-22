@@ -1,6 +1,7 @@
 min_version = "2026.3.4"
 
 [tools]
+aube = "1.0.0-beta.9"
 bun = "1.3"
 go = "1.24"
 hk = "1.36.0"
@@ -30,7 +31,7 @@ run = "pnpm run typedoc"
 
 [tasks."docs:dependicus"]
 description = "Run dependicus on itself"
-run = "node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider mise --provider uv --provider go --provider rust"
+run = "node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider aube --provider mise --provider uv --provider go --provider rust"
 
 [tasks."pnpm:build"]
 description = "Build all packages with pnpm"
@@ -100,6 +101,23 @@ run = "yarn workspaces foreach -A run typecheck"
 description = "Clean all packages with yarn"
 run = "yarn workspaces foreach -A run clean"
 
+[tasks."aube:build"]
+description = "Build all packages with aube"
+run = "aube -r run build"
+
+[tasks."aube:test"]
+description = "Run all tests with aube"
+run = "aube -r run test"
+
+[tasks."aube:typecheck"]
+description = "Typecheck all packages with aube"
+depends = ["aube:build"]
+run = "aube -r run typecheck"
+
+[tasks."aube:clean"]
+description = "Clean all packages with aube"
+run = "aube -r run clean"
+
 [tasks."switch:pnpm"]
 description = "Delete node_modules and reinstall with pnpm"
 run = "bash scripts/switch-pm.sh pnpm"
@@ -116,9 +134,13 @@ run = "bash scripts/switch-pm.sh npm"
 description = "Delete node_modules and reinstall with yarn"
 run = "bash scripts/switch-pm.sh yarn"
 
+[tasks."switch:aube"]
+description = "Delete node_modules and reinstall with aube"
+run = "bash scripts/switch-pm.sh aube"
+
 [tasks.which-pm]
 description = "Show which package manager installed node_modules"
-run = "cat .package-manager 2>/dev/null || echo 'unknown (run switch:pnpm, switch:bun, switch:npm, or switch:yarn first)'"
+run = "cat .package-manager 2>/dev/null || echo 'unknown (run switch:pnpm, switch:bun, switch:npm, switch:yarn, or switch:aube first)'"
 
 [tasks.check-versions]
 description = "Ensure no dependency appears with multiple version ranges across workspaces"
@@ -144,7 +166,7 @@ fi
 [tasks.update-all-lockfiles]
 description = "Regenerate lockfiles for all package managers, ending on pnpm"
 run = """
-for pm in npm yarn bun pnpm; do
+for pm in npm yarn bun aube pnpm; do
   echo "=== Switching to $pm ==="
   bash scripts/switch-pm.sh "$pm"
 done

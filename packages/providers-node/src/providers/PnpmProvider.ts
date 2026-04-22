@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { load } from 'js-yaml';
 import { satisfies, validRange } from 'semver';
@@ -79,10 +79,36 @@ export class PnpmProvider implements DependencyProvider {
             process.stderr.write('Using cached pnpm list output (lockfile unchanged)\n');
             output = await this.cacheService.readCache(cacheKey);
         } else {
+            // `pnpm -r list` reads state from node_modules/.pnpm/. If another
+            // PM populated node_modules (bun, yarn, npm, aube), pnpm will run
+            // but return workspace packages with empty dependency maps. When
+            // DEPENDICUS_ALLOW_INSTALL=1 is set, reinstall with pnpm so the
+            // list is accurate; otherwise, warn and proceed (the list may be
+            // incomplete). We require opt-in because reinstalling is a
+            // destructive change to the working tree that callers might not
+            // expect.
+            if (!existsSync(join(this.rootDir, 'node_modules', '.pnpm'))) {
+                if (process.env.DEPENDICUS_ALLOW_INSTALL === '1') {
+                    process.stderr.write(
+                        'node_modules/.pnpm not found; running `pnpm install --prefer-frozen-lockfile` (DEPENDICUS_ALLOW_INSTALL=1)\n',
+                    );
+                    execSync('pnpm install --prefer-frozen-lockfile', {
+                        stdio: 'inherit',
+                        cwd: this.rootDir,
+                    });
+                } else {
+                    process.stderr.write(
+                        'Warning: node_modules/.pnpm not found. `pnpm -r list` may report empty dependencies. ' +
+                            'Run `pnpm install` first, or set DEPENDICUS_ALLOW_INSTALL=1 to let dependicus reinstall automatically.\n',
+                    );
+                }
+            }
+
             process.stderr.write('Running: pnpm -r list --json --depth=0\n');
             output = execSync('pnpm -r list --json --depth=0', {
                 encoding: 'utf-8',
                 maxBuffer: BUFFER_SIZES.SMALL,
+                cwd: this.rootDir,
             });
             await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
         }

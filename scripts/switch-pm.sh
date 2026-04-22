@@ -38,8 +38,15 @@ elif [ "$pm" = "npm" ]; then
 elif [ "$pm" = "yarn" ]; then
     restore_workspace_deps
     mise exec -- yarn install
+elif [ "$pm" = "aube" ]; then
+    restore_workspace_deps
+    # aube writes to whichever supported lockfile already exists, preferring
+    # aube-lock.yaml when present. Import from the existing pnpm-lock.yaml so
+    # that aube produces its own lockfile rather than overwriting pnpm's.
+    mise exec -- aube import --force
+    mise exec -- aube install
 else
-    echo "Usage: switch-pm.sh <pnpm|bun|npm|yarn>" >&2
+    echo "Usage: switch-pm.sh <pnpm|bun|npm|yarn|aube>" >&2
     exit 1
 fi
 echo "$pm" > .package-manager
