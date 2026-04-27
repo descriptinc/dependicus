@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { dependicusCli } from './cli';
+import { SecurityPlugin } from '@dependicus/security';
 import type { DependicusPlugin } from './plugin';
 
 const githubRoutingPlugin: DependicusPlugin = {
@@ -13,5 +14,5 @@ const githubRoutingPlugin: DependicusPlugin = {
 
 void dependicusCli({
     dependicusBaseUrl: '',
-    plugins: [githubRoutingPlugin],
+    plugins: [new SecurityPlugin({ osv: true }), githubRoutingPlugin],
 }).run(process.argv);

@@ -77,6 +77,7 @@
         "@dependicus/provider-rust": "workspace:*",
         "@dependicus/providers-node": "workspace:*",
         "@dependicus/providers-python": "workspace:*",
+        "@dependicus/security": "workspace:*",
         "@dependicus/site-builder": "workspace:*",
         "@types/node": "^25.3.0",
         "dts-bundle-generator": "^9.5.1",

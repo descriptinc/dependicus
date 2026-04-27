@@ -1,13 +1,16 @@
-import type { DataSource } from '@dependicus/core';
-
 // ── Fact keys ───────────────────────────────────────────────────────
 
 /** Fact key for the array of security findings on a dependency version. */
 export const SECURITY_FINDINGS_KEY = 'security:findings';
 
-// ── Security finding ────────────────────────────────────────────────
+// ── Severity ────────────────────────────────────────────────────────
 
 export type Severity = 'none' | 'low' | 'medium' | 'high' | 'critical';
+
+/** Canonical ordering from least to most severe. */
+export const SEVERITY_ORDER: readonly Severity[] = ['none', 'low', 'medium', 'high', 'critical'];
+
+// ── Security finding ────────────────────────────────────────────────
 
 export interface SecurityFinding {
     source: string;
@@ -24,13 +27,11 @@ export interface SecurityFinding {
 export interface OsvConfig {
     /** Override the batch size for OSV API queries. Default: 1000. */
     batchSize?: number;
+    /** How many days to cache individual vulnerability details. Default: 7. */
+    vulnCacheTtlDays?: number;
 }
 
 export interface SecurityPluginConfig {
     /** Enable OSV.dev vulnerability lookups. Pass `true` for defaults. */
     osv?: boolean | OsvConfig;
 }
-
-// ── Source factory contract ─────────────────────────────────────────
-
-export type SecuritySourceFactory = (config: SecurityPluginConfig) => DataSource | undefined;

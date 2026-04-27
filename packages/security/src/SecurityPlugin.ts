@@ -10,7 +10,7 @@ import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
 import type { GitHubIssueSpec } from '@dependicus/github-issues';
 import type { VersionContext as GitHubVersionContext } from '@dependicus/github-issues';
 import type { SecurityPluginConfig, SecurityFinding, Severity } from './types';
-import { SECURITY_FINDINGS_KEY } from './types';
+import { SECURITY_FINDINGS_KEY, SEVERITY_ORDER } from './types';
 import { OsvSource } from './sources/OsvSource';
 
 // ── DependicusPlugin implementation ─────────────────────────────────
@@ -257,8 +257,6 @@ const SEVERITY_LABELS: Record<string, string> = {
     high: 'High',
     critical: 'Critical',
 };
-
-const SEVERITY_ORDER: Severity[] = ['none', 'low', 'medium', 'high', 'critical'];
 
 interface MergedFindings {
     severity: Severity | undefined;
