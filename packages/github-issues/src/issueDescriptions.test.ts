@@ -177,28 +177,28 @@ describe('buildIssueDescription', () => {
     it('includes package description as blockquote', () => {
         const dep = makeDependency();
         const store = makeStore(dep);
-        const result = buildIssueDescription(
-            dep,
-            store,
-            '1.1.0',
-            '2.0.0',
-            testGetDetailUrl,
-            npmProviderInfo,
-        );
+        const result = buildIssueDescription({
+            dep: dep,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: npmProviderInfo,
+        });
         expect(result).toContain('> A test package');
     });
 
     it('includes summary with version info', () => {
         const dep = makeDependency();
         const store = makeStore(dep);
-        const result = buildIssueDescription(
-            dep,
-            store,
-            '1.1.0',
-            '2.0.0',
-            testGetDetailUrl,
-            npmProviderInfo,
-        );
+        const result = buildIssueDescription({
+            dep: dep,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: npmProviderInfo,
+        });
         expect(result).toContain('## Summary');
         expect(result).toContain('**Current version:** `1.0.0`');
         expect(result).toContain('**Target version:** `1.1.0`');
@@ -209,43 +209,43 @@ describe('buildIssueDescription', () => {
     it('includes due date in body when provided', () => {
         const dep = makeDependency();
         const store = makeStore(dep);
-        const result = buildIssueDescription(
+        const result = buildIssueDescription({
             dep,
             store,
-            '1.1.0',
-            '2.0.0',
-            testGetDetailUrl,
-            npmProviderInfo,
-            '2025-06-01',
-        );
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: npmProviderInfo,
+            dueDate: '2025-06-01',
+        });
         expect(result).toContain('**Due date:** 2025-06-01');
     });
 
     it('omits due date when not provided', () => {
         const dep = makeDependency();
         const store = makeStore(dep);
-        const result = buildIssueDescription(
-            dep,
-            store,
-            '1.1.0',
-            '2.0.0',
-            testGetDetailUrl,
-            npmProviderInfo,
-        );
+        const result = buildIssueDescription({
+            dep: dep,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: npmProviderInfo,
+        });
         expect(result).not.toContain('Due date');
     });
 
     it('includes upgrade path', () => {
         const dep = makeDependency();
         const store = makeStore(dep);
-        const result = buildIssueDescription(
-            dep,
-            store,
-            '1.1.0',
-            '2.0.0',
-            testGetDetailUrl,
-            npmProviderInfo,
-        );
+        const result = buildIssueDescription({
+            dep: dep,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: npmProviderInfo,
+        });
         expect(result).toContain('## Upgrade Path');
         expect(result).toContain('**2.0.0** (latest)');
     });
@@ -256,14 +256,14 @@ describe('buildIssueDescription', () => {
             homepage: 'https://example.com',
             repositoryUrl: 'https://github.com/example/test',
         });
-        const result = buildIssueDescription(
-            dep,
-            store,
-            '1.1.0',
-            '2.0.0',
-            testGetDetailUrl,
-            npmProviderInfo,
-        );
+        const result = buildIssueDescription({
+            dep: dep,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: npmProviderInfo,
+        });
         expect(result).toContain('[Dependicus Detail Page]');
         expect(result).toContain('[Registry]');
         expect(result).toContain('[Homepage](https://example.com)');
@@ -272,14 +272,14 @@ describe('buildIssueDescription', () => {
     it('includes patch warning when patched', () => {
         const dep = makeDependency();
         const store = makeStore(dep, { isPatched: true });
-        const result = buildIssueDescription(
-            dep,
-            store,
-            '1.1.0',
-            '2.0.0',
-            testGetDetailUrl,
-            npmProviderInfo,
-        );
+        const result = buildIssueDescription({
+            dep: dep,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: npmProviderInfo,
+        });
         expect(result).toContain('Patch Applied');
     });
 
@@ -288,14 +288,14 @@ describe('buildIssueDescription', () => {
             descriptionSections: [{ title: 'Policy Info', body: 'Must comply within 90 days.' }],
         });
         const store = makeStore(dep);
-        const result = buildIssueDescription(
-            dep,
-            store,
-            '1.1.0',
-            '2.0.0',
-            testGetDetailUrl,
-            npmProviderInfo,
-        );
+        const result = buildIssueDescription({
+            dep: dep,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: npmProviderInfo,
+        });
         expect(result).toContain('## Policy Info');
         expect(result).toContain('Must comply within 90 days.');
     });
@@ -303,42 +303,42 @@ describe('buildIssueDescription', () => {
     it('includes footer about auto-creation', () => {
         const dep = makeDependency();
         const store = makeStore(dep);
-        const result = buildIssueDescription(
-            dep,
-            store,
-            '1.1.0',
-            '2.0.0',
-            testGetDetailUrl,
-            npmProviderInfo,
-        );
+        const result = buildIssueDescription({
+            dep: dep,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: npmProviderInfo,
+        });
         expect(result).toContain('automatically created by Dependicus');
     });
 
     it('quotes scoped package names in catalog YAML', () => {
         const dep = makeDependency({ name: '@scope/my-pkg' });
         const store = makeStore(dep);
-        const result = buildIssueDescription(
-            dep,
-            store,
-            '1.1.0',
-            '2.0.0',
-            testGetDetailUrl,
-            npmProviderInfo,
-        );
+        const result = buildIssueDescription({
+            dep: dep,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: npmProviderInfo,
+        });
         expect(result).toContain("'@scope/my-pkg': 2.0.0");
     });
 
     it('does not quote unscoped package names in catalog YAML', () => {
         const dep = makeDependency({ name: 'test-pkg' });
         const store = makeStore(dep);
-        const result = buildIssueDescription(
-            dep,
-            store,
-            '1.1.0',
-            '2.0.0',
-            testGetDetailUrl,
-            npmProviderInfo,
-        );
+        const result = buildIssueDescription({
+            dep: dep,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: npmProviderInfo,
+        });
         expect(result).toContain('test-pkg: 2.0.0');
         expect(result).not.toContain("'test-pkg'");
     });
@@ -359,12 +359,12 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(
-            group,
-            store,
-            testGetDetailUrl,
-            npmProviderInfoMap,
-        );
+        const result = buildGroupIssueDescription({
+            group: group,
+            store: store,
+            getDetailUrl: testGetDetailUrl,
+            providerInfoMap: npmProviderInfoMap,
+        });
         expect(result).toContain('**react-group** dependency group');
         expect(result).toContain('**Dependencies:** 2');
         expect(result).toContain('**Worst update type:** major');
@@ -381,13 +381,13 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(
-            group,
-            store,
-            testGetDetailUrl,
-            npmProviderInfoMap,
-            '2025-06-01',
-        );
+        const result = buildGroupIssueDescription({
+            group: group,
+            store: store,
+            getDetailUrl: testGetDetailUrl,
+            providerInfoMap: npmProviderInfoMap,
+            dueDate: '2025-06-01',
+        });
         expect(result).toContain('**Due date:** 2025-06-01');
     });
 
@@ -402,12 +402,12 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(
-            group,
-            store,
-            testGetDetailUrl,
-            npmProviderInfoMap,
-        );
+        const result = buildGroupIssueDescription({
+            group: group,
+            store: store,
+            getDetailUrl: testGetDetailUrl,
+            providerInfoMap: npmProviderInfoMap,
+        });
         expect(result).toContain('Tracked for awareness only');
     });
 
@@ -422,12 +422,12 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(
-            group,
-            store,
-            testGetDetailUrl,
-            npmProviderInfoMap,
-        );
+        const result = buildGroupIssueDescription({
+            group: group,
+            store: store,
+            getDetailUrl: testGetDetailUrl,
+            providerInfoMap: npmProviderInfoMap,
+        });
         expect(result).toContain('```yaml');
         expect(result).toContain('react: 2.0.0');
     });
@@ -446,12 +446,12 @@ describe('buildGroupIssueDescription', () => {
         };
 
         const store = makeGroupStore(group);
-        const result = buildGroupIssueDescription(
-            group,
-            store,
-            testGetDetailUrl,
-            npmProviderInfoMap,
-        );
+        const result = buildGroupIssueDescription({
+            group: group,
+            store: store,
+            getDetailUrl: testGetDetailUrl,
+            providerInfoMap: npmProviderInfoMap,
+        });
         expect(result).toContain("'@scope/pkg-a': 2.0.0");
         expect(result).toContain('pkg-b: 2.0.0');
         expect(result).not.toContain("'pkg-b'");

@@ -32,7 +32,7 @@
     },
     "packages/dependicus": {
       "name": "dependicus",
-      "version": "0.1.9",
+      "version": "0.2.0-rc.0",
       "bin": "dist/bin.mjs",
       "dependencies": {
         "@linear/sdk": "^76.0.0",

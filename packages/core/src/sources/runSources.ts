@@ -5,7 +5,10 @@ import type { DataSource, FactStore } from './types';
  * Runs data sources in topological order, batching independent sources for parallel execution.
  *
  * Sources declare their dependencies via `dependsOn`. The executor validates that all
- * referenced dependencies exist, detects cycles, and runs each batch with `Promise.all`.
+ * hard dependencies exist, detects cycles, and runs each batch with `Promise.all`.
+ *
+ * Sources may also declare `softDependsOn` — these are waited for when present in the
+ * pool but silently ignored when absent.
  */
 export async function runSources(
     sources: readonly DataSource[],
@@ -17,13 +20,21 @@ export async function runSources(
         sourcesByName.set(source.name, source);
     }
 
-    // Validate that all dependsOn references point to known sources
+    // Validate that all hard dependsOn references point to known sources
     for (const source of sources) {
         for (const dep of source.dependsOn) {
             if (!sourcesByName.has(dep)) {
                 throw new Error(`Source "${source.name}" depends on unknown source "${dep}"`);
             }
         }
+        // softDependsOn: no validation — unknown entries are silently ignored
+    }
+
+    /** Hard deps + soft deps that exist in the pool. */
+    function effectiveDeps(source: DataSource): string[] {
+        const hard = [...source.dependsOn];
+        const soft = (source.softDependsOn ?? []).filter((d) => sourcesByName.has(d));
+        return [...hard, ...soft];
     }
 
     const completed = new Set<string>();
@@ -33,7 +44,7 @@ export async function runSources(
         const ready: DataSource[] = [];
         for (const name of remaining) {
             const source = sourcesByName.get(name);
-            if (source && source.dependsOn.every((dep) => completed.has(dep))) {
+            if (source && effectiveDeps(source).every((dep) => completed.has(dep))) {
                 ready.push(source);
             }
         }

@@ -4,6 +4,9 @@
 export type { DependicusPlugin } from './plugin';
 
 /** @group Plugins */
+export type { PluginContext } from '@dependicus/core';
+
+/** @group Plugins */
 export type { GroupingConfig } from '@dependicus/core';
 
 /** @group Plugins */
@@ -13,7 +16,7 @@ export type { GroupingDetailContext } from '@dependicus/core';
 export type { GroupingSection, GroupingStat, GroupingFlag } from '@dependicus/core';
 
 /** @group Plugins */
-export type { CustomColumn } from '@dependicus/site-builder';
+export type { CustomColumn, ColumnContext } from '@dependicus/site-builder';
 
 /** @group Plugins */
 export type { DependencyVersion } from '@dependicus/core';

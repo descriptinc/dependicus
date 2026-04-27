@@ -14,6 +14,13 @@ import { FactKeys } from './FactStore';
 export class GitHubSource implements DataSource {
     readonly name = 'github';
     readonly dependsOn: readonly string[] = [];
+    readonly softDependsOn: readonly string[] = [
+        'npm-registry',
+        'go-proxy-registry',
+        'crates-io-registry',
+        'pypi-registry',
+        'mise-versions',
+    ];
 
     constructor(private githubService: GitHubService) {}
 

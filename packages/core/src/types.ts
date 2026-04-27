@@ -233,11 +233,18 @@ export function createDetailUrlBuilder(
     };
 }
 
-export type UsedByGroupKeyFn = (
-    name: string,
-    version: DependencyVersion,
-    store: FactStore,
-) => string;
+/**
+ * Context passed to column and grouping callbacks that operate on a single
+ * dependency version within a known ecosystem.
+ */
+export interface ColumnContext {
+    name: string;
+    version: DependencyVersion;
+    store: FactStore;
+    ecosystem: string;
+}
+
+export type UsedByGroupKeyFn = (ctx: ColumnContext) => string;
 
 // ============================================================================
 // Grouping types

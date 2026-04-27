@@ -59,6 +59,16 @@ export function createCoreServices(config: CoreServicesConfig): CoreServices {
                 byEcosystem.set(po.ecosystem, list);
             }
 
+            // Universal sources shared across all ecosystems: GitHub, Workspace,
+            // and user plugin sources. Merged with provider sources into a single
+            // topological sort per ecosystem so plugin sources can declare
+            // softDependsOn on provider sources.
+            const universalSources: DataSource[] = [
+                new GitHubSource(githubService),
+                new WorkspaceSource(providers),
+                ...(config.sources ?? []),
+            ];
+
             const seenSourceNames = new Set<string>();
             for (const [ecosystem, outputs] of byEcosystem) {
                 const ecosystemDeps = mergeProviderDependencies(outputs);
@@ -78,23 +88,8 @@ export function createCoreServices(config: CoreServicesConfig): CoreServices {
                     }
                 }
 
-                await runSources(ecosystemSources, ecosystemDeps, scopedStore);
-            }
-
-            // Universal enrichment: GitHub, Workspace, and user plugin sources.
-            // Run per-ecosystem with scoped stores so plugin sources that write
-            // directly to the store are correctly namespaced. Built-in sources
-            // self-scope via dep.ecosystem, so this is safe.
-            const universalSources: DataSource[] = [
-                new GitHubSource(githubService),
-                new WorkspaceSource(providers),
-                ...(config.sources ?? []),
-            ];
-
-            for (const [ecosystem, outputs] of byEcosystem) {
-                const ecosystemDeps = mergeProviderDependencies(outputs);
-                const scopedStore = store.scoped(ecosystem);
-                await runSources(universalSources, ecosystemDeps, scopedStore);
+                const allSources = [...ecosystemSources, ...universalSources];
+                await runSources(allSources, ecosystemDeps, scopedStore);
             }
 
             return { providers: providerOutputs, store };

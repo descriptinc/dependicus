@@ -1,6 +1,6 @@
 {
     "name": "dependicus",
-    "version": "0.1.10",
+    "version": "0.2.0-rc.0",
     "description": "Dependency governance for monorepos: pnpm, bun, yarn, npm, aube, mise, uv, Go, and Rust",
     "keywords": [
         "audit",

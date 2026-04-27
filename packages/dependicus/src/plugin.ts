@@ -5,6 +5,7 @@ import type {
     GroupingSection,
     FactStore,
     UsedByGroupKeyFn,
+    PluginContext,
 } from '@dependicus/core';
 import type { CustomColumn } from '@dependicus/site-builder';
 import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
@@ -14,9 +15,15 @@ import type { VersionContext as GitHubVersionContext } from '@dependicus/github-
 import { gitHubIssueSpecSchema } from '@dependicus/github-issues';
 import type { DependicusCliConfig } from './cli';
 
+// Re-export for consumers
+export type { PluginContext };
+
 /** @group Plugins */
 export interface DependicusPlugin {
     name: string;
+
+    /** Called after services are created but before data collection. */
+    init?(ctx: PluginContext): void;
 
     sources?: DataSource[];
     columns?: CustomColumn[];
@@ -42,39 +49,31 @@ export interface ResolvedPlugins {
     columns: CustomColumn[];
     getUsedByGroupKey?: UsedByGroupKeyFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
-    getLinearIssueSpec?: (context: VersionContext, store: FactStore) => LinearIssueSpec | undefined;
+    /** Returns unvalidated merged partials — call validateLinearIssueSpec before use. */
+    getLinearIssueSpec?: (
+        context: VersionContext,
+        store: FactStore,
+    ) => Partial<LinearIssueSpec> | undefined;
+    /** Returns unvalidated merged partials — call validateGitHubIssueSpec before use. */
     getGitHubIssueSpec?: (
         context: GitHubVersionContext,
         store: FactStore,
-    ) => GitHubIssueSpec | undefined;
+    ) => Partial<GitHubIssueSpec> | undefined;
 }
+
+// ── Merge (no validation) ───────────────────────────────────────────
 
 function mergeLinearIssueSpecs(
     fns: Array<(ctx: VersionContext, store: FactStore) => Partial<LinearIssueSpec> | undefined>,
-): ((ctx: VersionContext, store: FactStore) => LinearIssueSpec | undefined) | undefined {
+): ((ctx: VersionContext, store: FactStore) => Partial<LinearIssueSpec> | undefined) | undefined {
     if (fns.length === 0) return undefined;
-    const skipped: string[] = [];
-    let summarized = false;
     return (ctx, store) => {
         const partials = fns.map((fn) => fn(ctx, store)).filter((p) => p !== undefined);
         if (partials.length === 0) return undefined;
         const allSections = partials.flatMap((p) => p.descriptionSections ?? []);
-        const merged = Object.assign({}, ...partials);
+        const merged = Object.assign({}, ...partials) as Partial<LinearIssueSpec>;
         if (allSections.length > 0) merged.descriptionSections = allSections;
-        const result = linearIssueSpecSchema.safeParse(merged);
-        if (!result.success) {
-            skipped.push(ctx.name);
-            if (!summarized) {
-                summarized = true;
-                queueMicrotask(() => {
-                    process.stderr.write(
-                        `Skipped ${skipped.length} dependencies with incomplete Linear issue specs: ${skipped.join(', ')}\n`,
-                    );
-                });
-            }
-            return undefined;
-        }
-        return result.data;
+        return merged;
     };
 }
 
@@ -82,32 +81,72 @@ function mergeGitHubIssueSpecs(
     fns: Array<
         (ctx: GitHubVersionContext, store: FactStore) => Partial<GitHubIssueSpec> | undefined
     >,
-): ((ctx: GitHubVersionContext, store: FactStore) => GitHubIssueSpec | undefined) | undefined {
+):
+    | ((ctx: GitHubVersionContext, store: FactStore) => Partial<GitHubIssueSpec> | undefined)
+    | undefined {
     if (fns.length === 0) return undefined;
-    const skipped: string[] = [];
-    let summarized = false;
     return (ctx, store) => {
         const partials = fns.map((fn) => fn(ctx, store)).filter((p) => p !== undefined);
         if (partials.length === 0) return undefined;
         const allSections = partials.flatMap((p) => p.descriptionSections ?? []);
-        const merged = Object.assign({}, ...partials);
+        const merged = Object.assign({}, ...partials) as Partial<GitHubIssueSpec>;
         if (allSections.length > 0) merged.descriptionSections = allSections;
-        const result = gitHubIssueSpecSchema.safeParse(merged);
-        if (!result.success) {
-            skipped.push(ctx.name);
-            if (!summarized) {
-                summarized = true;
-                queueMicrotask(() => {
-                    process.stderr.write(
-                        `Skipped ${skipped.length} dependencies with incomplete GitHub issue specs: ${skipped.join(', ')}\n`,
-                    );
-                });
-            }
-            return undefined;
-        }
-        return result.data;
+        return merged;
     };
 }
+
+// ── Validation (called by CLI after flag injection) ─────────────────
+
+export interface SpecDiagnostics {
+    skipped: string[];
+    summarized: boolean;
+}
+
+export function validateLinearIssueSpec(
+    partial: Partial<LinearIssueSpec> | undefined,
+    depName: string,
+    diag: SpecDiagnostics,
+): LinearIssueSpec | undefined {
+    if (!partial) return undefined;
+    const result = linearIssueSpecSchema.safeParse(partial);
+    if (!result.success) {
+        diag.skipped.push(depName);
+        if (!diag.summarized) {
+            diag.summarized = true;
+            queueMicrotask(() => {
+                process.stderr.write(
+                    `Skipped ${diag.skipped.length} dependencies with incomplete Linear issue specs: ${diag.skipped.join(', ')}\n`,
+                );
+            });
+        }
+        return undefined;
+    }
+    return result.data;
+}
+
+export function validateGitHubIssueSpec(
+    partial: Partial<GitHubIssueSpec> | undefined,
+    depName: string,
+    diag: SpecDiagnostics,
+): GitHubIssueSpec | undefined {
+    if (!partial) return undefined;
+    const result = gitHubIssueSpecSchema.safeParse(partial);
+    if (!result.success) {
+        diag.skipped.push(depName);
+        if (!diag.summarized) {
+            diag.summarized = true;
+            queueMicrotask(() => {
+                process.stderr.write(
+                    `Skipped ${diag.skipped.length} dependencies with incomplete GitHub issue specs: ${diag.skipped.join(', ')}\n`,
+                );
+            });
+        }
+        return undefined;
+    }
+    return result.data;
+}
+
+// ── Plugin resolution ───────────────────────────────────────────────
 
 export function resolvePlugins(
     plugins: DependicusPlugin[],
@@ -128,35 +167,31 @@ export function resolvePlugins(
             ? (ctx: GroupingDetailContext): GroupingSection[] => sectionFns.flatMap((fn) => fn(ctx))
             : undefined;
 
-    // Merge plugin issue specs; direct config override bypasses merging
-    const pluginLinearIssueSpecFns = plugins
-        .map((p) => p.getLinearIssueSpec)
-        .filter(
-            (
-                fn,
-            ): fn is (
-                context: VersionContext,
-                store: FactStore,
-            ) => Partial<LinearIssueSpec> | undefined => fn !== undefined,
-        );
+    // Merge Linear issue specs: config spec (if any) + plugin specs
+    const linearIssueSpecFns: Array<
+        (ctx: VersionContext, store: FactStore) => Partial<LinearIssueSpec> | undefined
+    > = [];
+    if (config.linear?.getLinearIssueSpec) {
+        const configFn = config.linear.getLinearIssueSpec;
+        linearIssueSpecFns.push((ctx, store) => configFn(ctx, store));
+    }
+    for (const p of plugins) {
+        if (p.getLinearIssueSpec) linearIssueSpecFns.push(p.getLinearIssueSpec);
+    }
+    const getLinearIssueSpec = mergeLinearIssueSpecs(linearIssueSpecFns);
 
-    const getLinearIssueSpec =
-        config.linear?.getLinearIssueSpec ?? mergeLinearIssueSpecs(pluginLinearIssueSpecFns);
-
-    // Merge plugin GitHub issue specs; direct config override bypasses merging
-    const pluginGitHubIssueSpecFns = plugins
-        .map((p) => p.getGitHubIssueSpec)
-        .filter(
-            (
-                fn,
-            ): fn is (
-                context: GitHubVersionContext,
-                store: FactStore,
-            ) => Partial<GitHubIssueSpec> | undefined => fn !== undefined,
-        );
-
-    const getGitHubIssueSpec =
-        config.github?.getGitHubIssueSpec ?? mergeGitHubIssueSpecs(pluginGitHubIssueSpecFns);
+    // Merge GitHub issue specs: config spec (if any) + plugin specs
+    const gitHubIssueSpecFns: Array<
+        (ctx: GitHubVersionContext, store: FactStore) => Partial<GitHubIssueSpec> | undefined
+    > = [];
+    if (config.github?.getGitHubIssueSpec) {
+        const configFn = config.github.getGitHubIssueSpec;
+        gitHubIssueSpecFns.push((ctx, store) => configFn(ctx, store));
+    }
+    for (const p of plugins) {
+        if (p.getGitHubIssueSpec) gitHubIssueSpecFns.push(p.getGitHubIssueSpec);
+    }
+    const getGitHubIssueSpec = mergeGitHubIssueSpecs(gitHubIssueSpecFns);
 
     return {
         sources,
