@@ -133,17 +133,18 @@ export class DepsDevSource implements DataSource {
         // Derive maintenance posture
         const maintenance = deriveMaintenance(versionData);
 
-        // Build rationale
+        // deps.dev contributes maintenance/deprecation signals, not advisories.
+        // Only emit a finding when the package is actually deprecated; healthy
+        // packages should not register as security findings (which would
+        // inflate advisory counts and add noise to ticket descriptions).
+        if (maintenance !== 'stale') return undefined;
+
         const rationale: string[] = [];
-        if (versionData.isDeprecated) {
-            rationale.push(
-                versionData.deprecatedReason
-                    ? `deprecated: ${versionData.deprecatedReason}`
-                    : 'deprecated',
-            );
-        }
-        // isDefault === false just means "not on latest", which dependicus
-        // already surfaces. Only the deprecated signal is worth calling out.
+        rationale.push(
+            versionData.deprecatedReason
+                ? `deprecated: ${versionData.deprecatedReason}`
+                : 'deprecated',
+        );
         if (depCount && depCount.total > 0) {
             rationale.push(
                 `${depCount.direct} direct ${depCount.direct === 1 ? 'dependency' : 'dependencies'}, ${depCount.total} total transitive`,

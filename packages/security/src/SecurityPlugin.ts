@@ -134,7 +134,7 @@ export class SecurityPlugin {
                         parts.push(linkedIds);
                     }
                     for (const r of merged.rationale) {
-                        if (!r.match(/^\d+ advisor/)) parts.push(escapeHtml(r));
+                        if (!r.match(/^\d+ (?:advisor|GitHub advisor)/)) parts.push(escapeHtml(r));
                     }
                     return parts.join('; ');
                 },
