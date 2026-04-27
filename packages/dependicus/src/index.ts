@@ -58,6 +58,9 @@ export type { FactStore } from '@dependicus/core';
 /** @group Data Collection */
 export { RootFactStore, ScopedFactStore, FactKeys } from '@dependicus/core';
 
+/** @group Data Collection */
+export { CacheService } from '@dependicus/core';
+
 // ── Ticket Creation ──────────────────────────────────────────────────
 
 /** @group Ticket Creation */
