@@ -9,9 +9,11 @@ import type { ColumnContext, CustomColumn } from '@dependicus/site-builder';
 import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
 import type { GitHubIssueSpec } from '@dependicus/github-issues';
 import type { VersionContext as GitHubVersionContext } from '@dependicus/github-issues';
-import type { SecurityPluginConfig, SecurityFinding, Severity } from './types';
+import type { SecurityPluginConfig, SecurityFinding, Severity, Maintenance } from './types';
 import { SECURITY_FINDINGS_KEY, SEVERITY_ORDER } from './types';
 import { OsvSource } from './sources/OsvSource';
+import { DepsDevSource } from './sources/DepsDevSource';
+import { GitHubAdvisorySource } from './sources/GitHubAdvisorySource';
 
 // ── DependicusPlugin implementation ─────────────────────────────────
 
@@ -29,8 +31,10 @@ export class SecurityPlugin {
 
     init(ctx: PluginContext): void {
         for (const source of this.sources) {
-            if (source instanceof OsvSource) {
-                source.setCacheService(ctx.cacheService);
+            if ('setCacheService' in source && typeof source.setCacheService === 'function') {
+                (
+                    source as { setCacheService: (cs: PluginContext['cacheService']) => void }
+                ).setCacheService(ctx.cacheService);
             }
         }
     }
@@ -40,8 +44,19 @@ export class SecurityPlugin {
     private buildSources(): DataSource[] {
         const sources: DataSource[] = [];
         if (this.config.osv) {
-            const osvConfig = typeof this.config.osv === 'object' ? this.config.osv : undefined;
-            sources.push(new OsvSource(osvConfig));
+            const c = typeof this.config.osv === 'object' ? this.config.osv : undefined;
+            sources.push(new OsvSource(c));
+        }
+        if (this.config.depsdev) {
+            const c = typeof this.config.depsdev === 'object' ? this.config.depsdev : undefined;
+            sources.push(new DepsDevSource(c));
+        }
+        if (this.config.githubAdvisory) {
+            const c =
+                typeof this.config.githubAdvisory === 'object'
+                    ? this.config.githubAdvisory
+                    : undefined;
+            sources.push(new GitHubAdvisorySource(c));
         }
         return sources;
     }
@@ -52,7 +67,7 @@ export class SecurityPlugin {
         return [
             {
                 key: 'security',
-                header: 'Sec',
+                header: 'Severity',
                 width: 100,
                 filter: 'list',
                 filterValues: SEVERITY_LABELS,
@@ -63,7 +78,7 @@ export class SecurityPlugin {
                     const findings = getFindings(ctx);
                     const firstLink = findings.flatMap((f) => f.sourceLinks ?? [])[0];
                     if (firstLink) {
-                        return `<a href="${escapeAttr(firstLink.url)}" target="_blank" rel="noopener">${label}</a>`;
+                        return `<a href="${escapeAttr(firstLink.url)}">${label}</a>`;
                     }
                     return label;
                 },
@@ -74,16 +89,19 @@ export class SecurityPlugin {
                 getTooltip: (ctx) => {
                     const merged = this.mergeFindings(ctx);
                     if (!merged.severity) return '';
-                    const parts = merged.sources;
+                    const findings = getFindings(ctx);
+                    const vulnSources = [
+                        ...new Set(findings.filter((f) => f.severity).map((f) => f.sourceLabel)),
+                    ].join(', ');
                     if (merged.cvssScore !== undefined) {
-                        return `CVSS ${merged.cvssScore.toFixed(1)} (${parts})`;
+                        return `CVSS ${merged.cvssScore.toFixed(1)} (${vulnSources})`;
                     }
-                    return parts;
+                    return vulnSources;
                 },
             },
             {
                 key: 'securityFix',
-                header: 'Fix',
+                header: 'Fix Available',
                 width: 70,
                 filter: 'list',
                 filterValues: { true: 'Yes', false: 'No' },
@@ -111,10 +129,7 @@ export class SecurityPlugin {
                     const parts: string[] = [];
                     if (allLinks.length > 0) {
                         const linkedIds = allLinks
-                            .map(
-                                (l) =>
-                                    `<a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">${escapeHtml(l.label)}</a>`,
-                            )
+                            .map((l) => `<a href="${escapeAttr(l.url)}">${escapeHtml(l.label)}</a>`)
                             .join(', ');
                         parts.push(linkedIds);
                     }
@@ -122,6 +137,22 @@ export class SecurityPlugin {
                         if (!r.match(/^\d+ advisor/)) parts.push(escapeHtml(r));
                     }
                     return parts.join('; ');
+                },
+            },
+            {
+                key: 'maintenance',
+                header: 'Deprecated',
+                width: 100,
+                filter: 'list',
+                filterValues: MAINTENANCE_LABELS,
+                getValue: (ctx) => {
+                    const merged = this.mergeFindings(ctx);
+                    if (merged.maintenance !== 'stale') return '';
+                    return 'Stale';
+                },
+                getFilterValue: (ctx) => {
+                    const merged = this.mergeFindings(ctx);
+                    return merged.maintenance ?? '';
                 },
             },
         ];
@@ -233,21 +264,41 @@ export class SecurityPlugin {
             summaryLines.push(`- Advisories: ${merged.advisoryCount}`);
         }
         summaryLines.push(`- Fix available: ${merged.fixAvailable ? 'yes' : 'no'}`);
+        if (merged.maintenance) {
+            summaryLines.push(`- Maintenance posture: ${merged.maintenance}`);
+        }
         sections.push({ title: 'Security summary', body: summaryLines.join('\n') });
 
-        // Why this matters
-        if (merged.rationale.length > 0) {
-            sections.push({
-                title: 'Why this matters',
-                body: merged.rationale.join('. ') + '.',
-            });
+        // Advisories (deduplicated across sources, with inline summaries)
+        const allAdvisories = findings.flatMap((f) => f.advisories ?? []);
+        if (allAdvisories.length > 0) {
+            const seen = new Set<string>();
+            const lines: string[] = [];
+            for (const a of allAdvisories) {
+                if (seen.has(a.id)) continue;
+                seen.add(a.id);
+                const parts: string[] = [`[${a.id}](${a.url})`];
+                if (a.severity) {
+                    const score = a.cvssScore !== undefined ? ` ${a.cvssScore.toFixed(1)}` : '';
+                    parts.push(`${a.severity}${score}`);
+                }
+                if (a.fixAvailable) parts.push('fix available');
+                const line = parts.join(' · ');
+                const summary = a.summary ? `: ${a.summary}` : '';
+                lines.push(`- ${line}${summary}`);
+            }
+            sections.push({ title: 'Advisories', body: lines.join('\n') });
         }
 
-        // Sources
-        const allLinks = findings.flatMap((f) => f.sourceLinks ?? []);
-        if (allLinks.length > 0) {
-            const sourceLines = allLinks.map((l) => `- [${l.label}](${l.url})`);
-            sections.push({ title: 'Sources', body: sourceLines.join('\n') });
+        // Why this matters (non-advisory rationale only)
+        const nonAdvisoryRationale = merged.rationale.filter(
+            (r) => !r.match(/^\d+ (?:advisor|GitHub advisor)/),
+        );
+        if (nonAdvisoryRationale.length > 0) {
+            sections.push({
+                title: 'Why this matters',
+                body: nonAdvisoryRationale.join('. ') + '.',
+            });
         }
 
         return sections;
@@ -264,13 +315,20 @@ const SEVERITY_LABELS: Record<string, string> = {
     critical: 'Critical',
 };
 
+const MAINTENANCE_LABELS: Record<string, string> = {
+    active: 'Active',
+    stale: 'Stale',
+    unknown: 'Unknown',
+};
+
 interface MergedFindings {
     severity: Severity | undefined;
     cvssScore: number | undefined;
     advisoryCount: number;
     fixAvailable: boolean;
+    maintenance: Maintenance | undefined;
     rationale: string[];
-    /** Comma-separated source labels (e.g. "OSV, Snyk"). */
+    /** Comma-separated source labels (e.g. "OSV, deps.dev"). */
     sources: string;
 }
 
@@ -291,15 +349,16 @@ function mergeFindingsFromArray(findings: SecurityFinding[]): MergedFindings {
             cvssScore: undefined,
             advisoryCount: 0,
             fixAvailable: false,
+            maintenance: undefined,
             rationale: [],
             sources: '',
         };
     }
 
+    // Worst severity
     const severities = findings
         .map((f) => f.severity)
         .filter((s): s is Severity => s !== undefined);
-
     let worstSeverity: Severity | undefined;
     if (severities.length > 0) {
         let worst = 0;
@@ -310,19 +369,44 @@ function mergeFindingsFromArray(findings: SecurityFinding[]): MergedFindings {
         worstSeverity = SEVERITY_ORDER[worst];
     }
 
+    // Highest CVSS score
     const scores = findings.map((f) => f.cvssScore).filter((s): s is number => s !== undefined);
     const worstScore = scores.length > 0 ? Math.max(...scores) : undefined;
 
-    const totalAdvisories = findings.reduce((sum, f) => sum + (f.advisoryCount ?? 0), 0);
+    // Deduplicated advisory count: union of advisoryIds across all sources
+    const allIds = findings.flatMap((f) => f.advisoryIds ?? []);
+    const uniqueIds = new Set(allIds);
+    const advisoryCount =
+        uniqueIds.size > 0
+            ? uniqueIds.size
+            : findings.reduce((sum, f) => sum + (f.advisoryCount ?? 0), 0);
+
     const anyFix = findings.some((f) => f.fixAvailable);
+
+    // Worst maintenance posture (stale > unknown > active)
+    const maintenanceOrder: Maintenance[] = ['active', 'unknown', 'stale'];
+    const maintenances = findings
+        .map((f) => f.maintenance)
+        .filter((m): m is Maintenance => m !== undefined);
+    let maintenance: Maintenance | undefined;
+    if (maintenances.length > 0) {
+        let worst = 0;
+        for (const m of maintenances) {
+            const idx = maintenanceOrder.indexOf(m);
+            if (idx > worst) worst = idx;
+        }
+        maintenance = maintenanceOrder[worst];
+    }
+
     const allRationale = findings.flatMap((f) => f.rationale ?? []);
     const sources = [...new Set(findings.map((f) => f.sourceLabel))].join(', ');
 
     return {
         severity: worstSeverity,
         cvssScore: worstScore,
-        advisoryCount: totalAdvisories,
+        advisoryCount,
         fixAvailable: anyFix,
+        maintenance,
         rationale: allRationale,
         sources,
     };

@@ -85,6 +85,17 @@ describe('SecurityPlugin', () => {
             severity: 'critical',
             advisoryCount: 1,
             fixAvailable: false,
+            advisories: [
+                {
+                    id: 'CVE-2024-0001',
+                    summary: 'Prototype pollution in lodash',
+                    severity: 'critical',
+                    cvssScore: 9.8,
+                    fixAvailable: false,
+                    url: 'https://osv.dev/vulnerability/CVE-2024-0001',
+                },
+            ],
+            advisoryIds: ['CVE-2024-0001'],
             rationale: ['1 advisory (CVE-2024-0001)'],
             sourceLinks: [
                 { label: 'CVE-2024-0001', url: 'https://osv.dev/vulnerability/CVE-2024-0001' },
@@ -108,7 +119,12 @@ describe('SecurityPlugin', () => {
 
         const titles = spec!.descriptionSections!.map((s) => s.title);
         expect(titles).toContain('Security summary');
-        expect(titles).toContain('Sources');
+        expect(titles).toContain('Advisories');
+
+        const advisorySection = spec!.descriptionSections!.find((s) => s.title === 'Advisories')!;
+        expect(advisorySection.body).toContain('CVE-2024-0001');
+        expect(advisorySection.body).toContain('Prototype pollution in lodash');
+        expect(advisorySection.body).toContain('critical');
     });
 
     it('getLinearIssueSpec returns undefined when no findings', () => {

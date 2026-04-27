@@ -1,6 +1,6 @@
 import type { CacheService, DataSource, DirectDependency, FactStore } from '@dependicus/core';
 import { CVSS20, CVSS31, CVSS40 } from '@pandatix/js-cvss';
-import type { SecurityFinding, Severity, OsvConfig } from '../types';
+import type { AdvisoryDetail, SecurityFinding, Severity, OsvConfig } from '../types';
 import { SECURITY_FINDINGS_KEY, SEVERITY_ORDER } from '../types';
 
 // ── OSV ecosystem mapping ───────────────────────────────────────────
@@ -250,11 +250,27 @@ export class OsvSource implements DataSource {
                 url: `https://osv.dev/vulnerability/${v.id}`,
             }));
 
+            const advisories: AdvisoryDetail[] = vulns.map((v) => {
+                const scores = (v.severity ?? [])
+                    .map((s) => cvssBaseScore(s.score))
+                    .filter((s): s is number => s !== undefined);
+                return {
+                    id: v.id,
+                    summary: v.summary,
+                    severity: parseSeverity(v.severity),
+                    cvssScore: scores.length > 0 ? Math.max(...scores) : undefined,
+                    fixAvailable: hasFixedVersion(v),
+                    url: `https://osv.dev/vulnerability/${v.id}`,
+                };
+            });
+
             const finding: SecurityFinding = {
                 source: 'osv',
                 sourceLabel: 'OSV',
                 severity: worstSeverity,
                 cvssScore: worstScore,
+                advisories,
+                advisoryIds: vulns.map((v) => v.id),
                 advisoryCount: vulns.length,
                 fixAvailable: anyFixAvailable,
                 rationale,

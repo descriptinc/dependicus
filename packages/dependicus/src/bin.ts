@@ -14,5 +14,8 @@ const githubRoutingPlugin: DependicusPlugin = {
 
 void dependicusCli({
     dependicusBaseUrl: '',
-    plugins: [new SecurityPlugin({ osv: true }), githubRoutingPlugin],
+    plugins: [
+        new SecurityPlugin({ osv: true, depsdev: true, githubAdvisory: true }),
+        githubRoutingPlugin,
+    ],
 }).run(process.argv);
