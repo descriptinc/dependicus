@@ -19,7 +19,7 @@ export class GitHubSource implements DataSource {
         'go-proxy-registry',
         'crates-io-registry',
         'pypi-registry',
-        'mise-registry',
+        'mise-versions',
     ];
 
     constructor(private githubService: GitHubService) {}
