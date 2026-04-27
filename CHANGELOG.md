@@ -9,6 +9,7 @@
 - Plugin lifecycle hook: plugins can implement `init(ctx: PluginContext)` to receive `CacheService` after services are created but before data collection. `PluginContext` is exported from `@dependicus/core`.
 - `softDependsOn` on `DataSource`: sources can declare optional ordering dependencies that are respected when present in the pool and silently ignored when absent. Provider sources and plugin sources now run in a single topological sort per ecosystem, so plugin sources can declare ordering relative to provider sources.
 - `ColumnContext` type in `@dependicus/core` shared by `CustomColumn` callbacks and `UsedByGroupKeyFn`, carrying `name`, `version`, `store`, and `ecosystem` in one object.
+- `CacheService` is now re-exported from the top-level `dependicus` package, so plugins and consumers no longer need to import it from `@dependicus/core` directly.
 
 ### Changed
 
