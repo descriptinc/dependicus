@@ -304,6 +304,23 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@dependicus/security@workspace:packages/security":
+  version: 0.0.0-use.local
+  resolution: "@dependicus/security@workspace:packages/security"
+  dependencies:
+    "@dependicus/core": "workspace:*"
+    "@dependicus/github-issues": "workspace:*"
+    "@dependicus/linear": "workspace:*"
+    "@dependicus/site-builder": "workspace:*"
+    "@types/node": "npm:^25.3.0"
+    "@types/semver": "npm:^7.7.1"
+    semver: "npm:^7.7.4"
+    tsdown: "npm:^0.20.3"
+    typescript: "npm:^5.9.3"
+    vitest: "npm:^4.1.0"
+  languageName: unknown
+  linkType: soft
+
 "@dependicus/site-builder@workspace:*, @dependicus/site-builder@workspace:packages/site-builder":
   version: 0.0.0-use.local
   resolution: "@dependicus/site-builder@workspace:packages/site-builder"
