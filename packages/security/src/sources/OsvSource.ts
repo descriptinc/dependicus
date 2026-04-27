@@ -54,12 +54,12 @@ function severityFromCvssV3(vector: string): Severity {
     // CVSS v3 vector → base score approximation is complex. Instead, check
     // if the vector string itself contains a trailing score (some providers
     // append it). Otherwise, use a rough heuristic from attack complexity.
-    const acMatch = vector.match(/AC:([HLM])/);
-    const avMatch = vector.match(/AV:([NALP])/);
-    const prMatch = vector.match(/PR:([NLH])/);
-    const cMatch = vector.match(/C:([NLH])/);
-    const iMatch = vector.match(/I:([NLH])/);
-    const aMatch = vector.match(/A:([NLH])/);
+    const acMatch = vector.match(/\/AC:([HLM])/);
+    const avMatch = vector.match(/\/AV:([NALP])/);
+    const prMatch = vector.match(/\/PR:([NLH])/);
+    const cMatch = vector.match(/\/C:([NLH])/);
+    const iMatch = vector.match(/\/I:([NLH])/);
+    const aMatch = vector.match(/\/A:([NLH])/);
 
     // Simple weighted heuristic — not a real CVSS calculator, but good enough
     // to bucket into none/low/medium/high/critical.
