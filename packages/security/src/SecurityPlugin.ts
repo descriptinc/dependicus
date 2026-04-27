@@ -10,8 +10,8 @@ import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
 import type { GitHubIssueSpec } from '@dependicus/github-issues';
 import type { VersionContext as GitHubVersionContext } from '@dependicus/github-issues';
 import type { SecurityPluginConfig, SecurityFinding, Severity } from './types';
-import { SECURITY_FINDINGS_KEY, SEVERITY_ORDER } from './types';
-import { OsvSource } from './sources/OsvSource';
+import { SECURITY_FINDINGS_KEY } from './types';
+import { OsvSource, pickWorstSeverity } from './sources/OsvSource';
 
 // ── DependicusPlugin implementation ─────────────────────────────────
 
@@ -284,15 +284,7 @@ function mergeFindingsFromArray(findings: SecurityFinding[]): MergedFindings {
         .map((f) => f.severity)
         .filter((s): s is Severity => s !== undefined);
 
-    let worstSeverity: Severity | undefined;
-    if (severities.length > 0) {
-        let worst = 0;
-        for (const s of severities) {
-            const idx = SEVERITY_ORDER.indexOf(s);
-            if (idx > worst) worst = idx;
-        }
-        worstSeverity = SEVERITY_ORDER[worst];
-    }
+    const worstSeverity = pickWorstSeverity(severities);
 
     const totalAdvisories = findings.reduce((sum, f) => sum + (f.advisoryCount ?? 0), 0);
     const anyFix = findings.some((f) => f.fixAvailable);

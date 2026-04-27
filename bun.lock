@@ -56,6 +56,7 @@
         "@dependicus/provider-rust": "workspace:*",
         "@dependicus/providers-node": "workspace:*",
         "@dependicus/providers-python": "workspace:*",
+        "@dependicus/security": "workspace:*",
         "@dependicus/site-builder": "workspace:*",
         "@types/node": "^25.3.0",
         "dts-bundle-generator": "^9.5.1",
@@ -178,16 +179,12 @@
     "packages/security": {
       "name": "@dependicus/security",
       "version": "0.1.0",
-      "dependencies": {
-        "semver": "^7.7.4",
-      },
       "devDependencies": {
         "@dependicus/core": "workspace:*",
         "@dependicus/github-issues": "workspace:*",
         "@dependicus/linear": "workspace:*",
         "@dependicus/site-builder": "workspace:*",
         "@types/node": "^25.3.0",
-        "@types/semver": "^7.7.1",
         "tsdown": "^0.20.3",
         "typescript": "^5.9.3",
         "vitest": "^4.1.0",
