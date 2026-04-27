@@ -175,6 +175,24 @@
         "vitest": "^4.1.0",
       },
     },
+    "packages/security": {
+      "name": "@dependicus/security",
+      "version": "0.1.0",
+      "dependencies": {
+        "semver": "^7.7.4",
+      },
+      "devDependencies": {
+        "@dependicus/core": "workspace:*",
+        "@dependicus/github-issues": "workspace:*",
+        "@dependicus/linear": "workspace:*",
+        "@dependicus/site-builder": "workspace:*",
+        "@types/node": "^25.3.0",
+        "@types/semver": "^7.7.1",
+        "tsdown": "^0.20.3",
+        "typescript": "^5.9.3",
+        "vitest": "^4.1.0",
+      },
+    },
     "packages/site-builder": {
       "name": "@dependicus/site-builder",
       "version": "0.1.0",
@@ -254,6 +272,8 @@
     "@dependicus/providers-node": ["@dependicus/providers-node@workspace:packages/providers-node"],
 
     "@dependicus/providers-python": ["@dependicus/providers-python@workspace:packages/providers-python"],
+
+    "@dependicus/security": ["@dependicus/security@workspace:packages/security"],
 
     "@dependicus/site-builder": ["@dependicus/site-builder@workspace:packages/site-builder"],
 
