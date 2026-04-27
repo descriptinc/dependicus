@@ -20,6 +20,9 @@
         "test": "vitest run",
         "typecheck": "tsc --build tsconfig.json"
     },
+    "dependencies": {
+        "@pandatix/js-cvss": "^0.4.4"
+    },
     "devDependencies": {
         "@dependicus/core": "workspace:*",
         "@dependicus/github-issues": "workspace:*",

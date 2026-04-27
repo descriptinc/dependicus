@@ -72,9 +72,13 @@ export class SecurityPlugin {
                     return merged.severity ?? '';
                 },
                 getTooltip: (ctx) => {
-                    const findings = getFindings(ctx);
-                    if (findings.length === 0) return '';
-                    return findings.map((f) => f.sourceLabel).join(', ');
+                    const merged = this.mergeFindings(ctx);
+                    if (!merged.severity) return '';
+                    const parts = merged.sources;
+                    if (merged.cvssScore !== undefined) {
+                        return `CVSS ${merged.cvssScore.toFixed(1)} (${parts})`;
+                    }
+                    return parts;
                 },
             },
             {
@@ -221,7 +225,9 @@ export class SecurityPlugin {
         // Security summary
         const summaryLines: string[] = [];
         if (merged.severity) {
-            summaryLines.push(`- Severity: **${merged.severity}**`);
+            const scoreSuffix =
+                merged.cvssScore !== undefined ? ` (CVSS ${merged.cvssScore.toFixed(1)})` : '';
+            summaryLines.push(`- Severity: **${merged.severity}**${scoreSuffix}`);
         }
         if (merged.advisoryCount > 0) {
             summaryLines.push(`- Advisories: ${merged.advisoryCount}`);
@@ -260,9 +266,12 @@ const SEVERITY_LABELS: Record<string, string> = {
 
 interface MergedFindings {
     severity: Severity | undefined;
+    cvssScore: number | undefined;
     advisoryCount: number;
     fixAvailable: boolean;
     rationale: string[];
+    /** Comma-separated source labels (e.g. "OSV, Snyk"). */
+    sources: string;
 }
 
 function getFindings(ctx: ColumnContext): SecurityFinding[] {
@@ -277,7 +286,14 @@ function getFindings(ctx: ColumnContext): SecurityFinding[] {
 
 function mergeFindingsFromArray(findings: SecurityFinding[]): MergedFindings {
     if (findings.length === 0) {
-        return { severity: undefined, advisoryCount: 0, fixAvailable: false, rationale: [] };
+        return {
+            severity: undefined,
+            cvssScore: undefined,
+            advisoryCount: 0,
+            fixAvailable: false,
+            rationale: [],
+            sources: '',
+        };
     }
 
     const severities = findings
@@ -294,15 +310,21 @@ function mergeFindingsFromArray(findings: SecurityFinding[]): MergedFindings {
         worstSeverity = SEVERITY_ORDER[worst];
     }
 
+    const scores = findings.map((f) => f.cvssScore).filter((s): s is number => s !== undefined);
+    const worstScore = scores.length > 0 ? Math.max(...scores) : undefined;
+
     const totalAdvisories = findings.reduce((sum, f) => sum + (f.advisoryCount ?? 0), 0);
     const anyFix = findings.some((f) => f.fixAvailable);
     const allRationale = findings.flatMap((f) => f.rationale ?? []);
+    const sources = [...new Set(findings.map((f) => f.sourceLabel))].join(', ');
 
     return {
         severity: worstSeverity,
+        cvssScore: worstScore,
         advisoryCount: totalAdvisories,
         fixAvailable: anyFix,
         rationale: allRationale,
+        sources,
     };
 }
 

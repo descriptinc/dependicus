@@ -1,4 +1,5 @@
 import type { CacheService, DataSource, DirectDependency, FactStore } from '@dependicus/core';
+import { CVSS20, CVSS31, CVSS40 } from '@pandatix/js-cvss';
 import type { SecurityFinding, Severity, OsvConfig } from '../types';
 import { SECURITY_FINDINGS_KEY, SEVERITY_ORDER } from '../types';
 
@@ -39,128 +40,34 @@ export interface OsvVulnerability {
     references?: Array<{ type: string; url: string }>;
 }
 
-// ── CVSS parsing ────────────────────────────────────────────────────
+// ── CVSS scoring ────────────────────────────────────────────────────
 
 const FETCH_TIMEOUT_MS = 30_000;
 const DEFAULT_VULN_CACHE_TTL_DAYS = 7;
 
-/**
- * Extract a severity bucket from a CVSS v3 vector string.
- * Uses a weighted heuristic over base metrics — not a real CVSS calculator,
- * but sufficient for coarse bucketing.
- */
-export function severityFromCvssV3(vector: string): Severity {
-    const avMatch = vector.match(/AV:([NALP])/);
-    const acMatch = vector.match(/AC:([HL])/);
-    const prMatch = vector.match(/PR:([NLH])/);
-    // Use word boundary to avoid matching VC:/SC: from v4 vectors
-    const cMatch = vector.match(/\bC:([NLH])/);
-    const iMatch = vector.match(/\bI:([NLH])/);
-    const aMatch = vector.match(/\bA:([NLH])/);
-
-    let score = 0;
-    if (avMatch?.[1] === 'N') score += 3;
-    else if (avMatch?.[1] === 'A') score += 2;
-    else if (avMatch?.[1] === 'L') score += 1;
-
-    if (acMatch?.[1] === 'L') score += 1;
-
-    if (prMatch?.[1] === 'N') score += 2;
-    else if (prMatch?.[1] === 'L') score += 1;
-
-    const impactLetters = [cMatch?.[1], iMatch?.[1], aMatch?.[1]];
-    for (const l of impactLetters) {
-        if (l === 'H') score += 2;
-        else if (l === 'L') score += 1;
-    }
-
-    if (score >= 10) return 'critical';
-    if (score >= 7) return 'high';
-    if (score >= 4) return 'medium';
-    if (score >= 1) return 'low';
+/** Map a numeric CVSS base score to a severity bucket per FIRST.org thresholds. */
+export function severityFromScore(score: number): Severity {
+    if (score >= 9.0) return 'critical';
+    if (score >= 7.0) return 'high';
+    if (score >= 4.0) return 'medium';
+    if (score > 0) return 'low';
     return 'none';
 }
 
-/**
- * Extract a severity bucket from a CVSS v4 vector string.
- * V4 uses different metric names: AT (attack requirements), VC/VI/VA
- * (vulnerable system impact), SC/SI/SA (subsequent system impact).
- */
-export function severityFromCvssV4(vector: string): Severity {
-    const avMatch = vector.match(/AV:([NALP])/);
-    const atMatch = vector.match(/AT:([NP])/); // Attack Requirements: None, Present
-    const prMatch = vector.match(/PR:([NLH])/);
-    const vcMatch = vector.match(/VC:([NLH])/);
-    const viMatch = vector.match(/VI:([NLH])/);
-    const vaMatch = vector.match(/VA:([NLH])/);
-    const scMatch = vector.match(/SC:([NLH])/);
-    const siMatch = vector.match(/SI:([NLH])/);
-    const saMatch = vector.match(/SA:([NLH])/);
-
-    let score = 0;
-    if (avMatch?.[1] === 'N') score += 3;
-    else if (avMatch?.[1] === 'A') score += 2;
-    else if (avMatch?.[1] === 'L') score += 1;
-
-    if (atMatch?.[1] === 'N') score += 1; // No special requirements = easier to exploit
-
-    if (prMatch?.[1] === 'N') score += 2;
-    else if (prMatch?.[1] === 'L') score += 1;
-
-    // Vulnerable system impact (primary)
-    const vulnImpact = [vcMatch?.[1], viMatch?.[1], vaMatch?.[1]];
-    for (const l of vulnImpact) {
-        if (l === 'H') score += 2;
-        else if (l === 'L') score += 1;
+/** Compute a base score from a CVSS vector string of any version. */
+export function cvssBaseScore(vector: string): number | undefined {
+    try {
+        if (vector.startsWith('CVSS:4')) {
+            return new CVSS40(vector).Score();
+        }
+        if (vector.startsWith('CVSS:3')) {
+            return new CVSS31(vector).BaseScore();
+        }
+        // V2 vectors don't have a version prefix
+        return new CVSS20(vector).BaseScore();
+    } catch {
+        return undefined;
     }
-
-    // Subsequent system impact (secondary, weighted less)
-    const subImpact = [scMatch?.[1], siMatch?.[1], saMatch?.[1]];
-    for (const l of subImpact) {
-        if (l === 'H') score += 1;
-    }
-
-    if (score >= 10) return 'critical';
-    if (score >= 7) return 'high';
-    if (score >= 4) return 'medium';
-    if (score >= 1) return 'low';
-    return 'none';
-}
-
-/**
- * Extract a severity bucket from a CVSS v2 vector string.
- * V2 uses Au (Authentication) instead of PR, and has no scope concept.
- */
-export function severityFromCvssV2(vector: string): Severity {
-    const avMatch = vector.match(/AV:([NLA])/);
-    const acMatch = vector.match(/AC:([HML])/);
-    const auMatch = vector.match(/Au:([NSM])/);
-    const cMatch = vector.match(/\bC:([NPC])/);
-    const iMatch = vector.match(/\bI:([NPC])/);
-    const aMatch = vector.match(/\bA:([NPC])/);
-
-    let score = 0;
-    if (avMatch?.[1] === 'N') score += 3;
-    else if (avMatch?.[1] === 'A') score += 2;
-    else if (avMatch?.[1] === 'L') score += 1;
-
-    if (acMatch?.[1] === 'L') score += 1;
-
-    if (auMatch?.[1] === 'N') score += 2;
-    else if (auMatch?.[1] === 'S') score += 1;
-
-    // V2 impact uses N/P/C (None/Partial/Complete)
-    const impactLetters = [cMatch?.[1], iMatch?.[1], aMatch?.[1]];
-    for (const l of impactLetters) {
-        if (l === 'C') score += 2;
-        else if (l === 'P') score += 1;
-    }
-
-    if (score >= 10) return 'critical';
-    if (score >= 7) return 'high';
-    if (score >= 4) return 'medium';
-    if (score >= 1) return 'low';
-    return 'none';
 }
 
 export function parseSeverity(
@@ -168,16 +75,17 @@ export function parseSeverity(
 ): Severity | undefined {
     if (!severityEntries || severityEntries.length === 0) return undefined;
 
-    const v3 = severityEntries.find((s) => s.type === 'CVSS_V3');
-    if (v3) return severityFromCvssV3(v3.score);
+    // Prefer V3 > V4 > V2
+    const ordered = ['CVSS_V3', 'CVSS_V4', 'CVSS_V2'];
+    for (const type of ordered) {
+        const entry = severityEntries.find((s) => s.type === type);
+        if (entry) {
+            const score = cvssBaseScore(entry.score);
+            if (score !== undefined) return severityFromScore(score);
+        }
+    }
 
-    const v4 = severityEntries.find((s) => s.type === 'CVSS_V4');
-    if (v4) return severityFromCvssV4(v4.score);
-
-    const v2 = severityEntries.find((s) => s.type === 'CVSS_V2');
-    if (v2) return severityFromCvssV2(v2.score);
-
-    // Unknown severity type — assume medium rather than hiding it
+    // Unknown type — assume medium rather than hiding it
     return 'medium';
 }
 
@@ -317,6 +225,14 @@ export class OsvSource implements DataSource {
                 .filter((s): s is Severity => s !== undefined);
             const worstSeverity = pickWorstSeverity(severities);
 
+            // Compute highest CVSS base score across all vulns
+            const scores = vulns.flatMap((v) =>
+                (v.severity ?? [])
+                    .map((s) => cvssBaseScore(s.score))
+                    .filter((s): s is number => s !== undefined),
+            );
+            const worstScore = scores.length > 0 ? Math.max(...scores) : undefined;
+
             const anyFixAvailable = vulns.some(hasFixedVersion);
 
             const rationale: string[] = [];
@@ -338,6 +254,7 @@ export class OsvSource implements DataSource {
                 source: 'osv',
                 sourceLabel: 'OSV',
                 severity: worstSeverity,
+                cvssScore: worstScore,
                 advisoryCount: vulns.length,
                 fixAvailable: anyFixAvailable,
                 rationale,

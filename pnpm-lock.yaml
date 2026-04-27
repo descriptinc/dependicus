@@ -334,6 +334,10 @@ importers:
         version: 4.1.0(@types/node@25.3.0)(jsdom@29.0.0)(vite@7.3.1(@types/node@25.3.0)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/security:
+    dependencies:
+      '@pandatix/js-cvss':
+        specifier: ^0.4.4
+        version: 0.4.4
     devDependencies:
       '@dependicus/core':
         specifier: workspace:*
@@ -977,6 +981,9 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [win32]
+
+  '@pandatix/js-cvss@0.4.4':
+    resolution: {integrity: sha512-hhBbQ7IKfoRoV3QKTP9hLKJT166/e0FkeiVSLZZIEVsO7DjxVmIWhJlPvbp+RXaM4w215xghtnXQv13Ebdlj/w==}
 
   '@quansync/fs@1.0.0':
     resolution: {integrity: sha512-4TJ3DFtlf1L5LDMaM6CanJ/0lckGNtJcMjQ1NAV6zDmA0tEHKZtxNKin8EgPaVX1YzljbxckyT2tJrpQKAtngQ==}
@@ -2371,6 +2378,8 @@ snapshots:
 
   '@oxlint/binding-win32-x64-msvc@1.50.0':
     optional: true
+
+  '@pandatix/js-cvss@0.4.4': {}
 
   '@quansync/fs@1.0.0':
     dependencies:

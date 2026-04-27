@@ -16,6 +16,8 @@ export interface SecurityFinding {
     source: string;
     sourceLabel: string;
     severity?: Severity;
+    /** Highest CVSS base score across advisories (0.0–10.0). */
+    cvssScore?: number;
     advisoryCount?: number;
     fixAvailable?: boolean;
     rationale?: string[];
