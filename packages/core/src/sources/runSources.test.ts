@@ -9,10 +9,12 @@ function makeSource(
     name: string,
     dependsOn: string[] = [],
     fetch?: (deps: DirectDependency[], store: FactStore) => Promise<void>,
+    softDependsOn?: string[],
 ): DataSource {
     return {
         name,
         dependsOn,
+        softDependsOn,
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         fetch: fetch ?? vi.fn(async () => {}),
     };
@@ -161,5 +163,62 @@ describe('runSources', () => {
     it('handles empty source list', async () => {
         await runSources([], emptyDeps, new RootFactStore());
         // Should complete without error
+    });
+
+    describe('softDependsOn', () => {
+        it('waits for soft dependencies that exist in the pool', async () => {
+            const order: string[] = [];
+
+            const a = makeSource('a', [], async () => {
+                order.push('a');
+            });
+            const b = makeSource(
+                'b',
+                [],
+                async () => {
+                    order.push('b');
+                },
+                ['a'],
+            );
+
+            await runSources([b, a], emptyDeps, new RootFactStore());
+
+            expect(order.indexOf('a')).toBeLessThan(order.indexOf('b'));
+        });
+
+        it('ignores soft dependencies that are not in the pool', async () => {
+            const order: string[] = [];
+
+            const a = makeSource(
+                'a',
+                [],
+                async () => {
+                    order.push('a');
+                },
+                ['nonexistent-source'],
+            );
+
+            await runSources([a], emptyDeps, new RootFactStore());
+
+            expect(order).toEqual(['a']);
+        });
+
+        it('does not throw for unknown soft dependencies', async () => {
+            const source = makeSource('a', [], undefined, ['unknown-1', 'unknown-2']);
+
+            await expect(
+                runSources([source], emptyDeps, new RootFactStore()),
+            ).resolves.toBeUndefined();
+        });
+
+        it('detects cycles involving soft dependencies', async () => {
+            const a = makeSource('a', [], undefined, ['b']);
+            const b = makeSource('b', [], undefined, ['a']);
+
+            // Both soft-depend on each other and both exist — cycle
+            await expect(runSources([a, b], emptyDeps, new RootFactStore())).rejects.toThrow(
+                /cycle detected/i,
+            );
+        });
     });
 });

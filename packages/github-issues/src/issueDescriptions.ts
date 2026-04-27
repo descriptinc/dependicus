@@ -32,18 +32,28 @@ const issueDescriptionTemplate = hbs.compile(issueDescriptionHbs);
 const groupDescriptionTemplate = hbs.compile(groupDescriptionHbs);
 const newVersionsCommentTemplate = hbs.compile(newVersionsCommentHbs);
 
+export interface IssueDescriptionParams {
+    dep: OutdatedDependency;
+    store: FactStore;
+    minVersion: string;
+    effectiveLatestVersion: string;
+    getDetailUrl: DetailUrlFn;
+    providerInfo: ProviderInfo;
+    dueDate?: string;
+}
+
 /**
  * Build the description for a single-dependency GitHub issue.
  */
-export function buildIssueDescription(
-    dep: OutdatedDependency,
-    store: FactStore,
-    minVersion: string,
-    effectiveLatestVersion: string,
-    getDetailUrl: DetailUrlFn,
-    providerInfo: ProviderInfo,
-    dueDate?: string,
-): string {
+export function buildIssueDescription({
+    dep,
+    store,
+    minVersion,
+    effectiveLatestVersion,
+    getDetailUrl,
+    providerInfo,
+    dueDate,
+}: IssueDescriptionParams): string {
     const { name, ecosystem, versions, worstCompliance } = dep;
     const version = versions[0];
     if (!version) {
@@ -166,13 +176,21 @@ export function buildIssueDescription(
 /**
  * Build the description for a grouped GitHub issue.
  */
-export function buildGroupIssueDescription(
-    group: OutdatedGroup,
-    store: FactStore,
-    getDetailUrl: DetailUrlFn,
-    providerInfoMap: Map<string, ProviderInfo>,
-    dueDate?: string,
-): string {
+export interface GroupDescriptionParams {
+    group: OutdatedGroup;
+    store: FactStore;
+    getDetailUrl: DetailUrlFn;
+    providerInfoMap: Map<string, ProviderInfo>;
+    dueDate?: string;
+}
+
+export function buildGroupIssueDescription({
+    group,
+    store,
+    getDetailUrl,
+    providerInfoMap,
+    dueDate,
+}: GroupDescriptionParams): string {
     const { groupName, dependencies, worstCompliance } = group;
 
     const notificationsOnly = group.policy.type === 'fyi';

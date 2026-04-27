@@ -435,7 +435,7 @@ export class BasicCompliancePlugin implements DependicusPlugin {
                 width: 140,
                 filter: 'list',
                 filterValues: STATUS_LABELS,
-                getValue: (name, version, store) => {
+                getValue: ({ name, version, store }) => {
                     const { status } = this.computeStatus(
                         name,
                         version.version,
@@ -444,14 +444,14 @@ export class BasicCompliancePlugin implements DependicusPlugin {
                     );
                     return STATUS_LABELS[status] ?? status;
                 },
-                getFilterValue: (name, version, store) =>
+                getFilterValue: ({ name, version, store }) =>
                     this.computeStatus(name, version.version, version.latestVersion, store).status,
             },
             {
                 key: 'complianceDetail',
                 header: 'Compliance Detail',
                 width: 200,
-                getValue: (name, version, store) =>
+                getValue: ({ name, version, store }) =>
                     formatComplianceDetail(
                         this.computeStatus(name, version.version, version.latestVersion, store),
                     ),

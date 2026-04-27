@@ -4,6 +4,11 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { sanitizeCacheKey } from '../utils/formatters';
 
+/** Context passed to plugins during initialization. */
+export interface PluginContext {
+    cacheService: CacheService;
+}
+
 export class CacheService {
     private readonly cacheDir: string;
 

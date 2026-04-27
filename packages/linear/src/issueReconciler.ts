@@ -511,14 +511,14 @@ export async function reconcileIssues(
         if (!providerInfo) {
             throw new Error(`No provider info for ecosystem "${dep.ecosystem}"`);
         }
-        const description = buildIssueDescription(
+        const description = buildIssueDescription({
             dep,
-            scopedStore,
+            store: scopedStore,
             minVersion,
             effectiveLatestVersion,
             getDetailUrl,
             providerInfo,
-        );
+        });
 
         if (existingIssue) {
             // Issue exists - check if it's in a state where we should skip updating
@@ -700,12 +700,12 @@ export async function reconcileIssues(
         const title = buildGroupTicketTitle(group.groupName, group.dependencies.length, {
             notificationsOnly: groupNotificationsOnly,
         });
-        const description = buildGroupIssueDescription(
+        const description = buildGroupIssueDescription({
             group,
             store,
             getDetailUrl,
-            config.providerInfoMap,
-        );
+            providerInfoMap: config.providerInfoMap,
+        });
 
         if (existingIssue) {
             const issueStateName = existingIssue.state.name?.toLowerCase();

@@ -2,6 +2,7 @@ import DOMPurify from 'isomorphic-dompurify';
 import { marked } from 'marked';
 import { getCssContent } from '../paths';
 import type {
+    ColumnContext,
     DetailPage,
     DirectDependency,
     DependencyVersion,
@@ -59,7 +60,7 @@ export interface CustomColumn {
      */
     header: string;
     /** Extract the display value from the store. */
-    getValue: (name: string, version: DependencyVersion, store: FactStore) => string;
+    getValue: (ctx: ColumnContext) => string;
     /**
      * Column width in pixels.
      * Maps to Tabulator's [`width`](https://tabulator.info/docs/6.3/columns#width).
@@ -79,13 +80,13 @@ export interface CustomColumn {
      * Extract a tooltip string.
      * Maps to Tabulator's [`tooltip`](https://tabulator.info/docs/6.3/columns#tooltip).
      */
-    getTooltip?: (name: string, version: DependencyVersion, store: FactStore) => string;
+    getTooltip?: (ctx: ColumnContext) => string;
     /**
      * Extract a separate filter value.
      * When set, header filter matches against this value instead of the display value.
      * Implemented via a custom [`headerFilterFunc`](https://tabulator.info/docs/6.3/filter#header-function).
      */
-    getFilterValue?: (name: string, version: DependencyVersion, store: FactStore) => string;
+    getFilterValue?: (ctx: ColumnContext) => string;
 }
 
 export interface HtmlWriterOptions {
@@ -127,32 +128,26 @@ export class HtmlWriter {
      */
     private groupDependenciesByMeta(
         packages: string[],
-        name: string,
-        version: DependencyVersion,
-        store: FactStore,
+        ctx: ColumnContext,
     ): Record<string, string[]> | null {
         // eslint-disable-next-line no-null/no-null
         if (!this.getUsedByGroupKey) return null;
-        const groupKey = this.getUsedByGroupKey(name, version, store) || 'Unknown';
+        const groupKey = this.getUsedByGroupKey(ctx) || 'Unknown';
         return { [groupKey]: [...packages].sort() };
     }
 
     /**
      * Build row data for custom columns from FactStore.
      */
-    private buildCustomColumnData(
-        name: string,
-        version: DependencyVersion,
-        store: FactStore,
-    ): Record<string, string> {
+    private buildCustomColumnData(ctx: ColumnContext): Record<string, string> {
         const data: Record<string, string> = {};
         for (const col of this.columns) {
-            data[col.key] = col.getValue(name, version, store);
+            data[col.key] = col.getValue(ctx);
             if (col.getTooltip) {
-                data[`${col.key}__tooltip`] = col.getTooltip(name, version, store);
+                data[`${col.key}__tooltip`] = col.getTooltip(ctx);
             }
             if (col.getFilterValue) {
-                data[`${col.key}__filterValue`] = col.getFilterValue(name, version, store);
+                data[`${col.key}__filterValue`] = col.getFilterValue(ctx);
             }
         }
         return data;
@@ -233,7 +228,12 @@ export class HtmlWriter {
                     'Published Date': formatDate(versionInfo.publishDate) ?? '',
                     Age: getAgeDays(versionInfo.publishDate) ?? '',
                     Notes: notes,
-                    ...this.buildCustomColumnData(dep.name, versionInfo, scoped),
+                    ...this.buildCustomColumnData({
+                        name: dep.name,
+                        version: versionInfo,
+                        store: scoped,
+                        ecosystem: dep.ecosystem,
+                    }),
                     'Latest Version URL': registryPattern
                         ? resolveUrl(registryPattern, {
                               name: dep.name,
@@ -250,12 +250,12 @@ export class HtmlWriter {
                     }),
                     'Used By Count': versionInfo.usedBy.length,
                     'Used By': versionInfo.usedBy.join('; '),
-                    'Used By Grouped': this.groupDependenciesByMeta(
-                        versionInfo.usedBy,
-                        dep.name,
-                        versionInfo,
-                        scoped,
-                    ),
+                    'Used By Grouped': this.groupDependenciesByMeta(versionInfo.usedBy, {
+                        name: dep.name,
+                        version: versionInfo,
+                        store: scoped,
+                        ecosystem: dep.ecosystem,
+                    }),
                     'Deprecated Transitive Dependencies': deprecatedTransitiveDeps.join('; '),
                     'Detail Link': `${detailPrefix}details/${detailFilename}`,
                 });
@@ -505,13 +505,15 @@ export class HtmlWriter {
             unpackedSize,
         );
 
-        // Group usedBy dependencies
-        const usedByGrouped = this.groupDependenciesByMeta(
-            versionInfo.usedBy,
-            dep.name,
-            versionInfo,
+        const colCtx: ColumnContext = {
+            name: dep.name,
+            version: versionInfo,
             store,
-        );
+            ecosystem: dep.ecosystem,
+        };
+
+        // Group usedBy dependencies
+        const usedByGrouped = this.groupDependenciesByMeta(versionInfo.usedBy, colCtx);
         const usedByGroupedArray = usedByGrouped
             ? Object.keys(usedByGrouped)
                   .sort()
@@ -534,7 +536,7 @@ export class HtmlWriter {
         // Build custom metadata for display on detail page
         const customMeta: Array<{ label: string; value: string }> = [];
         for (const col of this.columns) {
-            const value = col.getValue(dep.name, versionInfo, store);
+            const value = col.getValue(colCtx);
             if (value) {
                 customMeta.push({ label: col.header, value: DOMPurify.sanitize(value) });
             }

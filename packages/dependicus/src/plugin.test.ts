@@ -8,8 +8,8 @@ import type {
 import { RootFactStore } from '@dependicus/core';
 import type { VersionContext } from '@dependicus/linear';
 import type { CustomColumn } from '@dependicus/site-builder';
-import { resolvePlugins } from './plugin';
-import type { DependicusPlugin } from './plugin';
+import { resolvePlugins, validateLinearIssueSpec } from './plugin';
+import type { DependicusPlugin, SpecDiagnostics } from './plugin';
 import type { DependicusCliConfig } from './cli';
 
 const mockStore = new RootFactStore();
@@ -146,7 +146,7 @@ describe('resolvePlugins', () => {
     });
 
     describe('linear callbacks', () => {
-        it('direct config getLinearIssueSpec wins over plugin', () => {
+        it('merges config spec with plugin specs (plugin overrides scalars)', () => {
             const directFn = () => ({ teamId: 'team', group: 'direct-group' });
             const pluginFn = () => ({ teamId: 'team', group: 'plugin-group' });
 
@@ -160,7 +160,7 @@ describe('resolvePlugins', () => {
             const result = resolvePlugins([plugin], config);
             expect(result.getLinearIssueSpec?.({} as VersionContext, mockStore)).toEqual({
                 teamId: 'team',
-                group: 'direct-group',
+                group: 'plugin-group',
             });
         });
 
@@ -231,13 +231,16 @@ describe('resolvePlugins', () => {
             ]);
         });
 
-        it('returns undefined when merged result is missing teamId', () => {
+        it('returns unvalidated partial when merged result is missing teamId', () => {
             const fn1 = () => ({ policy: { type: 'fyi' as const } });
 
             const p1: DependicusPlugin = { name: 'p1', getLinearIssueSpec: fn1 };
 
             const result = resolvePlugins([p1], baseConfig());
-            expect(result.getLinearIssueSpec?.({} as VersionContext, mockStore)).toBeUndefined();
+            // Merge returns the partial without validation
+            expect(result.getLinearIssueSpec?.({} as VersionContext, mockStore)).toEqual({
+                policy: { type: 'fyi' },
+            });
         });
 
         it('single plugin returning full spec works as before', () => {
@@ -276,5 +279,28 @@ describe('resolvePlugins', () => {
             expect(result.columns).toEqual([col1, col2]);
             expect(result.groupings).toEqual([grp1, grp2]);
         });
+    });
+});
+
+describe('validateLinearIssueSpec', () => {
+    it('returns validated spec when all required fields are present', () => {
+        const diag: SpecDiagnostics = { skipped: [], summarized: false };
+        const result = validateLinearIssueSpec({ teamId: 'team-a' }, 'react', diag);
+        expect(result).toEqual({ teamId: 'team-a' });
+        expect(diag.skipped).toEqual([]);
+    });
+
+    it('returns undefined and records diagnostic when teamId is missing', () => {
+        const diag: SpecDiagnostics = { skipped: [], summarized: false };
+        const result = validateLinearIssueSpec({ policy: { type: 'fyi' } }, 'react', diag);
+        expect(result).toBeUndefined();
+        expect(diag.skipped).toEqual(['react']);
+    });
+
+    it('returns undefined for undefined input', () => {
+        const diag: SpecDiagnostics = { skipped: [], summarized: false };
+        const result = validateLinearIssueSpec(undefined, 'react', diag);
+        expect(result).toBeUndefined();
+        expect(diag.skipped).toEqual([]);
     });
 });

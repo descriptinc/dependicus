@@ -516,15 +516,15 @@ export async function reconcileGitHubIssues(
         if (!providerInfo) {
             throw new Error(`No provider info for ecosystem "${dep.ecosystem}"`);
         }
-        const description = buildIssueDescription(
+        const description = buildIssueDescription({
             dep,
-            scopedStore,
+            store: scopedStore,
             minVersion,
             effectiveLatestVersion,
             getDetailUrl,
             providerInfo,
-            dueDateStr,
-        );
+            dueDate: dueDateStr,
+        });
 
         if (existingIssue) {
             // Check if new versions were released since last update
@@ -702,13 +702,13 @@ export async function reconcileGitHubIssues(
         if (dueDateStr && !groupNotificationsOnly) {
             title = `${title} (due ${dueDateStr})`;
         }
-        const description = buildGroupIssueDescription(
+        const description = buildGroupIssueDescription({
             group,
             store,
             getDetailUrl,
-            config.providerInfoMap,
-            dueDateStr,
-        );
+            providerInfoMap: config.providerInfoMap,
+            dueDate: dueDateStr,
+        });
 
         if (existingIssue) {
             // For fyi groups with rate limits, check if we should skip

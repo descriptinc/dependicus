@@ -2,11 +2,21 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.1.11 - Unreleased
+## 0.2.0 - Unreleased
 
 ### Added
 
+- Plugin lifecycle hook: plugins can implement `init(ctx: PluginContext)` to receive `CacheService` after services are created but before data collection. `PluginContext` is exported from `@dependicus/core`.
+- `softDependsOn` on `DataSource`: sources can declare optional ordering dependencies that are respected when present in the pool and silently ignored when absent. Provider sources and plugin sources now run in a single topological sort per ecosystem, so plugin sources can declare ordering relative to provider sources.
+- `ColumnContext` type in `@dependicus/core` shared by `CustomColumn` callbacks and `UsedByGroupKeyFn`, carrying `name`, `version`, `store`, and `ecosystem` in one object.
+
 ### Changed
+
+- **Breaking:** `CustomColumn.getValue`, `getTooltip`, and `getFilterValue` now take a single `ColumnContext` argument instead of `(name, version, store, ecosystem)`.
+- **Breaking:** `UsedByGroupKeyFn` now takes `ColumnContext` instead of `(name, version, store)`.
+- **Breaking:** `buildIssueDescription` and `buildGroupIssueDescription` in both `@dependicus/linear` and `@dependicus/github-issues` now take a single params object (`IssueDescriptionParams` / `GroupDescriptionParams`) instead of positional arguments.
+- **Breaking:** Plugin issue spec merging no longer validates with Zod immediately. `ResolvedPlugins.getLinearIssueSpec` and `getGitHubIssueSpec` return `Partial<Spec> | undefined`. Validation happens in the CLI after flag injection via new `validateLinearIssueSpec` / `validateGitHubIssueSpec` helpers.
+- **Breaking:** Direct `config.linear.getLinearIssueSpec` and `config.github.getGitHubIssueSpec` are now merged with plugin specs instead of overriding them. Config specs provide defaults; plugin specs can override scalar fields; `descriptionSections` from all sources are concatenated.
 
 ### Fixed
 

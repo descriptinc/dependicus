@@ -92,7 +92,9 @@ describe('compliance columns', () => {
 
         const version = makeDependencyVersion();
         const complianceCol = plugin.columns!.find((c) => c.key === 'compliance')!;
-        expect(complianceCol.getValue('test-pkg', version, store)).toBe('Non-Compliant');
+        expect(complianceCol.getValue({ name: 'test-pkg', version, store, ecosystem: 'npm' })).toBe(
+            'Non-Compliant',
+        );
     });
 
     it('returns compliant for dependencies within threshold', () => {
@@ -107,7 +109,9 @@ describe('compliance columns', () => {
 
         const version = makeDependencyVersion();
         const complianceCol = plugin.columns!.find((c) => c.key === 'compliance')!;
-        expect(complianceCol.getValue('test-pkg', version, store)).toBe('Compliant');
+        expect(complianceCol.getValue({ name: 'test-pkg', version, store, ecosystem: 'npm' })).toBe(
+            'Compliant',
+        );
     });
 
     it('returns not-applicable when no policy set', () => {
@@ -117,7 +121,9 @@ describe('compliance columns', () => {
 
         const version = makeDependencyVersion();
         const complianceCol = plugin.columns!.find((c) => c.key === 'compliance')!;
-        expect(complianceCol.getValue('test-pkg', version, store)).toBe('N/A');
+        expect(complianceCol.getValue({ name: 'test-pkg', version, store, ecosystem: 'npm' })).toBe(
+            'N/A',
+        );
     });
 
     it('returns detail text for non-compliant dependencies', () => {
@@ -136,7 +142,7 @@ describe('compliance columns', () => {
 
         const version = makeDependencyVersion();
         const detailCol = plugin.columns!.find((c) => c.key === 'complianceDetail')!;
-        const detail = detailCol.getValue('test-pkg', version, store);
+        const detail = detailCol.getValue({ name: 'test-pkg', version, store, ecosystem: 'npm' });
         expect(detail).toContain('Major update');
         expect(detail).toContain('overdue');
     });

@@ -17,6 +17,7 @@ export type {
     GitHubData,
     PackageVersionInfo,
     UsedByGroupKeyFn,
+    ColumnContext,
 } from './types';
 export {
     mergeProviderDependencies,
@@ -74,6 +75,7 @@ export { WorkspaceSource } from './sources/WorkspaceSource';
 
 // Infrastructure shared with provider packages
 export { CacheService } from './services/CacheService';
+export type { PluginContext } from './services/CacheService';
 export { BUFFER_SIZES, WORKER_COUNT } from './constants';
 export { processInParallel } from './utils/workerQueue';
 export type { WorkerQueueOptions } from './utils/workerQueue';

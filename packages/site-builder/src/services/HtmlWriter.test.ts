@@ -267,7 +267,7 @@ describe('HtmlWriter', () => {
                     {
                         key: 'surface',
                         header: 'Surface',
-                        getValue: (pkg, _ver, s) => {
+                        getValue: ({ name: pkg, store: s }) => {
                             const meta = s.getDependencyFact<{ surfaceId: string }>(
                                 pkg,
                                 'testMeta',
@@ -278,7 +278,7 @@ describe('HtmlWriter', () => {
                     {
                         key: 'team',
                         header: 'Team',
-                        getValue: (pkg, _ver, s) => {
+                        getValue: ({ name: pkg, store: s }) => {
                             const meta = s.getDependencyFact<{ teamName: string }>(pkg, 'testMeta');
                             return meta?.teamName ?? '';
                         },
@@ -303,7 +303,7 @@ describe('HtmlWriter', () => {
                     {
                         key: 'surface',
                         header: 'Surface',
-                        getValue: (pkg, _ver, s) => {
+                        getValue: ({ name: pkg, store: s }) => {
                             const meta = s.getDependencyFact<{ surfaceId: string }>(
                                 pkg,
                                 'testMeta',
@@ -752,7 +752,7 @@ describe('HtmlWriter', () => {
                     {
                         key: 'surface',
                         header: 'Surface',
-                        getValue: (pkg, _ver, s) => {
+                        getValue: ({ name: pkg, store: s }) => {
                             const meta = s.getDependencyFact<{ surfaceId: string }>(
                                 pkg,
                                 'testMeta',
@@ -814,7 +814,7 @@ describe('HtmlWriter', () => {
 
         it('groupDependenciesByMeta uses custom group key', async () => {
             const writer = new HtmlWriter({
-                getUsedByGroupKey: (pkg, _ver, s) => {
+                getUsedByGroupKey: ({ name: pkg, store: s }) => {
                     const meta = s.getDependencyFact<{ teamName: string }>(pkg, 'testMeta');
                     return meta?.teamName ?? 'Unknown';
                 },

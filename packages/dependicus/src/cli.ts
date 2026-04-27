@@ -24,8 +24,8 @@ import type { VersionContext, LinearIssueSpec } from '@dependicus/linear';
 import { reconcileGitHubIssues } from '@dependicus/github-issues';
 import type { GitHubIssueSpec } from '@dependicus/github-issues';
 import type { VersionContext as GitHubVersionContext } from '@dependicus/github-issues';
-import type { DependicusPlugin, ResolvedPlugins } from './plugin';
-import { resolvePlugins } from './plugin';
+import type { DependicusPlugin, ResolvedPlugins, SpecDiagnostics } from './plugin';
+import { resolvePlugins, validateLinearIssueSpec, validateGitHubIssueSpec } from './plugin';
 
 /** @group Core Types */
 export interface DependicusCliConfig {
@@ -138,6 +138,12 @@ function createDependicusInstance(
     const siteName = config.siteName ?? `Dependicus for ${basename(config.repoRoot)}`;
     const cacheDir = config.cacheDir ?? join(config.repoRoot, '.dependicus-cache');
     const cacheService = new CacheService(cacheDir);
+
+    // Initialize plugins with services before data collection
+    for (const plugin of config.plugins ?? []) {
+        plugin.init?.({ cacheService });
+    }
+
     const providers = config.providers?.length
         ? config.providers
         : config.providerNames?.length
@@ -322,19 +328,27 @@ export function dependicusCli(config: DependicusCliConfig): {
 
                         const { effectiveConfig, resolved, jsonPath } = resolveConfig();
 
-                        // If --linear-team-id is given, wrap getLinearIssueSpec to inject teamId
+                        // Build the final spec function: merge → CLI flag injection → validation
                         const teamIdOverride = options.linearTeamId as string | undefined;
-                        const baseGetLinearIssueSpec = resolved.getLinearIssueSpec;
-                        const effectiveGetLinearIssueSpec: typeof resolved.getLinearIssueSpec =
-                            teamIdOverride && baseGetLinearIssueSpec
-                                ? (ctx, s) => {
-                                      const spec = baseGetLinearIssueSpec(ctx, s);
-                                      if (!spec) return undefined;
-                                      return { ...spec, teamId: teamIdOverride };
-                                  }
-                                : teamIdOverride
-                                  ? () => ({ teamId: teamIdOverride })
-                                  : resolved.getLinearIssueSpec;
+                        const baseMerge = resolved.getLinearIssueSpec;
+                        const linearDiag: SpecDiagnostics = { skipped: [], summarized: false };
+                        const effectiveGetLinearIssueSpec = baseMerge
+                            ? (ctx: VersionContext, s: FactStore) => {
+                                  const partial = baseMerge(ctx, s);
+                                  if (!partial) return undefined;
+                                  const patched = teamIdOverride
+                                      ? { ...partial, teamId: teamIdOverride }
+                                      : partial;
+                                  return validateLinearIssueSpec(patched, ctx.name, linearDiag);
+                              }
+                            : teamIdOverride
+                              ? (ctx: VersionContext) =>
+                                    validateLinearIssueSpec(
+                                        { teamId: teamIdOverride },
+                                        ctx.name,
+                                        linearDiag,
+                                    )
+                              : undefined;
 
                         const dependicus = await createDependicusInstance(
                             effectiveConfig,
@@ -416,27 +430,33 @@ export function dependicusCli(config: DependicusCliConfig): {
 
                         const { effectiveConfig, resolved, jsonPath } = resolveConfig();
 
-                        // If --github-owner/--github-repo are given, wrap getGitHubIssueSpec to inject them
+                        // Build the final spec function: merge → CLI flag injection → validation
                         const ownerOverride = options.githubOwner as string | undefined;
                         const repoOverride = options.githubRepo as string | undefined;
-                        const baseGetGitHubIssueSpec = resolved.getGitHubIssueSpec;
-                        const effectiveGetGitHubIssueSpec: typeof resolved.getGitHubIssueSpec =
-                            (ownerOverride || repoOverride) && baseGetGitHubIssueSpec
-                                ? (ctx, s) => {
-                                      const spec = baseGetGitHubIssueSpec(ctx, s);
-                                      if (!spec) return undefined;
-                                      return {
-                                          ...spec,
-                                          ...(ownerOverride ? { owner: ownerOverride } : {}),
-                                          ...(repoOverride ? { repo: repoOverride } : {}),
-                                      };
-                                  }
-                                : ownerOverride || repoOverride
-                                  ? () => ({
-                                        owner: ownerOverride ?? '',
-                                        repo: repoOverride ?? '',
-                                    })
-                                  : resolved.getGitHubIssueSpec;
+                        const githubMerge = resolved.getGitHubIssueSpec;
+                        const githubDiag: SpecDiagnostics = { skipped: [], summarized: false };
+                        const effectiveGetGitHubIssueSpec = githubMerge
+                            ? (ctx: GitHubVersionContext, s: FactStore) => {
+                                  const partial = githubMerge(ctx, s);
+                                  if (!partial) return undefined;
+                                  const patched = {
+                                      ...partial,
+                                      ...(ownerOverride ? { owner: ownerOverride } : {}),
+                                      ...(repoOverride ? { repo: repoOverride } : {}),
+                                  };
+                                  return validateGitHubIssueSpec(patched, ctx.name, githubDiag);
+                              }
+                            : ownerOverride || repoOverride
+                              ? (ctx: GitHubVersionContext) =>
+                                    validateGitHubIssueSpec(
+                                        {
+                                            owner: ownerOverride ?? '',
+                                            repo: repoOverride ?? '',
+                                        },
+                                        ctx.name,
+                                        githubDiag,
+                                    )
+                              : undefined;
 
                         const dependicus = await createDependicusInstance(
                             effectiveConfig,

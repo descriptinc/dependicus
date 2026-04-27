@@ -32,17 +32,26 @@ const issueDescriptionTemplate = hbs.compile(issueDescriptionHbs);
 const groupDescriptionTemplate = hbs.compile(groupDescriptionHbs);
 const newVersionsCommentTemplate = hbs.compile(newVersionsCommentHbs);
 
+export interface IssueDescriptionParams {
+    dep: OutdatedDependency;
+    store: FactStore;
+    minVersion: string;
+    effectiveLatestVersion: string;
+    getDetailUrl: DetailUrlFn;
+    providerInfo: ProviderInfo;
+}
+
 /**
  * Build the description for a single-dependency Linear issue.
  */
-export function buildIssueDescription(
-    dep: OutdatedDependency,
-    store: FactStore,
-    minVersion: string,
-    effectiveLatestVersion: string,
-    getDetailUrl: DetailUrlFn,
-    providerInfo: ProviderInfo,
-): string {
+export function buildIssueDescription({
+    dep,
+    store,
+    minVersion,
+    effectiveLatestVersion,
+    getDetailUrl,
+    providerInfo,
+}: IssueDescriptionParams): string {
     const { name, ecosystem, versions, worstCompliance } = dep;
     const version = versions[0];
     if (!version) {
@@ -161,15 +170,22 @@ export function buildIssueDescription(
     return issueDescriptionTemplate(context).trim();
 }
 
+export interface GroupDescriptionParams {
+    group: OutdatedGroup;
+    store: FactStore;
+    getDetailUrl: DetailUrlFn;
+    providerInfoMap: Map<string, ProviderInfo>;
+}
+
 /**
  * Build the description for a grouped Linear issue.
  */
-export function buildGroupIssueDescription(
-    group: OutdatedGroup,
-    store: FactStore,
-    getDetailUrl: DetailUrlFn,
-    providerInfoMap: Map<string, ProviderInfo>,
-): string {
+export function buildGroupIssueDescription({
+    group,
+    store,
+    getDetailUrl,
+    providerInfoMap,
+}: GroupDescriptionParams): string {
     const { groupName, dependencies, worstCompliance } = group;
 
     const notificationsOnly = group.policy.type === 'fyi';
