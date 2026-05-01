@@ -306,7 +306,7 @@ describe('getGroupingFilename', () => {
     });
 
     it('neutralizes directory traversal', () => {
-        expect(getGroupingFilename('../../etc/passwd')).toBe('etc-passwd.html');
+        expect(getGroupingFilename('../../etc/passwd')).toBe('etcpasswd.html');
     });
 
     it('strips wrapping punctuation', () => {

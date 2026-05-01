@@ -195,6 +195,7 @@ __metadata:
     handlebars: "npm:^4.7.8"
     js-yaml: "npm:^4.1.1"
     semver: "npm:^7.7.4"
+    slugify: "npm:^1.6.9"
     tsdown: "npm:^0.20.3"
     typescript: "npm:^5.9.3"
     vitest: "npm:^4.1.0"
@@ -3258,6 +3259,13 @@ __metadata:
   version: 2.0.0
   resolution: "siginfo@npm:2.0.0"
   checksum: 10c0/3def8f8e516fbb34cb6ae415b07ccc5d9c018d85b4b8611e3dc6f8be6d1899f693a4382913c9ed51a06babb5201639d76453ab297d1c54a456544acf5c892e34
+  languageName: node
+  linkType: hard
+
+"slugify@npm:^1.6.9":
+  version: 1.6.9
+  resolution: "slugify@npm:1.6.9"
+  checksum: 10c0/8473c566ae00c5db26bfbf6182a4a9478ab3c912a9c926e1fdb410736a77228bfca4fdc5c755b46fafa7d2d9900de482fd7a9bd5e5c91128c4743c2c072d88da
   languageName: node
   linkType: hard
 
