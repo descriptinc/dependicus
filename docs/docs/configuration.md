@@ -40,31 +40,7 @@ Dependicus aggressively caches data in individual JSON files. This parameter con
 
 CLI flag: `--cache-dir <path>`
 
-For all of the above, the CLI flag takes precedence over the programmatic config value.
-
-## Security
-
-### `--vuln-source <source>` (repeatable)
-
-Enable vulnerability scanning during `update`. This instantiates [SecurityPlugin](./security.md) with the selected sources. The flag is repeatable to enable multiple sources at once.
-
-Available sources:
-
-| Value             | Source                                                                                       |
-| ----------------- | -------------------------------------------------------------------------------------------- |
-| `osv`             | [OSV.dev](https://osv.dev) -- known vulnerabilities via CVSS scoring                         |
-| `depsdev`         | [deps.dev](https://deps.dev) -- deprecation status and transitive dependency counts          |
-| `ghsa`            | GitHub Advisory Database -- security advisories (uses `GITHUB_TOKEN` for higher rate limits) |
-| `github-advisory` | Alias for `ghsa`                                                                             |
-| `all`             | Enable all three sources                                                                     |
-
-```sh
-dependicus update --vuln-source osv
-dependicus update --vuln-source ghsa --vuln-source depsdev
-dependicus update --vuln-source all
-```
-
-When omitted, no vulnerability scanning runs. For programmatic use with custom cache TTLs or other options, instantiate `SecurityPlugin` directly in the `plugins` array instead (see [SecurityPlugin](./security.md)).
+For all of the above, the CLI flag takes precedence over the programmatic config value. See the [CLI Reference](./cli.md) for the full list of flags.
 
 ## Linear
 
