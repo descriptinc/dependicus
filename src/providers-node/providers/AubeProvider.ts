@@ -43,6 +43,7 @@ export class AubeProvider implements DependencyProvider {
     private patchedDeps: Set<string>;
     private catalogVersions: Map<string, string>;
     private cacheService: CacheService;
+    private hasWorkspace: boolean;
 
     constructor(cacheService: CacheService, rootDir: string) {
         this.cacheService = cacheService;
@@ -50,6 +51,7 @@ export class AubeProvider implements DependencyProvider {
         this.lockfilePath = join(rootDir, 'aube-lock.yaml');
 
         const workspacePath = join(rootDir, 'pnpm-workspace.yaml');
+        this.hasWorkspace = existsSync(workspacePath);
         try {
             const content = readFileSync(workspacePath, 'utf-8');
             const workspace = load(content) as PnpmWorkspace;
@@ -82,10 +84,19 @@ export class AubeProvider implements DependencyProvider {
         //   2. Build the set of workspace package names from the combined
         //      output, and drop any dep whose name is in that set (those are
         //      the workspace links aube inlined).
+        //
+        // For single-package repos (no pnpm-workspace.yaml), `aube -r list`
+        // errors, so we skip it and use only the root output.
         const rootOutput = await this.runAubeList([]);
-        const workspaceOutput = await this.runAubeList(['-r']);
-
         const rootPackages = JSON.parse(rootOutput) as PackageInfo[];
+
+        if (!this.hasWorkspace) {
+            this.cachedPackages = rootPackages;
+            process.stderr.write(`Found ${this.cachedPackages.length} packages\n`);
+            return this.cachedPackages;
+        }
+
+        const workspaceOutput = await this.runAubeList(['-r']);
         const workspacePackages = JSON.parse(workspaceOutput) as PackageInfo[];
 
         // The root importer shows up in `aube list` as a single entry. Dedupe

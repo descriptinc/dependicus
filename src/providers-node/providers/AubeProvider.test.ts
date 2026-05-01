@@ -98,6 +98,10 @@ describe('AubeProvider', () => {
         mkdirSync(join(tmpDir, 'node_modules', '.aube'), { recursive: true });
     }
 
+    function markAsWorkspace(): void {
+        writeFileSync(join(tmpDir, 'pnpm-workspace.yaml'), 'packages:\n  - packages/*\n');
+    }
+
     function wireAubeListMocks(): void {
         mockExecSync.mockImplementation((command: unknown) => {
             if (typeof command !== 'string') throw new Error(`unexpected exec ${String(command)}`);
@@ -113,6 +117,7 @@ describe('AubeProvider', () => {
 
     describe('getPackages', () => {
         it('concatenates root and workspace list output', async () => {
+            markAsWorkspace();
             markAsAubeInstalled();
             wireAubeListMocks();
             const provider = new AubeProvider(createMockCacheService(), tmpDir);
@@ -133,6 +138,7 @@ describe('AubeProvider', () => {
         });
 
         it('filters workspace-to-workspace deps that aube inlines as registry deps', async () => {
+            markAsWorkspace();
             markAsAubeInstalled();
             wireAubeListMocks();
             const provider = new AubeProvider(createMockCacheService(), tmpDir);
@@ -151,6 +157,7 @@ describe('AubeProvider', () => {
         });
 
         it('runs aube with --json --depth=0 both non-recursively and recursively, with rootDir as cwd', async () => {
+            markAsWorkspace();
             markAsAubeInstalled();
             wireAubeListMocks();
             const provider = new AubeProvider(createMockCacheService(), tmpDir);
@@ -166,6 +173,7 @@ describe('AubeProvider', () => {
         });
 
         it('runs `aube install` first when DEPENDICUS_ALLOW_INSTALL=1 and node_modules/.aube is missing', async () => {
+            markAsWorkspace();
             process.env.DEPENDICUS_ALLOW_INSTALL = '1';
             mockExecSync.mockImplementation((command: unknown) => {
                 if (typeof command !== 'string') throw new Error('unexpected');
@@ -188,6 +196,7 @@ describe('AubeProvider', () => {
         });
 
         it('skips the install and warns when DEPENDICUS_ALLOW_INSTALL is not set', async () => {
+            markAsWorkspace();
             wireAubeListMocks();
             const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
@@ -202,6 +211,7 @@ describe('AubeProvider', () => {
         });
 
         it('uses cache when lockfile unchanged', async () => {
+            markAsWorkspace();
             const cacheService = createMockCacheService({
                 isCacheValid: vi.fn().mockResolvedValue(true),
                 readCache: vi.fn().mockImplementation((key: string) => {
@@ -221,6 +231,7 @@ describe('AubeProvider', () => {
         });
 
         it('caches in memory on subsequent calls', async () => {
+            markAsWorkspace();
             wireAubeListMocks();
             const provider = new AubeProvider(createMockCacheService(), tmpDir);
 
