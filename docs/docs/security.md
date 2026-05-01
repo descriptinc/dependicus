@@ -2,8 +2,6 @@
 
 Dependicus ships with `SecurityPlugin`, which queries public vulnerability databases and enriches your dependency dashboard with security findings. It adds columns for severity, fix availability, and advisory details, and attaches security context to Linear and GitHub issue tickets.
 
-The quickest way to enable it is with the [`--vuln-source` CLI flag](./configuration.md#--vuln-source-source-repeatable). This page covers the programmatic API for when you need more control.
-
 ## Data sources
 
 `SecurityPlugin` supports three data sources, each enabled independently:
