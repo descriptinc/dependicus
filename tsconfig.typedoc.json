@@ -1,0 +1,9 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "composite": false
+    },
+    "files": ["src/hbs.d.ts"],
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist"]
+}

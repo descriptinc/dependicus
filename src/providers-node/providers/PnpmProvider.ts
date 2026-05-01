@@ -1,0 +1,165 @@
+import { execSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { load } from 'js-yaml';
+import { satisfies, validRange } from 'semver';
+import type {
+    PackageInfo,
+    DependencyProvider,
+    SourceContext,
+    DataSource,
+    CacheService,
+} from '../../core/index';
+import { BUFFER_SIZES } from '../../core/index';
+import { NpmRegistryService } from '../services/NpmRegistryService';
+import { NpmRegistrySource } from '../sources/NpmRegistrySource';
+import { NpmSizeSource } from '../sources/NpmSizeSource';
+import { DeprecationSource } from '../sources/DeprecationSource';
+import { DeprecationService } from '../services/DeprecationService';
+import { resolveNpmMetadata } from '../resolveNpmMetadata';
+
+interface PnpmWorkspace {
+    patchedDependencies?: Record<string, string>;
+    catalog?: Record<string, string>;
+}
+
+export class PnpmProvider implements DependencyProvider {
+    readonly name = 'pnpm';
+    readonly ecosystem = 'npm';
+    readonly supportsCatalog = true;
+    readonly installCommand = 'pnpm install';
+    readonly urlPatterns = {
+        'Dependency Graph': 'https://npmgraph.js.org/?q={{name}}@{{version}}',
+        Registry: 'https://www.npmjs.com/package/{{name}}/v/{{version}}',
+        npmx: 'https://npmx.dev/package/{{name}}',
+    };
+    readonly catalogFile = 'pnpm-workspace.yaml';
+    readonly patchHint =
+        'This dependency has a patch applied in `pnpm-workspace.yaml`. When upgrading, check if the patch is still needed or should be removed.';
+    readonly rootDir: string;
+    readonly lockfilePath: string;
+    private cachedPackages: PackageInfo[] | undefined = undefined;
+    private patchedDeps: Set<string>;
+    private catalogVersions: Map<string, string>;
+    private cacheService: CacheService;
+    private hasWorkspace: boolean;
+
+    constructor(cacheService: CacheService, rootDir: string) {
+        this.cacheService = cacheService;
+        this.rootDir = rootDir;
+        this.lockfilePath = join(rootDir, 'pnpm-lock.yaml');
+
+        const workspacePath = join(rootDir, 'pnpm-workspace.yaml');
+        this.hasWorkspace = existsSync(workspacePath);
+        try {
+            const content = readFileSync(workspacePath, 'utf-8');
+            const workspace = load(content) as PnpmWorkspace;
+            this.patchedDeps = workspace.patchedDependencies
+                ? new Set(Object.keys(workspace.patchedDependencies))
+                : new Set<string>();
+            this.catalogVersions = new Map<string, string>();
+            if (workspace.catalog) {
+                for (const [pkg, version] of Object.entries(workspace.catalog)) {
+                    this.catalogVersions.set(pkg, version);
+                }
+            }
+        } catch {
+            this.patchedDeps = new Set<string>();
+            this.catalogVersions = new Map<string, string>();
+        }
+    }
+
+    async getPackages(): Promise<PackageInfo[]> {
+        if (this.cachedPackages) {
+            return this.cachedPackages;
+        }
+
+        const cacheKey = 'pnpm-list';
+        let output: string;
+
+        if (await this.cacheService.isCacheValid(cacheKey, this.lockfilePath)) {
+            process.stderr.write('Using cached pnpm list output (lockfile unchanged)\n');
+            output = await this.cacheService.readCache(cacheKey);
+        } else {
+            // `pnpm -r list` reads state from node_modules/.pnpm/. If another
+            // PM populated node_modules (bun, yarn, npm, aube), pnpm will run
+            // but return workspace packages with empty dependency maps. When
+            // DEPENDICUS_ALLOW_INSTALL=1 is set, reinstall with pnpm so the
+            // list is accurate; otherwise, warn and proceed (the list may be
+            // incomplete). We require opt-in because reinstalling is a
+            // destructive change to the working tree that callers might not
+            // expect.
+            if (!existsSync(join(this.rootDir, 'node_modules', '.pnpm'))) {
+                if (process.env.DEPENDICUS_ALLOW_INSTALL === '1') {
+                    process.stderr.write(
+                        'node_modules/.pnpm not found; running `pnpm install --prefer-frozen-lockfile` (DEPENDICUS_ALLOW_INSTALL=1)\n',
+                    );
+                    execSync('pnpm install --prefer-frozen-lockfile', {
+                        stdio: 'inherit',
+                        cwd: this.rootDir,
+                    });
+                } else {
+                    process.stderr.write(
+                        'Warning: node_modules/.pnpm not found. `pnpm -r list` may report empty dependencies. ' +
+                            'Run `pnpm install` first, or set DEPENDICUS_ALLOW_INSTALL=1 to let dependicus reinstall automatically.\n',
+                    );
+                }
+            }
+
+            const listCmd = this.hasWorkspace
+                ? 'pnpm -r list --json --depth=0'
+                : 'pnpm list --json --depth=0';
+            process.stderr.write(`Running: ${listCmd}\n`);
+            output = execSync(listCmd, {
+                encoding: 'utf-8',
+                maxBuffer: BUFFER_SIZES.SMALL,
+                cwd: this.rootDir,
+            });
+            await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
+        }
+
+        this.cachedPackages = JSON.parse(output) as PackageInfo[];
+        process.stderr.write(`Found ${this.cachedPackages.length} packages\n`);
+        return this.cachedPackages;
+    }
+
+    isInCatalog(name: string, version: string): boolean {
+        const catalogRange = this.catalogVersions.get(name);
+        if (!catalogRange) {
+            return false;
+        }
+        if (!validRange(catalogRange)) {
+            return version === catalogRange;
+        }
+        try {
+            return satisfies(version, catalogRange);
+        } catch {
+            return version === catalogRange;
+        }
+    }
+
+    hasInCatalog(name: string): boolean {
+        return this.catalogVersions.has(name);
+    }
+
+    isPatched(name: string, version: string): boolean {
+        return this.patchedDeps.has(`${name}@${version}`);
+    }
+
+    createSources(ctx: SourceContext): DataSource[] {
+        const registryService = new NpmRegistryService(ctx.cacheService, this.lockfilePath);
+        const deprecationService = new DeprecationService(ctx.cacheService, this.rootDir);
+        return [
+            new NpmRegistrySource(registryService),
+            new NpmSizeSource(registryService),
+            new DeprecationSource(deprecationService),
+        ];
+    }
+
+    async resolveVersionMetadata(
+        packages: Array<{ name: string; versions: string[] }>,
+    ): Promise<Map<string, { publishDate: string | undefined; latestVersion: string }>> {
+        const registryService = new NpmRegistryService(this.cacheService, this.lockfilePath);
+        return resolveNpmMetadata(registryService, packages);
+    }
+}

@@ -1,8 +1,11 @@
 node_modules/
 dist/
+*.asset.js
+*.asset.css
 *.tsbuildinfo
 docs-out/
 dependicus-out/
+typedoc-out/
 .dependicus-cache/
 hk.local.pkl
 .package-manager
