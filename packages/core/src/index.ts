@@ -22,6 +22,7 @@ export type {
 export {
     mergeProviderDependencies,
     getDetailFilename,
+    getGroupingFilename,
     createDetailUrlBuilder,
     buildProviderInfoMap,
 } from './types';

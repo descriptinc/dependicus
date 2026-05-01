@@ -211,6 +211,18 @@ export function getDetailFilename(name: string, version: string): string {
     return `${safeName}@${safeVersion}.html`;
 }
 
+/** Build the filename for a grouping detail page (e.g., "media-asset-management-gat.html"). */
+export function getGroupingFilename(value: string): string {
+    return (
+        value
+            .replace(/[/:"<>|*?()]/g, '-')
+            .replace(/\s+/g, '-')
+            .replace(/\.\./g, '_')
+            .replace(/-{2,}/g, '-')
+            .replace(/^-|-$/g, '') + '.html'
+    );
+}
+
 export type DetailUrlFn = (ecosystem: string, name: string, version: string) => string;
 
 /** Build a function that returns the full detail page URL for a given dependency version. */
