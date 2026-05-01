@@ -45,9 +45,8 @@
     },
     "scripts": {
         "dependicus": "node dist/bin.mjs",
-        "build": "tsdown",
-        "bundle": "node scripts/bundle.mjs",
-        "prepack": "pnpm run build && pnpm run bundle",
+        "build": "node scripts/build-assets.mjs && tsdown",
+        "prepack": "pnpm run build",
         "clean": "rm -rf dist",
         "test": "vitest run",
         "typedoc": "typedoc --tsconfig tsconfig.typedoc.json --entryPoints src/index.ts --out typedoc-out --name 'Dependicus API Reference'",

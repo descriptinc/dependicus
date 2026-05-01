@@ -2,11 +2,11 @@ import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
 import type { Plugin } from 'vite';
 
-function rawHbs(): Plugin {
+function inlineRawFiles(): Plugin {
     return {
-        name: 'raw-hbs',
+        name: 'inline-raw-files',
         transform(_, id) {
-            if (id.endsWith('.hbs')) {
+            if (id.endsWith('.hbs') || id.endsWith('.css') || id.endsWith('.asset.js')) {
                 return `export default ${JSON.stringify(readFileSync(id, 'utf-8'))};`;
             }
         },
@@ -14,7 +14,7 @@ function rawHbs(): Plugin {
 }
 
 export default defineConfig({
-    plugins: [rawHbs()],
+    plugins: [inlineRawFiles()],
     test: {
         environment: 'node',
         include: ['src/**/*.test.ts'],

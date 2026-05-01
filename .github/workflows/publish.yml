@@ -16,7 +16,6 @@ jobs:
             - uses: jdx/mise-action@v2
             - run: pnpm install
             - run: pnpm run build
-            - run: pnpm run bundle
             - name: Publish to NPM
               env:
                   NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

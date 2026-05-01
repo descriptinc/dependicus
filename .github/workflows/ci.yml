@@ -306,7 +306,6 @@ jobs:
             - uses: jdx/mise-action@v2
             - run: pnpm install
             - run: mise run pnpm:build
-            - run: pnpm run bundle
             - name: Install from tarball and run CLI
               run: |
                   pnpm pack
