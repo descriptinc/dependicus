@@ -5,9 +5,18 @@ import type { Plugin } from 'rolldown';
 function inlineRawFiles(): Plugin {
     return {
         name: 'inline-raw-files',
+        resolveId(source, importer) {
+            // Redirect .css imports to a virtual .cssraw ID so rolldown's
+            // native CSS handling doesn't extract them into separate files.
+            if (source.endsWith('.css') && importer) {
+                const resolved = new URL(source, 'file://' + importer).pathname;
+                return { id: resolved + '.cssraw' };
+            }
+        },
         load(id) {
-            if (id.endsWith('.hbs') || id.endsWith('.css') || id.endsWith('.asset.js')) {
-                const content = readFileSync(id, 'utf-8');
+            const rawPath = id.endsWith('.cssraw') ? id.slice(0, -'.cssraw'.length) : null;
+            if (rawPath || id.endsWith('.hbs') || id.endsWith('.asset.js')) {
+                const content = readFileSync(rawPath ?? id, 'utf-8');
                 return `export default ${JSON.stringify(content)};`;
             }
         },
