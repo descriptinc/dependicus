@@ -4,15 +4,15 @@ Dependicus provides four commands: `update`, `html`, `make-linear-issues`, and `
 
 ## Global options
 
-| Flag                          | Description                                                                                                         |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `--repo-root <path>`          | Root directory of the project (default: cwd)                                                                        |
-| `--provider <name>`           | Dependency provider to use (repeatable): pnpm, bun, yarn, npm, aube, mise, uv, go, rust. Auto-detects if omitted.   |
-| `--vuln-source <source>`      | Vulnerability source to enable (repeatable): osv, depsdev, ghsa, github-advisory, all. See [below](#--vuln-source). |
-| `--dependicus-base-url <url>` | Base URL where the Dependicus site is published                                                                     |
-| `--output-dir <path>`         | Directory to write HTML and JSON output (default: `<repo-root>/dependicus-out`)                                     |
-| `--cache-dir <path>`          | Directory to store cached API data (default: `<repo-root>/.dependicus-cache`)                                       |
-| `--site-name <name>`          | Name shown in site heading and title tag                                                                            |
+| Flag                          | Description                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `--repo-root <path>`          | Root directory of the project (default: cwd)                                                                       |
+| `--provider <name>`           | Dependency provider to use (repeatable): pnpm, bun, yarn, npm, aube, mise, uv, go, rust. Auto-detects if omitted.  |
+| `--vuln-source <source>`      | Vulnerability source to enable (repeatable): osv, depsdev, ghsa, github-advisory, all. See [below](#-vuln-source). |
+| `--dependicus-base-url <url>` | Base URL where the Dependicus site is published                                                                    |
+| `--output-dir <path>`         | Directory to write HTML and JSON output (default: `<repo-root>/dependicus-out`)                                    |
+| `--cache-dir <path>`          | Directory to store cached API data (default: `<repo-root>/.dependicus-cache`)                                      |
+| `--site-name <name>`          | Name shown in site heading and title tag                                                                           |
 
 ## Commands
 

@@ -1223,6 +1223,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@turingpointde/cvss.js@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "@turingpointde/cvss.js@npm:2.1.0"
+  checksum: 10c0/2d617c704925b012c69867f4ff626b510f57f0049b07fc2252bea9ef1c6c3d9d8b7515633888da9153766738e943d9345a029d4594bbad7d7d4df4b1c1e92d5b
+  languageName: node
+  linkType: hard
+
 "@tybys/wasm-util@npm:^0.10.1":
   version: 0.10.1
   resolution: "@tybys/wasm-util@npm:0.10.1"
@@ -1544,6 +1551,7 @@ __metadata:
   dependencies:
     "@linear/sdk": "npm:^76.0.0"
     "@octokit/rest": "npm:^22.0.1"
+    "@turingpointde/cvss.js": "npm:^2.1.0"
     "@types/js-yaml": "npm:^4.0.9"
     "@types/node": "npm:^25.3.0"
     "@types/semver": "npm:^7.7.1"
