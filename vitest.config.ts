@@ -1,12 +1,23 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
+import type { Plugin } from 'vite';
+
+function rawHbs(): Plugin {
+    return {
+        name: 'raw-hbs',
+        transform(_, id) {
+            if (id.endsWith('.hbs')) {
+                return `export default ${JSON.stringify(readFileSync(id, 'utf-8'))};`;
+            }
+        },
+    };
+}
 
 export default defineConfig({
-    ssr: {
-        resolve: {
-            conditions: ['source'],
-        },
-    },
+    plugins: [rawHbs()],
     test: {
-        projects: ['packages/*'],
+        environment: 'node',
+        include: ['src/**/*.test.ts'],
+        exclude: ['**/node_modules/**'],
     },
 });

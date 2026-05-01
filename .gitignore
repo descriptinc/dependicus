@@ -3,6 +3,7 @@ dist/
 *.tsbuildinfo
 docs-out/
 dependicus-out/
+typedoc-out/
 .dependicus-cache/
 hk.local.pkl
 .package-manager

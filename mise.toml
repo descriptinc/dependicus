@@ -17,7 +17,7 @@ yarn = "4.14.1"
 [tasks.docs]
 description = "Build unified docs site (zensical + typedoc + dependicus) into docs-out/"
 depends = ["pnpm:build", "docs:zensical", "docs:typedoc", "docs:dependicus"]
-run = "rm -rf docs-out/dependicus && mkdir -p docs-out && cp -r docs/site docs-out/dependicus && cp -r packages/dependicus/typedoc-out docs-out/dependicus/api && cp -r dependicus-out docs-out/dependicus/dependencies"
+run = "rm -rf docs-out/dependicus && mkdir -p docs-out && cp -r docs/site docs-out/dependicus && cp -r typedoc-out docs-out/dependicus/api && cp -r dependicus-out docs-out/dependicus/dependencies"
 
 [tasks."docs:zensical"]
 description = "Build zensical docs"
@@ -26,97 +26,96 @@ run = "uv run zensical build"
 
 [tasks."docs:typedoc"]
 description = "Build typedoc API reference"
-dir = "{{config_root}}/packages/dependicus"
 run = "pnpm run typedoc"
 
 [tasks."docs:dependicus"]
 description = "Run dependicus on itself"
-run = "node packages/dependicus/dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider aube --provider mise --provider uv --provider go --provider rust"
+run = "node dist/bin.mjs update --html --provider pnpm --provider bun --provider yarn --provider npm --provider aube --provider mise --provider uv --provider go --provider rust"
 
 [tasks."pnpm:build"]
-description = "Build all packages with pnpm"
-run = "pnpm -r run build"
+description = "Build with pnpm"
+run = "pnpm run build"
 
 [tasks."pnpm:test"]
-description = "Run all tests with pnpm"
-run = "pnpm -r run test"
+description = "Run tests with pnpm"
+run = "pnpm run test"
 
 [tasks."pnpm:typecheck"]
-description = "Typecheck all packages with pnpm"
+description = "Typecheck with pnpm"
 depends = ["pnpm:build"]
-run = "pnpm -r run typecheck"
+run = "pnpm run typecheck"
 
 [tasks."pnpm:clean"]
-description = "Clean all packages with pnpm"
-run = "pnpm -r run clean"
+description = "Clean with pnpm"
+run = "pnpm run clean"
 
 [tasks."bun:build"]
-description = "Build all packages with bun"
-run = "bun run --filter '*' build"
+description = "Build with bun"
+run = "bun run build"
 
 [tasks."bun:test"]
-description = "Run all tests with bun"
-run = "bun run --filter '*' test"
+description = "Run tests with bun"
+run = "bun run test"
 
 [tasks."bun:typecheck"]
-description = "Typecheck all packages with bun"
+description = "Typecheck with bun"
 depends = ["bun:build"]
-run = "bun run --filter '*' typecheck"
+run = "bun run typecheck"
 
 [tasks."bun:clean"]
-description = "Clean all packages with bun"
-run = "bun run --filter '*' clean"
+description = "Clean with bun"
+run = "bun run clean"
 
 [tasks."npm:build"]
-description = "Build all packages with npm"
-run = "npm run --workspaces build"
+description = "Build with npm"
+run = "npm run build"
 
 [tasks."npm:test"]
-description = "Run all tests with npm"
-run = "npm run --workspaces test"
+description = "Run tests with npm"
+run = "npm run test"
 
 [tasks."npm:typecheck"]
-description = "Typecheck all packages with npm"
+description = "Typecheck with npm"
 depends = ["npm:build"]
-run = "npm run --workspaces typecheck"
+run = "npm run typecheck"
 
 [tasks."npm:clean"]
-description = "Clean all packages with npm"
-run = "npm run --workspaces clean"
+description = "Clean with npm"
+run = "npm run clean"
 
 [tasks."yarn:build"]
-description = "Build all packages with yarn"
-run = "yarn workspaces foreach -A run build"
+description = "Build with yarn"
+run = "yarn run build"
 
 [tasks."yarn:test"]
-description = "Run all tests with yarn"
-run = "yarn workspaces foreach -A run test"
+description = "Run tests with yarn"
+run = "yarn run test"
 
 [tasks."yarn:typecheck"]
-description = "Typecheck all packages with yarn"
+description = "Typecheck with yarn"
 depends = ["yarn:build"]
-run = "yarn workspaces foreach -A run typecheck"
+run = "yarn run typecheck"
 
 [tasks."yarn:clean"]
-description = "Clean all packages with yarn"
-run = "yarn workspaces foreach -A run clean"
+description = "Clean with yarn"
+run = "yarn run clean"
 
 [tasks."aube:build"]
-description = "Build all packages with aube"
-run = "aube -r run build"
+description = "Build with aube"
+run = "aube run build"
 
 [tasks."aube:test"]
-description = "Run all tests with aube"
-run = "aube -r run test"
+description = "Run tests with aube"
+run = "aube run test"
 
 [tasks."aube:typecheck"]
-description = "Typecheck all packages with aube"
+description = "Typecheck with aube"
 depends = ["aube:build"]
-run = "aube -r run typecheck"
+run = "aube run typecheck"
 
 [tasks."aube:clean"]
-description = "Clean all packages with aube"
-run = "aube -r run clean"
+description = "Clean with aube"
+run = "aube run clean"
 
 [tasks."switch:pnpm"]
 description = "Delete node_modules and reinstall with pnpm"
@@ -142,27 +141,6 @@ run = "bash scripts/switch-pm.sh aube"
 description = "Show which package manager installed node_modules"
 run = "cat .package-manager 2>/dev/null || echo 'unknown (run switch:pnpm, switch:bun, switch:npm, switch:yarn, or switch:aube first)'"
 
-[tasks.check-versions]
-description = "Ensure no dependency appears with multiple version ranges across workspaces"
-run = """
-mismatches=$(jq -rn '
-  [inputs | (.dependencies // {}) + (.devDependencies // {}) | to_entries[]
-    | select(.value | startswith("workspace:") | not)
-    | {name: .key, version: .value}]
-  | group_by(.name)
-  | map(select(map(.version) | unique | length > 1))
-  | map("  \\(.[0].name): \\(map(.version) | unique | join(", "))")
-  | join("\\n")
-' package.json packages/*/package.json)
-if [ -z "$mismatches" ]; then
-  echo "All dependency versions are consistent."
-else
-  echo "Version mismatches found:"
-  echo "$mismatches"
-  exit 1
-fi
-"""
-
 [tasks.update-all-lockfiles]
 description = "Regenerate lockfiles for all package managers, ending on pnpm"
 run = """
@@ -175,17 +153,15 @@ done
 [tasks.release]
 description = "Build, test, and publish dependicus to NPM"
 depends = ["pnpm:build", "pnpm:test", "pnpm:typecheck"]
-dir = "{{config_root}}/packages/dependicus"
 interactive = true
 run = "pnpm publish"
 
 [tasks.prerelease]
 description = "Build, test, and publish a prerelease to NPM"
 depends = ["pnpm:build", "pnpm:test", "pnpm:typecheck"]
-dir = "{{config_root}}/packages/dependicus"
 interactive = true
 run = "pnpm publish --tag rc"
 
 [tasks.delete-node-modules]
-description = "Delete all node_modules directories"
-run = "rm -rf node_modules packages/*/node_modules"
+description = "Delete node_modules"
+run = "rm -rf node_modules"

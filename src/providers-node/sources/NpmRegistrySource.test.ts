@@ -1,0 +1,123 @@
+import { describe, it, expect, vi } from 'vitest';
+import { NpmRegistrySource } from './NpmRegistrySource';
+import { RootFactStore, FactKeys } from '../../core/index';
+import type { DirectDependency, PackageVersionInfo } from '../../core/index';
+import type { NpmRegistryService, PackageMetadata } from '../services/NpmRegistryService';
+
+function makeDep(name: string, version: string, latestVersion: string): DirectDependency {
+    return {
+        name,
+        ecosystem: 'npm',
+        versions: [
+            {
+                version,
+                latestVersion,
+                usedBy: ['@my/app'],
+                dependencyTypes: ['prod'],
+                publishDate: '2024-01-01',
+                inCatalog: false,
+            },
+        ],
+    };
+}
+
+function mockNpmRegistryService(overrides: Partial<NpmRegistryService> = {}): NpmRegistryService {
+    return {
+        prefetchFullMetadata: vi.fn(async () => {}),
+        prefetchUnpackedSizes: vi.fn(async () => {}),
+        getPackageMetadata: vi.fn(async () => undefined),
+        getVersionsBetween: vi.fn(async () => []),
+        getFullPackageMetadata: vi.fn(async () => undefined),
+        getPublishDate: vi.fn(async () => ''),
+        getLatestVersion: vi.fn(async () => ''),
+        hasFullMetadataCache: vi.fn(async () => false),
+        getUnpackedSizes: vi.fn(async () => new Map()),
+        ...overrides,
+    } as unknown as NpmRegistryService;
+}
+
+describe('NpmRegistrySource', () => {
+    it('has the correct name and no dependencies', () => {
+        const source = new NpmRegistrySource(mockNpmRegistryService());
+        expect(source.name).toBe('npm-registry');
+        expect(source.dependsOn).toEqual([]);
+    });
+
+    it('fetches full metadata for all package names', async () => {
+        const prefetchFullMetadata = vi.fn(async () => {});
+        const service = mockNpmRegistryService({ prefetchFullMetadata });
+        const source = new NpmRegistrySource(service);
+        const deps = [makeDep('react', '18.2.0', '19.0.0'), makeDep('vue', '3.3.0', '3.4.0')];
+
+        await source.fetch(deps, new RootFactStore());
+
+        expect(prefetchFullMetadata).toHaveBeenCalledWith(['react', 'vue']);
+    });
+
+    it('stores version-level facts from registry metadata', async () => {
+        const metadata: PackageMetadata = {
+            name: 'react',
+            version: '18.2.0',
+            description: 'A JavaScript library for building user interfaces',
+            homepage: 'https://react.dev',
+            repository: { type: 'git', url: 'git+https://github.com/facebook/react.git' },
+            bugs: { url: 'https://github.com/facebook/react/issues' },
+            dist: { unpackedSize: 12345 },
+        };
+
+        const service = mockNpmRegistryService({
+            getPackageMetadata: vi.fn(async () => metadata),
+        });
+        const source = new NpmRegistrySource(service);
+        const store = new RootFactStore();
+
+        await source.fetch([makeDep('react', '18.2.0', '19.0.0')], store);
+
+        expect(store.getVersionFact('react', '18.2.0', FactKeys.DESCRIPTION)).toBe(
+            'A JavaScript library for building user interfaces',
+        );
+        expect(store.getVersionFact('react', '18.2.0', FactKeys.HOMEPAGE)).toBe(
+            'https://react.dev',
+        );
+        expect(store.getVersionFact('react', '18.2.0', FactKeys.REPOSITORY_URL)).toBe(
+            'https://github.com/facebook/react',
+        );
+        expect(store.getVersionFact('react', '18.2.0', FactKeys.UNPACKED_SIZE)).toBe(12345);
+    });
+
+    it('stores versions between current and latest', async () => {
+        const versionsBetween: PackageVersionInfo[] = [
+            {
+                version: '18.3.0',
+                publishDate: '2024-06-01',
+                isPrerelease: false,
+                registryUrl: 'https://www.npmjs.com/package/react/v/18.3.0',
+            },
+        ];
+
+        const service = mockNpmRegistryService({
+            getVersionsBetween: vi.fn(async () => versionsBetween),
+        });
+        const source = new NpmRegistrySource(service);
+        const store = new RootFactStore();
+
+        await source.fetch([makeDep('react', '18.2.0', '19.0.0')], store);
+
+        expect(store.getVersionFact('react', '18.2.0', FactKeys.VERSIONS_BETWEEN)).toEqual(
+            versionsBetween,
+        );
+    });
+
+    it('handles missing metadata gracefully', async () => {
+        const service = mockNpmRegistryService({
+            getPackageMetadata: vi.fn(async () => undefined),
+        });
+        const source = new NpmRegistrySource(service);
+        const store = new RootFactStore();
+
+        await source.fetch([makeDep('unknown-pkg', '1.0.0', '2.0.0')], store);
+
+        expect(store.getVersionFact('unknown-pkg', '1.0.0', FactKeys.DESCRIPTION)).toBeUndefined();
+        expect(store.getVersionFact('unknown-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN)).toEqual([]);
+    });
+});
