@@ -11,7 +11,9 @@ elif [ "$pm" = "bun" ]; then
 elif [ "$pm" = "npm" ]; then
     npm install
 elif [ "$pm" = "yarn" ]; then
-    mise exec -- yarn install
+    # Disable hardened mode so yarn can update the lockfile when called
+    # from update-all-lockfiles in CI (public PRs enable hardened mode).
+    YARN_ENABLE_HARDENED_MODE=0 mise exec -- yarn install
 elif [ "$pm" = "aube" ]; then
     # aube writes to whichever supported lockfile already exists, preferring
     # aube-lock.yaml when present. Import from the existing pnpm-lock.yaml so

@@ -42,6 +42,7 @@ export class PnpmProvider implements DependencyProvider {
     private patchedDeps: Set<string>;
     private catalogVersions: Map<string, string>;
     private cacheService: CacheService;
+    private hasWorkspace: boolean;
 
     constructor(cacheService: CacheService, rootDir: string) {
         this.cacheService = cacheService;
@@ -49,6 +50,7 @@ export class PnpmProvider implements DependencyProvider {
         this.lockfilePath = join(rootDir, 'pnpm-lock.yaml');
 
         const workspacePath = join(rootDir, 'pnpm-workspace.yaml');
+        this.hasWorkspace = existsSync(workspacePath);
         try {
             const content = readFileSync(workspacePath, 'utf-8');
             const workspace = load(content) as PnpmWorkspace;
@@ -104,8 +106,11 @@ export class PnpmProvider implements DependencyProvider {
                 }
             }
 
-            process.stderr.write('Running: pnpm -r list --json --depth=0\n');
-            output = execSync('pnpm -r list --json --depth=0', {
+            const listCmd = this.hasWorkspace
+                ? 'pnpm -r list --json --depth=0'
+                : 'pnpm list --json --depth=0';
+            process.stderr.write(`Running: ${listCmd}\n`);
+            output = execSync(listCmd, {
                 encoding: 'utf-8',
                 maxBuffer: BUFFER_SIZES.SMALL,
                 cwd: this.rootDir,
