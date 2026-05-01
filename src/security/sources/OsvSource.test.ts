@@ -56,23 +56,20 @@ describe('parseSeverity', () => {
         expect(parseSeverity(undefined)).toBeUndefined();
     });
 
-    it('prefers CVSS_V3 over CVSS_V4', () => {
-        const result = parseSeverity([
-            {
-                type: 'CVSS_V4',
-                score: 'CVSS:4.0/AV:P/AC:H/AT:P/PR:H/UI:A/VC:N/VI:N/VA:N/SC:N/SI:N/SA:N',
-            },
-            { type: 'CVSS_V3', score: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H' },
-        ]);
-        expect(result).toBe('critical');
-    });
-
-    it('uses CVSS_V4 when V3 is absent', () => {
+    it('prefers CVSS_V4 over CVSS_V3', () => {
         const result = parseSeverity([
             {
                 type: 'CVSS_V4',
                 score: 'CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:H/SI:H/SA:H',
             },
+            { type: 'CVSS_V3', score: 'CVSS:3.1/AV:P/AC:H/PR:H/UI:R/S:U/C:N/I:N/A:N' },
+        ]);
+        expect(result).toBe('critical');
+    });
+
+    it('uses CVSS_V3 when V4 is absent', () => {
+        const result = parseSeverity([
+            { type: 'CVSS_V3', score: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H' },
         ]);
         expect(result).toBe('critical');
     });

@@ -74,7 +74,8 @@ export function parseSeverity(
     if (!severityEntries || severityEntries.length === 0) return undefined;
 
     // Prefer V3 > V4 > V2
-    const ordered = ['CVSS_V3', 'CVSS_V4', 'CVSS_V2'];
+    // Prefer V4 (most refined threat metrics) > V3 > V2
+    const ordered = ['CVSS_V4', 'CVSS_V3', 'CVSS_V2'];
     for (const type of ordered) {
         const entry = severityEntries.find((s) => s.type === type);
         if (entry) {
