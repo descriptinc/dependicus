@@ -211,6 +211,30 @@ describe('extractDependencyNameFromTitle', () => {
         ).toBe('react-utils');
     });
 
+    it('extracts ecosystem::name from title with ecosystem tag', () => {
+        expect(
+            extractDependencyNameFromTitle(
+                '[Dependicus] [npm] Update braintrust from 0.1.0 to 3.9.0',
+            ),
+        ).toBe('npm::braintrust');
+    });
+
+    it('extracts ecosystem::name from FYI title with ecosystem tag', () => {
+        expect(
+            extractDependencyNameFromTitle(
+                '[Dependicus] [pypi] FYI: braintrust 0.18.0 is available (currently on 0.2.1)',
+            ),
+        ).toBe('pypi::braintrust');
+    });
+
+    it('extracts ecosystem::name for scoped packages with ecosystem tag', () => {
+        expect(
+            extractDependencyNameFromTitle(
+                '[Dependicus] [npm] Update @linear/sdk from 32.0.0 to 65.0.0',
+            ),
+        ).toBe('npm::@linear/sdk');
+    });
+
     it('returns undefined for non-Dependicus titles', () => {
         expect(extractDependencyNameFromTitle('Update react to 19.0.0')).toBeUndefined();
         expect(extractDependencyNameFromTitle('Fix bug in react')).toBeUndefined();
@@ -251,6 +275,27 @@ describe('buildTicketTitle', () => {
                 notificationsOnly: true,
             }),
         ).toBe('FYI: stytch 13.2.0 is available (currently on 12.19.0)');
+    });
+
+    it('includes ecosystem tag when ecosystem is provided', () => {
+        expect(
+            buildTicketTitle('braintrust', '0.1.0', '3.9.0', '3.9.0', { ecosystem: 'npm' }),
+        ).toBe('[npm] Update braintrust from 0.1.0 to 3.9.0');
+    });
+
+    it('includes ecosystem tag in FYI titles', () => {
+        expect(
+            buildTicketTitle('braintrust', '0.2.1', '0.18.0', '0.18.0', {
+                notificationsOnly: true,
+                ecosystem: 'pypi',
+            }),
+        ).toBe('[pypi] FYI: braintrust 0.18.0 is available (currently on 0.2.1)');
+    });
+
+    it('includes ecosystem tag in "at least" titles', () => {
+        expect(buildTicketTitle('react', '18.2.0', '19.0.0', '19.2.3', { ecosystem: 'npm' })).toBe(
+            '[npm] Update react from 18.2.0 to at least 19.0.0 (latest: 19.2.3)',
+        );
     });
 });
 
