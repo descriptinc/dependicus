@@ -90,6 +90,9 @@ importers:
       semver:
         specifier: ^7.7.4
         version: 7.7.4
+      slugify:
+        specifier: ^1.6.9
+        version: 1.6.9
       tabulator-tables:
         specifier: ^6.3.1
         version: 6.3.1
