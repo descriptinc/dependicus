@@ -54,9 +54,6 @@ importers:
       '@types/semver':
         specifier: ^7.7.1
         version: 7.7.1
-      dts-bundle-generator:
-        specifier: ^9.5.1
-        version: 9.5.1
       oxfmt:
         specifier: ^0.35.0
         version: 0.35.0
