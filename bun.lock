@@ -19,6 +19,7 @@
         "handlebars": "^4.7.8",
         "js-yaml": "^4.1.1",
         "semver": "^7.7.4",
+        "slugify": "^1.6.9",
         "zod": "^4.3.6",
       },
       "devDependencies": {
@@ -32,7 +33,7 @@
     },
     "packages/dependicus": {
       "name": "dependicus",
-      "version": "0.2.0-rc.0",
+      "version": "0.2.0-rc.2",
       "bin": "dist/bin.mjs",
       "dependencies": {
         "@linear/sdk": "^76.0.0",
@@ -44,6 +45,7 @@
         "marked": "^17.0.3",
         "open-props": "^1.7.23",
         "semver": "^7.7.4",
+        "slugify": "^1.6.9",
         "tabulator-tables": "^6.3.1",
         "zod": "^4.3.6",
       },
@@ -736,6 +738,8 @@
     "semver": ["semver@7.7.4", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA=="],
 
     "siginfo": ["siginfo@2.0.0", "", {}, "sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g=="],
+
+    "slugify": ["slugify@1.6.9", "", {}, "sha512-vZ7rfeehZui7wQs438JXBckYLkIIdfHOXsaVEUMyS5fHo1483l1bMdo0EDSWYclY0yZKFOipDy4KHuKs6ssvdg=="],
 
     "source-map": ["source-map@0.6.1", "", {}, "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g=="],
 

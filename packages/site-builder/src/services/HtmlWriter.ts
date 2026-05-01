@@ -16,7 +16,11 @@ import type {
     UsedByGroupKeyFn,
     FactStore,
 } from '@dependicus/core';
-import { mergeProviderDependencies, getDetailFilename } from '@dependicus/core';
+import {
+    mergeProviderDependencies,
+    getDetailFilename,
+    getGroupingFilename,
+} from '@dependicus/core';
 import {
     FactKeys,
     formatDate,
@@ -734,7 +738,7 @@ export class HtmlWriter {
                 return {
                     value,
                     count: deps.length,
-                    slug: `${value}.html`,
+                    slug: getGroupingFilename(value),
                     outdatedCount: stats.outdatedCount,
                 };
             });
@@ -813,7 +817,7 @@ export class HtmlWriter {
                 });
 
                 return {
-                    filename: `${providerPrefix}${slug}/${value}.html`,
+                    filename: `${providerPrefix}${slug}/${getGroupingFilename(value)}`,
                     html: detailHtml,
                 };
             });

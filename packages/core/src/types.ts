@@ -1,3 +1,4 @@
+import slugify from 'slugify';
 import type { SerializedFacts } from './sources/FactStore';
 import type { FactStore } from './sources/FactStore';
 
@@ -209,6 +210,12 @@ export function getDetailFilename(name: string, version: string): string {
         .replace(/\.\./g, '_');
     const safeVersion = version.replace(/[/:"<>|*?]/g, '-').replace(/\.\./g, '_');
     return `${safeName}@${safeVersion}.html`;
+}
+
+/** Build the filename for a grouping detail page (e.g., "Media-Asset-Management-GAT.html"). */
+export function getGroupingFilename(value: string): string {
+    const slug = slugify(value, { strict: true });
+    return `${slug || 'unknown'}.html`;
 }
 
 export type DetailUrlFn = (ecosystem: string, name: string, version: string) => string;

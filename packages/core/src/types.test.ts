@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { mergeProviderDependencies, buildProviderInfoMap, getDetailFilename } from './types';
+import {
+    mergeProviderDependencies,
+    buildProviderInfoMap,
+    getDetailFilename,
+    getGroupingFilename,
+} from './types';
 import type { ProviderOutput, DirectDependency } from './types';
 
 function makeProviderOutput(overrides?: Partial<ProviderOutput>): ProviderOutput {
@@ -274,6 +279,42 @@ describe('getDetailFilename', () => {
         expect(getDetailFilename('../../etc/passwd', '../../hack')).toBe(
             '_-_-etc-passwd@_-_-hack.html',
         );
+    });
+});
+
+describe('getGroupingFilename', () => {
+    it('handles plain values', () => {
+        expect(getGroupingFilename('frontend')).toBe('frontend.html');
+    });
+
+    it('replaces spaces with dashes', () => {
+        expect(getGroupingFilename('Media Assets')).toBe('Media-Assets.html');
+    });
+
+    it('replaces parentheses', () => {
+        expect(getGroupingFilename('Media Asset Management (GAT)')).toBe(
+            'Media-Asset-Management-GAT.html',
+        );
+    });
+
+    it('collapses consecutive spaces', () => {
+        expect(getGroupingFilename('foo   bar')).toBe('foo-bar.html');
+    });
+
+    it('strips URL fragment and other URL-unsafe characters', () => {
+        expect(getGroupingFilename('Team #2')).toBe('Team-2.html');
+    });
+
+    it('neutralizes directory traversal', () => {
+        expect(getGroupingFilename('../../etc/passwd')).toBe('etcpasswd.html');
+    });
+
+    it('strips wrapping punctuation', () => {
+        expect(getGroupingFilename('(wrapped)')).toBe('wrapped.html');
+    });
+
+    it('falls back to "unknown" for empty string', () => {
+        expect(getGroupingFilename('')).toBe('unknown.html');
     });
 });
 

@@ -35,6 +35,9 @@ importers:
       semver:
         specifier: ^7.7.4
         version: 7.7.4
+      slugify:
+        specifier: ^1.6.9
+        version: 1.6.9
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -87,6 +90,9 @@ importers:
       semver:
         specifier: ^7.7.4
         version: 7.7.4
+      slugify:
+        specifier: ^1.6.9
+        version: 1.6.9
       tabulator-tables:
         specifier: ^6.3.1
         version: 6.3.1
@@ -1917,6 +1923,10 @@ packages:
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
 
+  slugify@1.6.9:
+    resolution: {integrity: sha512-vZ7rfeehZui7wQs438JXBckYLkIIdfHOXsaVEUMyS5fHo1483l1bMdo0EDSWYclY0yZKFOipDy4KHuKs6ssvdg==}
+    engines: {node: '>=8.0.0'}
+
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -3123,6 +3133,8 @@ snapshots:
   semver@7.7.4: {}
 
   siginfo@2.0.0: {}
+
+  slugify@1.6.9: {}
 
   source-map-js@1.2.1: {}
 

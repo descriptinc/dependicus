@@ -19,6 +19,9 @@ export type { GroupingSection, GroupingStat, GroupingFlag } from '@dependicus/co
 export type { CustomColumn, ColumnContext } from '@dependicus/site-builder';
 
 /** @group Plugins */
+export { getGroupingFilename } from '@dependicus/core';
+
+/** @group Plugins */
 export type { DependencyVersion } from '@dependicus/core';
 
 /** @group Compliance */
