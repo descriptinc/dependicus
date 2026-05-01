@@ -11,6 +11,7 @@ nav = [
             { "Configuration" = "configuration.md" },
             { "Continuous Integration" = "ci.md" },
             { "BasicCompliancePlugin" = "compliance.md" },
+            { "SecurityPlugin" = "security.md" },
         ] },
         { "Tickets" = [
             { "Linear Issues" = "linearissues.md" },

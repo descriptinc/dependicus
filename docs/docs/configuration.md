@@ -42,6 +42,12 @@ CLI flag: `--cache-dir <path>`
 
 For all of the above, the CLI flag takes precedence over the programmatic config value.
 
+## Security
+
+### `--vuln-source <source>` (repeatable)
+
+Enable vulnerability scanning via [SecurityPlugin](./security.md). Available sources: `osv`, `depsdev`, `ghsa` (or `github-advisory`), `all`. This flag is only available on the CLI; for programmatic use with custom config, instantiate `SecurityPlugin` directly in the `plugins` array.
+
 ## Linear
 
 Dependicus assumes you want fine-grained control over how tickets are created. There is no default behavior because we aren’t confident enough to predict what you want.

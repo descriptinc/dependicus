@@ -490,6 +490,101 @@ describe('dependicusCli', () => {
         });
     });
 
+    describe('--vuln-source flag', () => {
+        function setupUpdateMocks() {
+            const mockInstance = {
+                collectData: vi.fn().mockResolvedValue({
+                    metadata: { generatedAt: '2025-01-01' },
+                    providers: [makeProvider([makeDep('react')])],
+                    facts: {},
+                    store: makeStore(),
+                }),
+                generateSite: vi.fn(),
+                refreshLocal: vi.fn(),
+            };
+            mockCreateDependicus.mockResolvedValue(mockInstance);
+        }
+
+        it('injects OsvSource when --vuln-source osv is passed', async () => {
+            setupUpdateMocks();
+            const cli = dependicusCli(baseConfig);
+            await cli.run(argv('--vuln-source', 'osv', 'update'));
+
+            const call = mockCreateDependicus.mock.calls[0]![0];
+            const sourceNames = call.sources!.map((s: { name: string }) => s.name);
+            expect(sourceNames).toContain('osv');
+            expect(sourceNames).not.toContain('deps-dev');
+            expect(sourceNames).not.toContain('github-advisory');
+        });
+
+        it('injects DepsDevSource when --vuln-source depsdev is passed', async () => {
+            setupUpdateMocks();
+            const cli = dependicusCli(baseConfig);
+            await cli.run(argv('--vuln-source', 'depsdev', 'update'));
+
+            const call = mockCreateDependicus.mock.calls[0]![0];
+            const sourceNames = call.sources!.map((s: { name: string }) => s.name);
+            expect(sourceNames).toContain('deps-dev');
+            expect(sourceNames).not.toContain('osv');
+        });
+
+        it('injects GitHubAdvisorySource when --vuln-source ghsa is passed', async () => {
+            setupUpdateMocks();
+            const cli = dependicusCli(baseConfig);
+            await cli.run(argv('--vuln-source', 'ghsa', 'update'));
+
+            const call = mockCreateDependicus.mock.calls[0]![0];
+            const sourceNames = call.sources!.map((s: { name: string }) => s.name);
+            expect(sourceNames).toContain('github-advisory');
+        });
+
+        it('accepts github-advisory as alias for ghsa', async () => {
+            setupUpdateMocks();
+            const cli = dependicusCli(baseConfig);
+            await cli.run(argv('--vuln-source', 'github-advisory', 'update'));
+
+            const call = mockCreateDependicus.mock.calls[0]![0];
+            const sourceNames = call.sources!.map((s: { name: string }) => s.name);
+            expect(sourceNames).toContain('github-advisory');
+        });
+
+        it('injects all sources when --vuln-source all is passed', async () => {
+            setupUpdateMocks();
+            const cli = dependicusCli(baseConfig);
+            await cli.run(argv('--vuln-source', 'all', 'update'));
+
+            const call = mockCreateDependicus.mock.calls[0]![0];
+            const sourceNames = call.sources!.map((s: { name: string }) => s.name);
+            expect(sourceNames).toContain('osv');
+            expect(sourceNames).toContain('deps-dev');
+            expect(sourceNames).toContain('github-advisory');
+        });
+
+        it('combines multiple --vuln-source flags', async () => {
+            setupUpdateMocks();
+            const cli = dependicusCli(baseConfig);
+            await cli.run(argv('--vuln-source', 'osv', '--vuln-source', 'ghsa', 'update'));
+
+            const call = mockCreateDependicus.mock.calls[0]![0];
+            const sourceNames = call.sources!.map((s: { name: string }) => s.name);
+            expect(sourceNames).toContain('osv');
+            expect(sourceNames).toContain('github-advisory');
+            expect(sourceNames).not.toContain('deps-dev');
+        });
+
+        it('does not inject security sources when --vuln-source is omitted', async () => {
+            setupUpdateMocks();
+            const cli = dependicusCli(baseConfig);
+            await cli.run(argv('update'));
+
+            const call = mockCreateDependicus.mock.calls[0]![0];
+            const sourceNames = call.sources!.map((s: { name: string }) => s.name);
+            expect(sourceNames).not.toContain('osv');
+            expect(sourceNames).not.toContain('deps-dev');
+            expect(sourceNames).not.toContain('github-advisory');
+        });
+    });
+
     describe('make-linear-issues flags', () => {
         const linearConfig = {
             ...baseConfig,

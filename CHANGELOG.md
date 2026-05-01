@@ -11,6 +11,7 @@
 - `ColumnContext` type in `@dependicus/core` shared by `CustomColumn` callbacks and `UsedByGroupKeyFn`, carrying `name`, `version`, `store`, and `ecosystem` in one object.
 - `CacheService` is now re-exported from the top-level `dependicus` package, so plugins and consumers no longer need to import it from `@dependicus/core` directly.
 - `getGroupingFilename()` helper for building URL-safe filenames from grouping values, analogous to `getDetailFilename()` for dependency pages.
+- `SecurityPlugin` for querying public vulnerability databases (OSV, deps.dev, GitHub Advisory) and enriching the dashboard with severity, fix availability, deprecation status, and advisory details. Findings are attached to Linear and GitHub issue tickets and shown on grouping detail pages. Enable via `--vuln-source` CLI flag or programmatically.
 
 ### Changed
 
