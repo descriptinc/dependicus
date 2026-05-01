@@ -1,5 +1,7 @@
 # Configuration
 
+These options are passed to `dependicusCli()` when wrapping Dependicus programmatically. For CLI flags, see the [CLI Reference](./cli.md).
+
 ## Input
 
 ### `repoRoot`
@@ -20,31 +22,21 @@ For advanced use cases, pass fully-constructed provider instances. This takes pr
 
 Name as it appears in the header and `<title>` tag of the HTML output. Defaults to `Dependicus for ${rootDir dirname}`.
 
-CLI flag: `--site-name <name>`
-
 ### `outputDir`
 
 Where HTML and JSON output will be created. Defaults to `${repoRoot}/dependicus-out`.
-
-CLI flag: `--output-dir <path>`
 
 ### `dependicusBaseUrl`
 
 Base URL of where Dependicus will be deployed. Used for linking from Linear tickets and GitHub Issues.
 
-CLI flag: `--dependicus-base-url <url>`
-
 ### `cacheDir`
 
 Dependicus aggressively caches data in individual JSON files. This parameter controls where they go. The default value is `${repoRoot}/.dependicus-cache`.
 
-CLI flag: `--cache-dir <path>`
-
-For all of the above, the CLI flag takes precedence over the programmatic config value. See the [CLI Reference](./cli.md) for the full list of flags.
-
 ## Linear
 
-Dependicus assumes you want fine-grained control over how tickets are created. There is no default behavior because we aren’t confident enough to predict what you want.
+Dependicus assumes you want fine-grained control over how tickets are created. There is no default behavior because we aren't confident enough to predict what you want.
 
 ### `linear.getLinearIssueSpec` (optional): `(context: VersionContext, store: FactStore) => LinearIssueSpec | undefined`
 
@@ -58,25 +50,13 @@ If you do not write a plugin or pass a `getLinearIssueSpec()` function, then Dep
 
 Wait at least this many days after a release before creating or updating tickets to include it.
 
-CLI flag: `--cooldown-days <days>` on `make-linear-issues`
-
 ### `linear.allowNewIssues` (optional, defaults to `true`)
 
 You can set this to `false` to disable ticket creation, for example when running CI on pull requests.
 
-CLI flag: `--no-new-issues` on `make-linear-issues`
-
 ### `linear.skipStateNames` (optional): `string[]`
 
 Skip updating issues whose Linear workflow state name matches any entry (case-insensitive). For example, if your Linear workspace has custom states like "PR" and "Verify" for issues that are actively being worked on, you can prevent Dependicus from overwriting them:
-
-CLI flag: `--skip-state <name>` (repeatable) on `make-linear-issues`
-
-### `linear.rateLimitDays` (optional): `number`
-
-Default notification rate limit in days. When a per-policy `rateLimitDays` is not set, this value is used as the fallback. Prevents frequent updates to notification-only tickets.
-
-CLI flag: `--rate-limit-days <days>` on `make-linear-issues`
 
 ```ts
 linear: {
@@ -85,6 +65,10 @@ linear: {
 ```
 
 When omitted (the default), Dependicus updates all non-closed issues regardless of state.
+
+### `linear.rateLimitDays` (optional): `number`
+
+Default notification rate limit in days. When a per-policy `rateLimitDays` is not set, this value is used as the fallback. Prevents frequent updates to notification-only tickets.
 
 ## GitHub Issues
 
@@ -98,19 +82,13 @@ For a given dependency version, return a `GitHubIssueSpec` describing what issue
 
 Wait at least this many days after a release before creating or updating issues to include it.
 
-CLI flag: `--cooldown-days <days>` on `make-github-issues`
-
 ### `github.allowNewIssues` (optional, defaults to `true`)
 
 You can set this to `false` to disable issue creation, for example when running CI on pull requests.
 
-CLI flag: `--no-new-issues` on `make-github-issues`
-
 ### `github.rateLimitDays` (optional): `number`
 
 Default notification rate limit in days. When a per-policy `rateLimitDays` is not set, this value is used as the fallback.
-
-CLI flag: `--rate-limit-days <days>` on `make-github-issues`
 
 ## Plugins
 
