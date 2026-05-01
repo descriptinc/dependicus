@@ -11,9 +11,11 @@ elif [ "$pm" = "bun" ]; then
 elif [ "$pm" = "npm" ]; then
     npm install
 elif [ "$pm" = "yarn" ]; then
-    # Disable hardened mode so yarn can update the lockfile when called
-    # from update-all-lockfiles in CI (public PRs enable hardened mode).
+    # In CI, yarn auto-enables immutable installs and hardened mode (on
+    # public PRs), both of which prevent lockfile changes. Disable both
+    # so update-all-lockfiles can regenerate yarn.lock.
     export YARN_ENABLE_HARDENED_MODE=0
+    export YARN_ENABLE_IMMUTABLE_INSTALLS=false
     mise exec -- yarn install
 elif [ "$pm" = "aube" ]; then
     # aube writes to whichever supported lockfile already exists, preferring
