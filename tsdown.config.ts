@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { defineConfig } from 'tsdown';
 import type { Plugin } from 'rolldown';
 
@@ -9,7 +10,7 @@ function inlineRawFiles(): Plugin {
             // Redirect .css imports to a virtual .cssraw ID so rolldown's
             // native CSS handling doesn't extract them into separate files.
             if (source.endsWith('.css') && importer) {
-                const resolved = new URL(source, 'file://' + importer).pathname;
+                const resolved = resolve(dirname(importer), source);
                 return { id: resolved + '.cssraw' };
             }
         },
