@@ -46,7 +46,25 @@ For all of the above, the CLI flag takes precedence over the programmatic config
 
 ### `--vuln-source <source>` (repeatable)
 
-Enable vulnerability scanning via [SecurityPlugin](./security.md). Available sources: `osv`, `depsdev`, `ghsa` (or `github-advisory`), `all`. This flag is only available on the CLI; for programmatic use with custom config, instantiate `SecurityPlugin` directly in the `plugins` array.
+Enable vulnerability scanning during `update`. This instantiates [SecurityPlugin](./security.md) with the selected sources. The flag is repeatable to enable multiple sources at once.
+
+Available sources:
+
+| Value             | Source                                                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------- |
+| `osv`             | [OSV.dev](https://osv.dev) -- known vulnerabilities via CVSS scoring                         |
+| `depsdev`         | [deps.dev](https://deps.dev) -- deprecation status and transitive dependency counts          |
+| `ghsa`            | GitHub Advisory Database -- security advisories (uses `GITHUB_TOKEN` for higher rate limits) |
+| `github-advisory` | Alias for `ghsa`                                                                             |
+| `all`             | Enable all three sources                                                                     |
+
+```sh
+dependicus update --vuln-source osv
+dependicus update --vuln-source ghsa --vuln-source depsdev
+dependicus update --vuln-source all
+```
+
+When omitted, no vulnerability scanning runs. For programmatic use with custom cache TTLs or other options, instantiate `SecurityPlugin` directly in the `plugins` array instead (see [SecurityPlugin](./security.md)).
 
 ## Linear
 

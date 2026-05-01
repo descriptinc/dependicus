@@ -2,11 +2,13 @@
 
 Dependicus ships with `SecurityPlugin`, which queries public vulnerability databases and enriches your dependency dashboard with security findings. It adds columns for severity, fix availability, and advisory details, and attaches security context to Linear and GitHub issue tickets.
 
+The quickest way to enable it is with the [`--vuln-source` CLI flag](./configuration.md#--vuln-source-source-repeatable). This page covers the programmatic API for when you need more control.
+
 ## Data sources
 
 `SecurityPlugin` supports three data sources, each enabled independently:
 
-- **OSV** ([osv.dev](https://osv.dev)) -- Queries the OSV batch API to find known vulnerabilities for each dependency version. Uses CVSS vectors (v2, v3, v3.1, v4) to compute severity scores. Supports npm, PyPI, Go, and Cargo ecosystems.
+- **OSV** ([osv.dev](https://osv.dev)) -- Queries the OSV batch API to find known vulnerabilities for each dependency version. Uses CVSS vectors (v3.0, v3.1, v4.0) to compute severity scores. Supports npm, PyPI, Go, and Cargo ecosystems.
 
 - **deps.dev** ([deps.dev](https://deps.dev)) -- Checks deprecation status and optionally fetches transitive dependency counts. Useful for flagging abandoned packages. Supports npm, PyPI, Go, and Cargo ecosystems.
 
@@ -14,21 +16,9 @@ Dependicus ships with `SecurityPlugin`, which queries public vulnerability datab
 
 Each source writes `SecurityFinding` objects into `FactStore`, keyed by dependency name and version. When multiple sources are enabled, findings from all sources are merged and deduplicated by advisory ID.
 
-## CLI usage
-
-The quickest way to enable security scanning is with the `--vuln-source` flag:
-
-```bash
-dependicus update --vuln-source osv
-dependicus update --vuln-source ghsa --vuln-source depsdev
-dependicus update --vuln-source all
-```
-
-Available sources: `osv`, `depsdev`, `ghsa` (or `github-advisory`), `all`. The flag is repeatable.
-
 ## Programmatic setup
 
-For more control (custom cache TTLs, selective dependency counts, etc.), instantiate `SecurityPlugin` directly:
+For custom cache TTLs, selective dependency counts, or other options beyond what the CLI flag provides, instantiate `SecurityPlugin` directly:
 
 ```ts
 import { dependicusCli, SecurityPlugin } from 'dependicus';
