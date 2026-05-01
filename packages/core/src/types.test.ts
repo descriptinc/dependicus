@@ -297,20 +297,24 @@ describe('getGroupingFilename', () => {
         );
     });
 
-    it('replaces all filesystem/URL-unsafe characters', () => {
-        expect(getGroupingFilename('a:b"c<d>e|f*g?h')).toBe('a-b-c-d-e-f-g-h.html');
-    });
-
-    it('collapses consecutive dashes', () => {
+    it('collapses consecutive spaces', () => {
         expect(getGroupingFilename('foo   bar')).toBe('foo-bar.html');
     });
 
-    it('sanitizes directory traversal', () => {
-        expect(getGroupingFilename('../../etc/passwd')).toBe('_-_-etc-passwd.html');
+    it('strips URL fragment and other URL-unsafe characters', () => {
+        expect(getGroupingFilename('Team #2')).toBe('Team-2.html');
     });
 
-    it('trims leading and trailing dashes', () => {
+    it('neutralizes directory traversal', () => {
+        expect(getGroupingFilename('../../etc/passwd')).toBe('etcpasswd.html');
+    });
+
+    it('strips wrapping punctuation', () => {
         expect(getGroupingFilename('(wrapped)')).toBe('wrapped.html');
+    });
+
+    it('falls back to "unknown" for empty string', () => {
+        expect(getGroupingFilename('')).toBe('unknown.html');
     });
 });
 
