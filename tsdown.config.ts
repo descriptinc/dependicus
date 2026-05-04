@@ -28,8 +28,7 @@ export default defineConfig({
     entry: ['src/index.ts', 'src/bin.ts'],
     unbundle: true,
     inputOptions: {
-        // Prevent tsdown from bundling node_modules dependencies (rolldown is
-        // imported at runtime by site-frontend/browser-bundle.ts for dev builds)
+        // Prevent tsdown from bundling node_modules dependencies
         external: [/^[^./]/],
     },
     plugins: [inlineRawFiles()],

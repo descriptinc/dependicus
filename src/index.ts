@@ -91,3 +91,32 @@ export type { GitHubIssuePolicy } from './github-issues/index';
 
 /** @group Issue Creation */
 export type { GitHubIssueAssignment } from './github-issues/index';
+
+// ── Security ────────────────────────────────────────────────────────
+
+/** @group Security */
+export { SecurityPlugin } from './security/index';
+
+/** @group Security */
+export type {
+    SecurityPluginConfig,
+    OsvConfig,
+    DepsDevConfig,
+    GitHubAdvisoryConfig,
+    SecurityFinding,
+    AdvisoryDetail,
+    Severity,
+    Maintenance,
+} from './security/index';
+
+/** @group Security */
+export { SECURITY_FINDINGS_KEY, SEVERITY_ORDER } from './security/index';
+
+/** @group Security */
+export { OsvSource } from './security/sources/OsvSource';
+
+/** @group Security */
+export { DepsDevSource } from './security/sources/DepsDevSource';
+
+/** @group Security */
+export { GitHubAdvisorySource } from './security/sources/GitHubAdvisorySource';

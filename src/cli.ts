@@ -26,6 +26,8 @@ import type { GitHubIssueSpec } from './github-issues/index';
 import type { VersionContext as GitHubVersionContext } from './github-issues/index';
 import type { DependicusPlugin, ResolvedPlugins, SpecDiagnostics } from './plugin';
 import { resolvePlugins, validateLinearIssueSpec, validateGitHubIssueSpec } from './plugin';
+import { SecurityPlugin } from './security/index';
+import type { SecurityPluginConfig } from './security/index';
 
 /** @group Core Types */
 export interface DependicusCliConfig {
@@ -206,6 +208,12 @@ export function dependicusCli(config: DependicusCliConfig): {
                     [] as string[],
                 )
                 .option(
+                    '--vuln-source <source>',
+                    'Vulnerability source to enable (repeatable): osv, depsdev, ghsa, github-advisory, all',
+                    collect,
+                    [] as string[],
+                )
+                .option(
                     '--dependicus-base-url <url>',
                     'Base URL where the Dependicus site is published',
                 )
@@ -218,6 +226,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                 const globalOpts = program.opts<{
                     repoRoot?: string;
                     provider: string[];
+                    vulnSource: string[];
                     dependicusBaseUrl?: string;
                     outputDir?: string;
                     cacheDir?: string;
@@ -229,11 +238,27 @@ export function dependicusCli(config: DependicusCliConfig): {
                 const dependicusBaseUrl = (
                     globalOpts.dependicusBaseUrl ?? config.dependicusBaseUrl
                 )?.replace(/\/+$/, '');
+
+                // Build SecurityPlugin from --vuln-source flags
+                const vulnPlugins: DependicusPlugin[] = [];
+                if (globalOpts.vulnSource.length > 0) {
+                    const vs = globalOpts.vulnSource;
+                    const hasAll = vs.includes('all');
+                    const secConfig: SecurityPluginConfig = {
+                        osv: hasAll || vs.includes('osv'),
+                        depsdev: hasAll || vs.includes('depsdev'),
+                        githubAdvisory:
+                            hasAll || vs.includes('ghsa') || vs.includes('github-advisory'),
+                    };
+                    vulnPlugins.push(new SecurityPlugin(secConfig));
+                }
+
                 const effectiveConfig = {
                     ...config,
                     repoRoot,
                     providerNames,
                     dependicusBaseUrl,
+                    plugins: [...vulnPlugins, ...(config.plugins ?? [])],
                     outputDir: globalOpts.outputDir ?? config.outputDir,
                     cacheDir: globalOpts.cacheDir ?? config.cacheDir,
                     siteName: globalOpts.siteName ?? config.siteName,

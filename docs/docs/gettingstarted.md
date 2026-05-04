@@ -110,6 +110,14 @@ bun run dependicus update --provider bun
 
 When `--provider` is omitted, Dependicus [auto-detects](./package-managers.md) the active package manager from the runtime environment, falling back to lockfile presence.
 
+To add vulnerability scanning, pass `--vuln-source`:
+
+```sh
+pnpm exec dependicus update --provider pnpm --vuln-source osv --vuln-source ghsa
+```
+
+See [SecurityPlugin](./security.md) for details on available sources and configuration.
+
 ## Customizing Dependicus by wrapping the `dependicusCli()` function
 
 Dependicus does not offer a config file. The JavaScript ecosystem has many build systems, multiple languages, and copious linters with different default rule sets, which creates many edge cases for JS-based config files. Given this variety, we chose to expose Dependicus's configuration as a function call so you can use your normal project conventions with it.

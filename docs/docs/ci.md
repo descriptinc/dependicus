@@ -228,6 +228,14 @@ When Dependicus is launched by a package manager, it auto-detects the provider f
 npx dependicus update --provider pnpm
 ```
 
+To include vulnerability scanning in CI, add `--vuln-source`:
+
+```sh
+npx dependicus update --provider pnpm --vuln-source all
+```
+
+The `osv` and `depsdev` sources require no credentials. The `ghsa` source benefits from a `GITHUB_TOKEN` for higher rate limits (5000/hr vs 60/hr unauthenticated).
+
 ### Other package managers
 
 The workflows above use npm/npx as an example, but the structure is the same for any package manager. The rest of the jobs (HTML generation, ticket creation) are identical regardless of package manager since they only read `dependencies.json`.

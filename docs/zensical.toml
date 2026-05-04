@@ -9,8 +9,10 @@ nav = [
             { "What is Dependicus?" = "index.md" },
             { "Getting Started" = "gettingstarted.md" },
             { "Configuration" = "configuration.md" },
+            { "CLI Reference" = "cli.md" },
             { "Continuous Integration" = "ci.md" },
             { "BasicCompliancePlugin" = "compliance.md" },
+            { "SecurityPlugin" = "security.md" },
         ] },
         { "Tickets" = [
             { "Linear Issues" = "linearissues.md" },

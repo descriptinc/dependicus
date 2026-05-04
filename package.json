@@ -50,6 +50,7 @@
     "dependencies": {
         "@linear/sdk": "^76.0.0",
         "@octokit/rest": "^22.0.1",
+        "@turingpointde/cvss.js": "^2.1.0",
         "commander": "^14.0.3",
         "handlebars": "^4.7.8",
         "isomorphic-dompurify": "^3.5.1",
