@@ -447,6 +447,78 @@ describe('reconcileGitHubIssues', () => {
         expect(result.closed).toBe(0);
     });
 
+    it('posts a creation comment after creating an issue', async () => {
+        setupMocks();
+
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
+        const store = makeStore();
+
+        await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({ policy: { type: 'fyi' } }),
+        );
+
+        expect(mockOctokit.issues.createComment).toHaveBeenCalled();
+        const commentCall = mockOctokit.issues.createComment.mock.calls[0]![0];
+        expect(commentCall.body).toContain('Issue opened by Dependicus');
+        expect(commentCall.owner).toBe('myorg');
+        expect(commentCall.repo).toBe('myrepo');
+        expect(commentCall.issue_number).toBe(999);
+    });
+
+    it('includes commentSections in creation comment', async () => {
+        setupMocks();
+
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
+        const store = makeStore();
+
+        await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({
+                policy: { type: 'fyi' },
+                commentSections: [
+                    { title: 'Security', body: 'CVE-2024-1234 found in this version.' },
+                ],
+            }),
+        );
+
+        expect(mockOctokit.issues.createComment).toHaveBeenCalled();
+        const commentCall = mockOctokit.issues.createComment.mock.calls[0]![0];
+        expect(commentCall.body).toContain('Security');
+        expect(commentCall.body).toContain('CVE-2024-1234');
+    });
+
+    it('posts a close comment before closing an issue', async () => {
+        // An existing issue for old-pkg (now compliant) plus a still-outdated
+        // dep (test-pkg) so the reconciler doesn't early-return.
+        setupMocks([
+            {
+                number: 42,
+                title: '[Dependicus] FYI: old-pkg 1.0.0 → 2.0.0 (latest: 2.0.0)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+        ]);
+
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
+        const store = makeStore();
+
+        await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({ policy: { type: 'fyi' } }),
+        );
+
+        // Should have posted a close comment for old-pkg
+        const commentCalls = mockOctokit.issues.createComment.mock.calls;
+        const closeComment = commentCalls.find(
+            (c: Array<{ body: string }>) =>
+                c[0] && typeof c[0].body === 'string' && c[0].body.includes('Closed by Dependicus'),
+        );
+        expect(closeComment).toBeDefined();
+    });
+
     it('returns zeros when no outdated packages', async () => {
         setupMocks();
 

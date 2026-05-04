@@ -71,8 +71,10 @@ function mergeLinearIssueSpecs(
         const partials = fns.map((fn) => fn(ctx, store)).filter((p) => p !== undefined);
         if (partials.length === 0) return undefined;
         const allSections = partials.flatMap((p) => p.descriptionSections ?? []);
+        const allCommentSections = partials.flatMap((p) => p.commentSections ?? []);
         const merged = Object.assign({}, ...partials) as Partial<LinearIssueSpec>;
         if (allSections.length > 0) merged.descriptionSections = allSections;
+        if (allCommentSections.length > 0) merged.commentSections = allCommentSections;
         return merged;
     };
 }
@@ -89,8 +91,10 @@ function mergeGitHubIssueSpecs(
         const partials = fns.map((fn) => fn(ctx, store)).filter((p) => p !== undefined);
         if (partials.length === 0) return undefined;
         const allSections = partials.flatMap((p) => p.descriptionSections ?? []);
+        const allCommentSections = partials.flatMap((p) => p.commentSections ?? []);
         const merged = Object.assign({}, ...partials) as Partial<GitHubIssueSpec>;
         if (allSections.length > 0) merged.descriptionSections = allSections;
+        if (allCommentSections.length > 0) merged.commentSections = allCommentSections;
         return merged;
     };
 }

@@ -161,9 +161,9 @@ export class LinearService {
 
     /**
      * Create a new Dependicus issue.
-     * Returns the issue identifier (e.g., "ENG-1234") or "DRY-RUN" in dry-run mode.
+     * Returns the issue id (UUID) and identifier (e.g., "ENG-1234").
      */
-    async createIssue(params: CreateIssueParams): Promise<string> {
+    async createIssue(params: CreateIssueParams): Promise<{ id: string; identifier: string }> {
         const { dependencyName, title, teamId, projectId, dueDate, description, delegateId } =
             params;
 
@@ -183,7 +183,7 @@ export class LinearService {
                 process.stderr.write(`\nDelegate: ${delegateId}\n`);
             }
             process.stderr.write('\n' + '='.repeat(80) + '\n');
-            return 'DRY-RUN';
+            return { id: 'DRY-RUN', identifier: 'DRY-RUN' };
         }
 
         const labelId = await this.ensureLabel();
@@ -205,7 +205,7 @@ export class LinearService {
             throw new Error(`Failed to create issue for ${dependencyName}`);
         }
 
-        return issue.identifier;
+        return { id: issue.id, identifier: issue.identifier };
     }
 
     /**

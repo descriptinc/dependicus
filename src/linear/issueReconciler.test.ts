@@ -184,7 +184,7 @@ describe('reconcileIssues', () => {
             pageInfo: { hasNextPage: false, endCursor: undefined },
         });
         mockClient.createIssue.mockResolvedValue({
-            issue: Promise.resolve({ identifier: 'TEST-100' }),
+            issue: Promise.resolve({ id: 'issue-uuid-100', identifier: 'TEST-100' }),
         });
     });
 
@@ -1202,6 +1202,89 @@ describe('reconcileIssues', () => {
         expect(result.updated).toBe(0);
         expect(result.closed).toBe(0);
         expect(result.closedDuplicates).toBe(0);
+    });
+
+    it('posts a creation comment after creating an issue', async () => {
+        const v = makeVersion();
+        populateFacts(store, 'test-pkg', v);
+        const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
+
+        const config = { ...defaultConfig, dryRun: false };
+        await reconcileIssues(deps, store, config, testGetLinearIssueSpec);
+
+        // createComment should be called with the newly created issue's UUID
+        const commentCalls = mockClient.createComment.mock.calls;
+        expect(commentCalls.length).toBeGreaterThanOrEqual(1);
+        const firstCommentCall = commentCalls[0]!;
+        expect(firstCommentCall[0].issueId).toBe('issue-uuid-100');
+        expect(firstCommentCall[0].body).toContain('Issue opened by Dependicus');
+    });
+
+    it('includes commentSections in creation comment', async () => {
+        const v = makeVersion();
+        populateFacts(store, 'test-pkg', v);
+        const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
+
+        const config = { ...defaultConfig, dryRun: false };
+        const specWithCommentSections = (
+            context: VersionContext,
+            s: FactStore,
+        ): LinearIssueSpec | undefined => {
+            const base = testGetLinearIssueSpec(context, s);
+            if (!base) return undefined;
+            return {
+                ...base,
+                commentSections: [
+                    { title: 'Security', body: 'CVE-2024-1234 found in this version.' },
+                ],
+            };
+        };
+
+        await reconcileIssues(deps, store, config, specWithCommentSections);
+
+        const commentCalls = mockClient.createComment.mock.calls;
+        expect(commentCalls.length).toBeGreaterThanOrEqual(1);
+        const body = commentCalls[0]![0].body as string;
+        expect(body).toContain('Security');
+        expect(body).toContain('CVE-2024-1234');
+    });
+
+    it('posts a close comment before closing an issue', async () => {
+        const mockState = { type: 'unstarted', name: 'Todo' };
+        mockClient.issues.mockResolvedValue({
+            nodes: [
+                {
+                    id: 'issue-1',
+                    identifier: 'TEST-50',
+                    title: '[Dependicus] Update old-pkg from 1.0.0 to 2.0.0',
+                    dueDate: '2025-06-01',
+                    updatedAt: new Date('2024-01-01'),
+                    state: Promise.resolve(mockState),
+                },
+            ],
+            pageInfo: { hasNextPage: false, endCursor: undefined },
+        });
+
+        mockClient.issue.mockResolvedValue({
+            team: Promise.resolve({
+                states: () =>
+                    Promise.resolve({
+                        nodes: [{ id: 'done-state', type: 'completed', name: 'Done' }],
+                    }),
+            }),
+        });
+
+        const deps: DirectDependency[] = [];
+        const config = { ...defaultConfig, dryRun: false };
+
+        await reconcileIssues(deps, store, config, testGetLinearIssueSpec);
+
+        // Should have posted a close comment
+        const commentCalls = mockClient.createComment.mock.calls;
+        expect(commentCalls.length).toBeGreaterThanOrEqual(1);
+        const body = commentCalls[0]![0].body as string;
+        expect(body).toContain('Closed by Dependicus');
+        expect(body).toContain('now compliant');
     });
 
     it('handles duplicate close failure gracefully', async () => {

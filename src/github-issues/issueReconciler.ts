@@ -33,6 +33,8 @@ import {
     buildIssueDescription,
     buildGroupIssueDescription,
     buildNewVersionsComment,
+    buildIssueCreatedComment,
+    buildIssueClosedComment,
 } from './issueDescriptions';
 
 export interface IssueReconcilerConfig {
@@ -326,6 +328,7 @@ export async function reconcileGitHubIssues(
                     ownerLabel: ctx.ownerLabel,
                     labels: ctx.labels,
                     descriptionSections: ctx.descriptionSections,
+                    commentSections: ctx.commentSections,
                 });
             } else {
                 existing.versions.push(version);
@@ -399,6 +402,7 @@ export async function reconcileGitHubIssues(
             }
         }
 
+        const allCommentSections = deps.flatMap((d) => d.commentSections ?? []);
         outdatedGroups.set(groupName, {
             groupName,
             dependencies: deps,
@@ -406,6 +410,7 @@ export async function reconcileGitHubIssues(
             repo: firstDep.repo,
             policy: groupPolicy,
             worstCompliance,
+            ...(allCommentSections.length > 0 && { commentSections: allCommentSections }),
         });
     }
 
@@ -668,6 +673,18 @@ export async function reconcileGitHubIssues(
                 assignees,
             });
 
+            // Post lifecycle comment explaining why the issue was opened
+            const createdComment = buildIssueCreatedComment({
+                name: dep.name,
+                isGroup: false,
+                isFyi: notificationsOnly,
+                updateType: dep.worstCompliance.updateType,
+                thresholdDays: dep.worstCompliance.thresholdDays,
+                daysOverdue: dep.worstCompliance.daysOverdue,
+                commentSections: dep.commentSections,
+            });
+            await githubService.createComment(owner, repo, issueNumber, createdComment);
+
             existingIssuesByTitle.add(fullTitle);
 
             if (!dryRun) {
@@ -819,6 +836,18 @@ export async function reconcileGitHubIssues(
                 description,
             });
 
+            // Post lifecycle comment explaining why the issue was opened
+            const createdComment = buildIssueCreatedComment({
+                name: group.groupName,
+                isGroup: true,
+                isFyi: groupNotificationsOnly,
+                updateType: group.worstCompliance.updateType,
+                thresholdDays: group.worstCompliance.thresholdDays,
+                daysOverdue: group.worstCompliance.daysOverdue,
+                commentSections: group.commentSections,
+            });
+            await githubService.createComment(owner, repo, issueNumber, createdComment);
+
             existingIssuesByTitle.add(fullTitle);
 
             if (!dryRun) {
@@ -833,6 +862,11 @@ export async function reconcileGitHubIssues(
     // Close issues for dependencies that are now compliant
     let closed = 0;
     for (const issue of existingIssuesByDependency.values()) {
+        const closeComment = buildIssueClosedComment({
+            name: issue.dependencyName,
+            isGroup: issue.isGroup,
+        });
+        await githubService.createComment(owner, repo, issue.number, closeComment);
         await githubService.closeIssue(owner, repo, issue.number);
         if (!dryRun) {
             process.stderr.write(

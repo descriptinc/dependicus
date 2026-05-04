@@ -9,10 +9,12 @@ import {
     resolveUrlPatterns,
 } from '../core/index';
 import { helpers } from './templates/helpers';
-import type { OutdatedDependency, OutdatedGroup } from './types';
+import type { DescriptionSection, OutdatedDependency, OutdatedGroup } from './types';
 import issueDescriptionHbs from './templates/issue-description.hbs';
 import groupDescriptionHbs from './templates/group-description.hbs';
 import newVersionsCommentHbs from './templates/new-versions-comment.hbs';
+import issueCreatedCommentHbs from './templates/issue-created-comment.hbs';
+import issueClosedCommentHbs from './templates/issue-closed-comment.hbs';
 
 function createHandlebars(): typeof Handlebars {
     const hbs = Handlebars.create();
@@ -31,6 +33,8 @@ const hbs = createHandlebars();
 const issueDescriptionTemplate = hbs.compile(issueDescriptionHbs);
 const groupDescriptionTemplate = hbs.compile(groupDescriptionHbs);
 const newVersionsCommentTemplate = hbs.compile(newVersionsCommentHbs);
+const issueCreatedCommentTemplate = hbs.compile(issueCreatedCommentHbs);
+const issueClosedCommentTemplate = hbs.compile(issueClosedCommentHbs);
 
 export interface IssueDescriptionParams {
     dep: OutdatedDependency;
@@ -305,4 +309,33 @@ export function buildNewVersionsComment(
     };
 
     return newVersionsCommentTemplate(context).trim();
+}
+
+export interface IssueCreatedCommentParams {
+    name: string;
+    isGroup: boolean;
+    isFyi: boolean;
+    updateType: string;
+    thresholdDays: number | undefined;
+    daysOverdue: number;
+    commentSections?: DescriptionSection[];
+}
+
+/**
+ * Build a comment explaining why a new issue was created.
+ */
+export function buildIssueCreatedComment(params: IssueCreatedCommentParams): string {
+    return issueCreatedCommentTemplate(params).trim();
+}
+
+export interface IssueClosedCommentParams {
+    name: string;
+    isGroup: boolean;
+}
+
+/**
+ * Build a comment explaining why an issue was closed.
+ */
+export function buildIssueClosedComment(params: IssueClosedCommentParams): string {
+    return issueClosedCommentTemplate(params).trim();
 }

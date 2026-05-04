@@ -231,6 +231,26 @@ describe('resolvePlugins', () => {
             ]);
         });
 
+        it('concatenates commentSections from multiple plugins', () => {
+            const fn1 = () => ({
+                teamId: 'team',
+                commentSections: [{ title: 'Security', body: 'CVE found' }],
+            });
+            const fn2 = () => ({
+                commentSections: [{ title: 'Compliance', body: 'SLA breach' }],
+            });
+
+            const p1: DependicusPlugin = { name: 'p1', getLinearIssueSpec: fn1 };
+            const p2: DependicusPlugin = { name: 'p2', getLinearIssueSpec: fn2 };
+
+            const result = resolvePlugins([p1, p2], baseConfig());
+            const spec = result.getLinearIssueSpec?.({} as VersionContext, mockStore);
+            expect(spec?.commentSections).toEqual([
+                { title: 'Security', body: 'CVE found' },
+                { title: 'Compliance', body: 'SLA breach' },
+            ]);
+        });
+
         it('returns unvalidated partial when merged result is missing teamId', () => {
             const fn1 = () => ({ policy: { type: 'fyi' as const } });
 

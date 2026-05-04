@@ -120,10 +120,10 @@ describe('LinearService', () => {
                 nodes: [{ id: 'label-123', name: 'Dependicus' }],
             });
             mockClient.createIssue.mockResolvedValue({
-                issue: Promise.resolve({ identifier: 'CORE-200' }),
+                issue: Promise.resolve({ id: 'issue-uuid-200', identifier: 'CORE-200' }),
             });
 
-            const identifier = await service.createIssue({
+            const result = await service.createIssue({
                 dependencyName: 'react',
                 title: 'Update react from 18.2.0 to 19.0.0',
                 teamId: 'team-1',
@@ -131,7 +131,7 @@ describe('LinearService', () => {
                 dueDate: new Date('2025-06-01'),
             });
 
-            expect(identifier).toBe('CORE-200');
+            expect(result).toEqual({ id: 'issue-uuid-200', identifier: 'CORE-200' });
             expect(mockClient.createIssue).toHaveBeenCalledWith({
                 teamId: 'team-1',
                 title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
@@ -264,7 +264,7 @@ describe('LinearService', () => {
                 nodes: [{ id: 'label-123', name: 'Dependicus' }],
             });
             mockClient.createIssue.mockResolvedValue({
-                issue: Promise.resolve({ identifier: 'CORE-300' }),
+                issue: Promise.resolve({ id: 'issue-uuid-300', identifier: 'CORE-300' }),
             });
 
             await service.createIssue({
@@ -288,7 +288,7 @@ describe('LinearService', () => {
                 nodes: [{ id: 'label-123', name: 'Dependicus' }],
             });
             mockClient.createIssue.mockResolvedValue({
-                issue: Promise.resolve({ identifier: 'CORE-300' }),
+                issue: Promise.resolve({ id: 'issue-uuid-300', identifier: 'CORE-300' }),
             });
 
             await service.createIssue({
@@ -325,14 +325,14 @@ describe('LinearService', () => {
         });
 
         it('createIssue returns DRY-RUN without calling API', async () => {
-            const identifier = await dryRunService.createIssue({
+            const result = await dryRunService.createIssue({
                 dependencyName: 'react',
                 title: 'Update react',
                 teamId: 'team-1',
                 description: 'desc',
             });
 
-            expect(identifier).toBe('DRY-RUN');
+            expect(result).toEqual({ id: 'DRY-RUN', identifier: 'DRY-RUN' });
             expect(mockClient.createIssue).not.toHaveBeenCalled();
         });
 

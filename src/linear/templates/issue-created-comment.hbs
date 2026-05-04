@@ -1,0 +1,21 @@
+## Issue opened by Dependicus
+
+{{#if isGroup}}
+The **{{name}}** dependency group has dependencies that {{#if isFyi}}have new versions available{{else}}require updates per policy{{/if}}.
+{{else}}
+**{{name}}** {{#if isFyi}}has new versions available for awareness{{else}}requires an update per policy{{/if}}.
+{{/if}}
+
+{{#unless isFyi}}
+- **Update type:** {{updateType}}
+- **SLA window:** {{thresholdDays}} days
+{{#if daysOverdue}}
+- **Days overdue:** {{daysOverdue}}
+{{/if}}
+{{/unless}}
+{{#each commentSections}}
+
+### {{this.title}}
+
+{{this.body}}
+{{/each}}

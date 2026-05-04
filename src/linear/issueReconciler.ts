@@ -33,6 +33,8 @@ import {
     buildIssueDescription,
     buildGroupIssueDescription,
     buildNewVersionsComment,
+    buildIssueCreatedComment,
+    buildIssueClosedComment,
 } from './issueDescriptions';
 
 export interface IssueReconcilerConfig {
@@ -338,6 +340,7 @@ export async function reconcileIssues(
                     group: ctx.group,
                     ownerLabel: ctx.ownerLabel,
                     descriptionSections: ctx.descriptionSections,
+                    commentSections: ctx.commentSections,
                 });
             } else {
                 existing.versions.push(version);
@@ -420,12 +423,14 @@ export async function reconcileIssues(
             }
         }
 
+        const allCommentSections = deps.flatMap((d) => d.commentSections ?? []);
         outdatedGroups.set(groupName, {
             groupName,
             dependencies: deps,
             teamId: firstDep.teamId,
             policy: groupPolicy,
             worstCompliance,
+            ...(allCommentSections.length > 0 && { commentSections: allCommentSections }),
         });
     }
 
@@ -664,7 +669,7 @@ export async function reconcileIssues(
                 dep.assignment.type === 'delegate' ? dep.assignment.assigneeId : undefined;
 
             // Create issue
-            const identifier = await linearService.createIssue({
+            const { id: issueId, identifier } = await linearService.createIssue({
                 dependencyName: dep.name,
                 title,
                 teamId: dep.teamId,
@@ -672,6 +677,18 @@ export async function reconcileIssues(
                 description,
                 delegateId,
             });
+
+            // Post lifecycle comment explaining why the issue was opened
+            const createdComment = buildIssueCreatedComment({
+                name: dep.name,
+                isGroup: false,
+                isFyi: notificationsOnly,
+                updateType: dep.worstCompliance.updateType,
+                thresholdDays: dep.worstCompliance.thresholdDays,
+                daysOverdue: dep.worstCompliance.daysOverdue,
+                commentSections: dep.commentSections,
+            });
+            await linearService.createComment(issueId, createdComment, identifier);
 
             existingIssuesByTitle.add(fullTitle);
 
@@ -816,13 +833,25 @@ export async function reconcileIssues(
             }
 
             // Create issue for the group (don't auto-delegate groups - they're more complex)
-            const identifier = await linearService.createIssue({
+            const { id: issueId, identifier } = await linearService.createIssue({
                 dependencyName: group.groupName,
                 title,
                 teamId: group.teamId,
                 dueDate: earliestDueDate,
                 description,
             });
+
+            // Post lifecycle comment explaining why the issue was opened
+            const createdComment = buildIssueCreatedComment({
+                name: group.groupName,
+                isGroup: true,
+                isFyi: groupNotificationsOnly,
+                updateType: group.worstCompliance.updateType,
+                thresholdDays: group.worstCompliance.thresholdDays,
+                daysOverdue: group.worstCompliance.daysOverdue,
+                commentSections: group.commentSections,
+            });
+            await linearService.createComment(issueId, createdComment, identifier);
 
             existingIssuesByTitle.add(fullTitle);
 
@@ -838,6 +867,11 @@ export async function reconcileIssues(
     // Close issues for packages that are now compliant
     let closed = 0;
     for (const issue of existingIssuesByName.values()) {
+        const closeComment = buildIssueClosedComment({
+            name: issue.dependencyName,
+            isGroup: issue.isGroup,
+        });
+        await linearService.createComment(issue.id, closeComment, issue.identifier);
         await linearService.closeIssue(issue.id, issue.identifier);
         if (!dryRun) {
             process.stderr.write(
