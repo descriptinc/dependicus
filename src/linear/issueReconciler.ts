@@ -190,6 +190,23 @@ function shouldSkipCreateDueToRateLimit(
     return undefined;
 }
 
+/**
+ * Look up an existing issue by ecosystem-qualified key, falling back to
+ * the unqualified name for backward compatibility with issues created
+ * before the ecosystem tag was added to titles.
+ */
+function findExistingIssue(
+    map: Map<string, DependicusIssue>,
+    qualifiedKey: string,
+    unqualifiedName: string,
+): { issue: DependicusIssue; mapKey: string } | undefined {
+    const byQualified = map.get(qualifiedKey);
+    if (byQualified) return { issue: byQualified, mapKey: qualifiedKey };
+    const byName = map.get(unqualifiedName);
+    if (byName) return { issue: byName, mapKey: unqualifiedName };
+    return undefined;
+}
+
 /** Default policy when the issue spec doesn't specify one. */
 const DEFAULT_POLICY: LinearPolicy = { type: 'fyi' };
 
@@ -240,10 +257,12 @@ export async function reconcileIssues(
 
     const linearService = new LinearService(config.linearApiKey, { dryRun });
 
-    // Find out-of-date dependencies (group by dependency name)
+    // Find out-of-date dependencies (group by ecosystem::name to avoid
+    // merging packages that share a name across different registries)
     const outdatedDeps = new Map<string, OutdatedDependency>();
 
     for (const dep of dependencies) {
+        const depKey = `${dep.ecosystem}::${dep.name}`;
         for (const version of dep.versions) {
             // Skip if already on latest version
             if (version.version === version.latestVersion) continue;
@@ -299,10 +318,10 @@ export async function reconcileIssues(
                   ? policy
                   : { type: 'fyi' as const, rateLimitDays: policyRateLimitDays(policy) };
 
-            const existing = outdatedDeps.get(dep.name);
+            const existing = outdatedDeps.get(depKey);
 
             if (!existing) {
-                outdatedDeps.set(dep.name, {
+                outdatedDeps.set(depKey, {
                     name: dep.name,
                     ecosystem: dep.ecosystem,
                     versions: [version],
@@ -359,13 +378,13 @@ export async function reconcileIssues(
     const ungroupedDeps = new Map<string, OutdatedDependency>();
     const dependenciesByGroup = new Map<string, OutdatedDependency[]>();
 
-    for (const dep of outdatedDeps.values()) {
+    for (const [key, dep] of outdatedDeps) {
         if (dep.group) {
             const groupDeps = dependenciesByGroup.get(dep.group) ?? [];
             groupDeps.push(dep);
             dependenciesByGroup.set(dep.group, groupDeps);
         } else {
-            ungroupedDeps.set(dep.name, dep);
+            ungroupedDeps.set(key, dep);
         }
     }
 
@@ -462,7 +481,9 @@ export async function reconcileIssues(
 
     // Process ungrouped dependencies
     for (const dep of ungroupedDeps.values()) {
-        const existingIssue = existingIssuesByName.get(dep.name);
+        const depKey = `${dep.ecosystem}::${dep.name}`;
+        const match = findExistingIssue(existingIssuesByName, depKey, dep.name);
+        const existingIssue = match?.issue;
         const version = dep.versions[0];
         if (!version) {
             throw new Error(`No versions found for dependency ${dep.name}`);
@@ -505,7 +526,7 @@ export async function reconcileIssues(
             version.version,
             minVersion,
             effectiveLatestVersion,
-            { notificationsOnly },
+            { notificationsOnly, ecosystem: dep.ecosystem },
         );
         const providerInfo = config.providerInfoMap.get(dep.ecosystem);
         if (!providerInfo) {
@@ -532,7 +553,7 @@ export async function reconcileIssues(
                         `Skipping ${dep.name} (${existingIssue.identifier}) - issue in ${existingIssue.state.name} state\n`,
                     );
                 }
-                existingIssuesByName.delete(dep.name);
+                existingIssuesByName.delete(match!.mapKey);
                 continue;
             }
 
@@ -553,7 +574,7 @@ export async function reconcileIssues(
                         `Skipping ${dep.name} (${existingIssue.identifier}) - within ${skipRateLimitDays}-day rate limit\n`,
                     );
                 }
-                existingIssuesByName.delete(dep.name);
+                existingIssuesByName.delete(match!.mapKey);
                 continue;
             }
 
@@ -605,7 +626,7 @@ export async function reconcileIssues(
             }
             updated++;
 
-            existingIssuesByName.delete(dep.name);
+            existingIssuesByName.delete(match!.mapKey);
         } else {
             // No issue exists - only create if allowed
             if (!allowNewIssues) {

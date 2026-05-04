@@ -369,6 +369,84 @@ describe('reconcileGitHubIssues', () => {
         expect(mockOctokit.issues.create).not.toHaveBeenCalled();
     });
 
+    it('creates separate issues for same-name packages in different ecosystems', async () => {
+        setupMocks();
+
+        const npmVersion = makeVersion();
+        const pypiVersion = makeVersion({
+            version: '0.2.1',
+            latestVersion: '0.18.0',
+        });
+
+        const root = new RootFactStore();
+        // npm facts
+        const npmScoped = root.scoped('npm');
+        npmScoped.setVersionFact('braintrust', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
+            { version: '2.0.0', publishDate: '2024-06-01', isPrerelease: false },
+        ]);
+        npmScoped.setVersionFact('braintrust', '1.0.0', FactKeys.DESCRIPTION, 'npm package');
+        // pypi facts
+        const pypiScoped = root.scoped('pypi');
+        pypiScoped.setVersionFact('braintrust', '0.2.1', FactKeys.VERSIONS_BETWEEN, [
+            { version: '0.18.0', publishDate: '2024-06-01', isPrerelease: false },
+        ]);
+        pypiScoped.setVersionFact('braintrust', '0.2.1', FactKeys.DESCRIPTION, 'pypi package');
+
+        const config: IssueReconcilerConfig = {
+            ...baseConfig,
+            providerInfoMap: new Map([
+                ...baseConfig.providerInfoMap,
+                [
+                    'pypi',
+                    {
+                        name: 'uv',
+                        ecosystem: 'pypi',
+                        supportsCatalog: false,
+                        installCommand: 'uv pip install',
+                        urlPatterns: { Registry: 'https://pypi.org/project/{{name}}' },
+                    },
+                ],
+            ]),
+        };
+
+        const deps: DirectDependency[] = [
+            { name: 'braintrust', ecosystem: 'npm', versions: [npmVersion] },
+            { name: 'braintrust', ecosystem: 'pypi', versions: [pypiVersion] },
+        ];
+
+        const result = await reconcileGitHubIssues(deps, root, config, () =>
+            makeSpec({ policy: { type: 'fyi' } }),
+        );
+
+        // Should create 2 separate issues, not 1 merged issue
+        expect(result.created).toBe(2);
+    });
+
+    it('migrates old issue in place when ecosystem tag is missing from title', async () => {
+        setupMocks([
+            {
+                number: 50,
+                title: '[Dependicus] Update test-pkg from 1.0.0 to 2.0.0',
+                updated_at: '2024-01-01T00:00:00Z',
+                body: 'old description',
+            },
+        ]);
+
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
+        const store = makeStore();
+
+        const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({ policy: { type: 'fyi' } }),
+        );
+
+        // Should update the existing issue in place (fallback match on unqualified name)
+        expect(result.updated).toBe(1);
+        expect(result.created).toBe(0);
+        expect(result.closed).toBe(0);
+    });
+
     it('returns zeros when no outdated packages', async () => {
         setupMocks();
 

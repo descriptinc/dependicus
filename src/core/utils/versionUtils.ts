@@ -127,13 +127,25 @@ export function extractLatestVersionFromTitle(title: string): string | undefined
  * - "[Dependicus] FYI: <dependency> X.Y.Z is available"
  */
 export function extractDependencyNameFromTitle(title: string): string | undefined {
-    // Try standard "Update X from..." format
+    // Try new format with ecosystem tag: "[Dependicus] [npm] Update X from..."
+    const ecoUpdateMatch = title.match(/^\[Dependicus\]\s+\[(\w+)\]\s+Update\s+(.+?)\s+from\s+/);
+    if (ecoUpdateMatch) {
+        return `${ecoUpdateMatch[1]}::${ecoUpdateMatch[2]}`;
+    }
+
+    // Try new FYI format with ecosystem tag: "[Dependicus] [npm] FYI: X Y.Z is available"
+    const ecoFyiMatch = title.match(/^\[Dependicus\]\s+\[(\w+)\]\s+FYI:\s+(.+?)\s+\d+\.\d+/);
+    if (ecoFyiMatch) {
+        return `${ecoFyiMatch[1]}::${ecoFyiMatch[2]}`;
+    }
+
+    // Backward compat: standard "Update X from..." format (no ecosystem tag)
     const updateMatch = title.match(/^\[Dependicus\]\s+Update\s+(.+?)\s+from\s+/);
     if (updateMatch) {
         return updateMatch[1];
     }
 
-    // Try FYI format: "FYI: <package> X.Y.Z is available"
+    // Backward compat: FYI format (no ecosystem tag)
     const fyiMatch = title.match(/^\[Dependicus\]\s+FYI:\s+(.+?)\s+\d+\.\d+/);
     if (fyiMatch) {
         return fyiMatch[1];
@@ -193,20 +205,22 @@ export function buildTicketTitle(
     currentVersion: string,
     minVersion: string,
     latestVersion: string,
-    options?: { notificationsOnly?: boolean },
+    options?: { notificationsOnly?: boolean; ecosystem?: string },
 ): string {
+    const prefix = options?.ecosystem ? `[${options.ecosystem}] ` : '';
+
     // Notifications-only dependencies get FYI-style titles since no update is mandatory
     if (options?.notificationsOnly) {
         if (currentVersion === minVersion || minVersion === latestVersion) {
-            return `FYI: ${name} ${latestVersion} is available (currently on ${currentVersion})`;
+            return `${prefix}FYI: ${name} ${latestVersion} is available (currently on ${currentVersion})`;
         }
-        return `FYI: ${name} ${latestVersion} is available (currently on ${currentVersion})`;
+        return `${prefix}FYI: ${name} ${latestVersion} is available (currently on ${currentVersion})`;
     }
 
     if (minVersion === latestVersion) {
-        return `Update ${name} from ${currentVersion} to ${latestVersion}`;
+        return `${prefix}Update ${name} from ${currentVersion} to ${latestVersion}`;
     }
-    return `Update ${name} from ${currentVersion} to at least ${minVersion} (latest: ${latestVersion})`;
+    return `${prefix}Update ${name} from ${currentVersion} to at least ${minVersion} (latest: ${latestVersion})`;
 }
 
 /**

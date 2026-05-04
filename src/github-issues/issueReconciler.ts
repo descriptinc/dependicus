@@ -180,6 +180,23 @@ function shouldSkipCreateDueToRateLimit(
     return undefined;
 }
 
+/**
+ * Look up an existing issue by ecosystem-qualified key, falling back to
+ * the unqualified name for backward compatibility with issues created
+ * before the ecosystem tag was added to titles.
+ */
+function findExistingIssue(
+    map: Map<string, DependicusIssue>,
+    qualifiedKey: string,
+    unqualifiedName: string,
+): { issue: DependicusIssue; mapKey: string } | undefined {
+    const byQualified = map.get(qualifiedKey);
+    if (byQualified) return { issue: byQualified, mapKey: qualifiedKey };
+    const byName = map.get(unqualifiedName);
+    if (byName) return { issue: byName, mapKey: unqualifiedName };
+    return undefined;
+}
+
 /** Default policy when the issue spec doesn't specify one. */
 const DEFAULT_POLICY: GitHubIssuePolicy = { type: 'fyi' };
 
@@ -233,10 +250,12 @@ export async function reconcileGitHubIssues(
 
     const githubService = new GitHubIssueService(config.githubToken, { dryRun });
 
-    // Find out-of-date dependencies (group by dependency name)
+    // Find out-of-date dependencies (group by ecosystem::name to avoid
+    // merging packages that share a name across different registries)
     const outdatedDeps = new Map<string, OutdatedDependency>();
 
     for (const dep of dependencies) {
+        const depKey = `${dep.ecosystem}::${dep.name}`;
         for (const version of dep.versions) {
             if (version.version === version.latestVersion) continue;
 
@@ -285,10 +304,10 @@ export async function reconcileGitHubIssues(
                   ? policy
                   : { type: 'fyi' as const, rateLimitDays: policyRateLimitDays(policy) };
 
-            const existing = outdatedDeps.get(dep.name);
+            const existing = outdatedDeps.get(depKey);
 
             if (!existing) {
-                outdatedDeps.set(dep.name, {
+                outdatedDeps.set(depKey, {
                     name: dep.name,
                     ecosystem: dep.ecosystem,
                     versions: [version],
@@ -344,13 +363,13 @@ export async function reconcileGitHubIssues(
     const ungroupedDeps = new Map<string, OutdatedDependency>();
     const dependenciesByGroup = new Map<string, OutdatedDependency[]>();
 
-    for (const dep of outdatedDeps.values()) {
+    for (const [key, dep] of outdatedDeps) {
         if (dep.group) {
             const groupDeps = dependenciesByGroup.get(dep.group) ?? [];
             groupDeps.push(dep);
             dependenciesByGroup.set(dep.group, groupDeps);
         } else {
-            ungroupedDeps.set(dep.name, dep);
+            ungroupedDeps.set(key, dep);
         }
     }
 
@@ -462,7 +481,9 @@ export async function reconcileGitHubIssues(
 
     // Process ungrouped dependencies
     for (const dep of ungroupedDeps.values()) {
-        const existingIssue = existingIssuesByDependency.get(dep.name);
+        const depKey = `${dep.ecosystem}::${dep.name}`;
+        const match = findExistingIssue(existingIssuesByDependency, depKey, dep.name);
+        const existingIssue = match?.issue;
         const version = dep.versions[0];
         if (!version) {
             throw new Error(`No versions found for dependency ${dep.name}`);
@@ -507,7 +528,7 @@ export async function reconcileGitHubIssues(
             version.version,
             minVersion,
             effectiveLatestVersion,
-            { notificationsOnly },
+            { notificationsOnly, ecosystem: dep.ecosystem },
         );
         if (dueDateStr && !notificationsOnly) {
             title = `${title} (due ${dueDateStr})`;
@@ -544,7 +565,7 @@ export async function reconcileGitHubIssues(
                         `Skipping ${dep.name} (#${existingIssue.number}) - within ${skipRateLimitDays}-day rate limit\n`,
                     );
                 }
-                existingIssuesByDependency.delete(dep.name);
+                existingIssuesByDependency.delete(match!.mapKey);
                 continue;
             }
 
@@ -599,7 +620,7 @@ export async function reconcileGitHubIssues(
                 }
             }
 
-            existingIssuesByDependency.delete(dep.name);
+            existingIssuesByDependency.delete(match!.mapKey);
         } else {
             // No issue exists - only create if allowed
             if (!allowNewIssues) {
