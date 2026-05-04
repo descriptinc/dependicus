@@ -14,6 +14,9 @@ const mockOctokit = {
         update: vi.fn(),
         createComment: vi.fn(),
     },
+    search: {
+        issuesAndPullRequests: vi.fn(),
+    },
 };
 
 // Mock @octokit/rest
@@ -103,6 +106,7 @@ function setupMocks(
     mockOctokit.issues.create.mockResolvedValue({ data: { number: 999 } });
     mockOctokit.issues.update.mockResolvedValue({});
     mockOctokit.issues.createComment.mockResolvedValue({});
+    mockOctokit.search.issuesAndPullRequests.mockResolvedValue({ data: { items: [] } });
 }
 
 describe('reconcileGitHubIssues', () => {
@@ -447,6 +451,159 @@ describe('reconcileGitHubIssues', () => {
         expect(result.closed).toBe(0);
     });
 
+    it('posts a close comment before closing an issue', async () => {
+        // An existing issue for old-pkg (now compliant) plus a still-outdated
+        // dep (test-pkg) so the reconciler doesn't early-return.
+        setupMocks([
+            {
+                number: 42,
+                title: '[Dependicus] FYI: old-pkg 1.0.0 → 2.0.0 (latest: 2.0.0)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+        ]);
+
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            // old-pkg is now compliant (in the input so close isn't skipped)
+            {
+                name: 'old-pkg',
+                ecosystem: 'npm',
+                versions: [makeVersion({ version: '2.0.0', latestVersion: '2.0.0' })],
+            },
+        ];
+        const store = makeStore();
+
+        await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({ policy: { type: 'fyi' } }),
+        );
+
+        // Should have posted a close comment for old-pkg
+        const commentCalls = mockOctokit.issues.createComment.mock.calls;
+        const closeComment = commentCalls.find(
+            (c: Array<{ body: string }>) =>
+                c[0] && typeof c[0].body === 'string' && c[0].body.includes('Closed by Dependicus'),
+        );
+        expect(closeComment).toBeDefined();
+    });
+
+    it('reopens a closed issue instead of creating a new one', async () => {
+        // Open issues search returns nothing; search API returns a closed issue with exact title match
+        setupMocks();
+        mockOctokit.search.issuesAndPullRequests.mockResolvedValue({
+            data: {
+                items: [
+                    {
+                        number: 55,
+                        title: '[Dependicus] [npm] FYI: test-pkg 2.0.0 is available (currently on 1.0.0)',
+                        updated_at: '2024-06-01T00:00:00Z',
+                        body: 'old body',
+                    },
+                ],
+            },
+        });
+
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
+        const store = makeStore();
+
+        const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({ policy: { type: 'fyi' } }),
+        );
+
+        // Should reopen, not create
+        expect(result.reopened).toBe(1);
+        expect(result.created).toBe(0);
+        expect(mockOctokit.issues.create).not.toHaveBeenCalled();
+        expect(mockOctokit.issues.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                issue_number: 55,
+                state: 'open',
+            }),
+        );
+
+        // Should post a "reopened" comment
+        const commentCalls = mockOctokit.issues.createComment.mock.calls;
+        const reopenComment = commentCalls.find(
+            (c: Array<{ body: string }>) =>
+                c[0] &&
+                typeof c[0].body === 'string' &&
+                c[0].body.includes('Reopened by Dependicus'),
+        );
+        expect(reopenComment).toBeDefined();
+    });
+
+    it('skips closing group issue when no deps assigned to that group this run', async () => {
+        // An outdated dep is needed to provide owner/repo and avoid early return
+        setupMocks([
+            {
+                number: 42,
+                title: '[Dependicus] [npm] FYI: test-pkg 2.0.0 is available (currently on 1.0.0)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+            {
+                number: 80,
+                title: '[Dependicus] Update missing-group group (3 packages)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+        ]);
+
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
+        const store = makeStore();
+
+        const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({ policy: { type: 'fyi' } }),
+        );
+
+        // Group issue should NOT be closed — no deps assigned to that group
+        expect(result.closed).toBe(0);
+    });
+
+    it('closes group issue when all packages in group are compliant', async () => {
+        setupMocks([
+            {
+                number: 42,
+                title: '[Dependicus] [npm] FYI: test-pkg 2.0.0 is available (currently on 1.0.0)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+            {
+                number: 80,
+                title: '[Dependicus] Update my-group group (2 packages)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+        ]);
+
+        const deps: DirectDependency[] = [
+            // Still-outdated non-group dep to provide owner/repo
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            // Compliant group deps
+            {
+                name: 'group-a',
+                ecosystem: 'npm',
+                versions: [makeVersion({ version: '2.0.0', latestVersion: '2.0.0' })],
+            },
+            {
+                name: 'group-b',
+                ecosystem: 'npm',
+                versions: [makeVersion({ version: '2.0.0', latestVersion: '2.0.0' })],
+            },
+        ];
+        const store = makeStore();
+
+        // Spec that assigns compliant group deps to "my-group"
+        const result = await reconcileGitHubIssues(deps, store, baseConfig, (ctx) => {
+            if (ctx.name === 'group-a' || ctx.name === 'group-b') {
+                return makeSpec({ policy: { type: 'fyi' }, group: 'my-group' });
+            }
+            return makeSpec({ policy: { type: 'fyi' } });
+        });
+
+        // Group issue should be closed — all group deps are compliant
+        expect(result.closed).toBe(1);
+    });
+
     it('returns zeros when no outdated packages', async () => {
         setupMocks();
 
@@ -465,6 +622,7 @@ describe('reconcileGitHubIssues', () => {
 
         expect(result).toEqual({
             created: 0,
+            reopened: 0,
             updated: 0,
             skipped: 0,
             closed: 0,

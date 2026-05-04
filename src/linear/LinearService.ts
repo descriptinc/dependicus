@@ -161,9 +161,9 @@ export class LinearService {
 
     /**
      * Create a new Dependicus issue.
-     * Returns the issue identifier (e.g., "ENG-1234") or "DRY-RUN" in dry-run mode.
+     * Returns the issue id (UUID) and identifier (e.g., "ENG-1234").
      */
-    async createIssue(params: CreateIssueParams): Promise<string> {
+    async createIssue(params: CreateIssueParams): Promise<{ id: string; identifier: string }> {
         const { dependencyName, title, teamId, projectId, dueDate, description, delegateId } =
             params;
 
@@ -183,7 +183,7 @@ export class LinearService {
                 process.stderr.write(`\nDelegate: ${delegateId}\n`);
             }
             process.stderr.write('\n' + '='.repeat(80) + '\n');
-            return 'DRY-RUN';
+            return { id: 'DRY-RUN', identifier: 'DRY-RUN' };
         }
 
         const labelId = await this.ensureLabel();
@@ -205,7 +205,7 @@ export class LinearService {
             throw new Error(`Failed to create issue for ${dependencyName}`);
         }
 
-        return issue.identifier;
+        return { id: issue.id, identifier: issue.identifier };
     }
 
     /**
@@ -263,6 +263,106 @@ export class LinearService {
         await this.client.createComment({
             issueId,
             body,
+        });
+    }
+
+    /**
+     * Find a closed/completed Dependicus issue with an exactly matching title.
+     * Uses the dependency name as a server-side pre-filter (substring match),
+     * then verifies the full title locally.
+     *
+     * Returns the matching issue, or undefined if none found.
+     */
+    async findClosedIssue(
+        dependencyName: string,
+        fullTitle: string,
+    ): Promise<DependicusIssue | undefined> {
+        const labelId = await this.ensureLabel();
+
+        const issues = await this.client.issues({
+            filter: {
+                labels: { id: { eq: labelId } },
+                state: {
+                    type: { in: ['completed', 'canceled'] },
+                },
+                title: { contains: dependencyName },
+            },
+            first: 10,
+        });
+
+        for (const issue of issues.nodes) {
+            if (issue.title !== fullTitle) continue;
+
+            const groupName = extractGroupNameFromTitle(issue.title);
+            const extractedName = groupName ?? extractDependencyNameFromTitle(issue.title);
+            if (!extractedName) continue;
+
+            const state = await issue.state;
+
+            return {
+                id: issue.id,
+                identifier: issue.identifier,
+                title: issue.title,
+                dependencyName: extractedName,
+                isGroup: groupName !== undefined,
+                dueDate: issue.dueDate ?? undefined,
+                updatedAt: issue.updatedAt.toISOString(),
+                state: {
+                    type: state?.type ?? 'completed',
+                    name: state?.name,
+                },
+            };
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Reopen a closed issue by setting its state back to backlog/unstarted
+     * and updating its title, description, and due date.
+     */
+    async reopenIssue(
+        issueId: string,
+        params: { title: string; description: string; dueDate?: Date },
+        identifier?: string,
+    ): Promise<void> {
+        if (this.dryRun) {
+            const issueLabel = identifier || issueId;
+            process.stderr.write('\n');
+            process.stderr.write('='.repeat(80) + '\n');
+            process.stderr.write(`[DRY RUN] Would REOPEN issue ${issueLabel}\n`);
+            process.stderr.write('='.repeat(80) + '\n');
+            process.stderr.write(`\nTitle: ${TITLE_PREFIX} ${params.title}\n\n`);
+            process.stderr.write(`Description:\n${params.description}\n`);
+            if (params.dueDate) {
+                process.stderr.write(`\nDue Date: ${params.dueDate.toISOString().split('T')[0]}\n`);
+            }
+            process.stderr.write('\n' + '='.repeat(80) + '\n');
+            return;
+        }
+
+        const issue = await this.client.issue(issueId);
+        const team = await issue.team;
+
+        if (!team) {
+            throw new Error(`Cannot reopen issue ${issueId}: no team found`);
+        }
+
+        const states = await team.states();
+        const activeState = states.nodes.find(
+            (state) => state.type === 'backlog' || state.type === 'unstarted',
+        );
+
+        if (!activeState) {
+            throw new Error(`Cannot reopen issue ${issueId}: no backlog/unstarted state found`);
+        }
+
+        await this.client.updateIssue(issueId, {
+            stateId: activeState.id,
+            title: `${TITLE_PREFIX} ${params.title}`,
+            description: params.description,
+            // eslint-disable-next-line no-null/no-null
+            dueDate: params.dueDate ? params.dueDate.toISOString().split('T')[0] : null,
         });
     }
 

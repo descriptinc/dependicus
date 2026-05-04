@@ -184,7 +184,7 @@ describe('reconcileIssues', () => {
             pageInfo: { hasNextPage: false, endCursor: undefined },
         });
         mockClient.createIssue.mockResolvedValue({
-            issue: Promise.resolve({ identifier: 'TEST-100' }),
+            issue: Promise.resolve({ id: 'issue-uuid-100', identifier: 'TEST-100' }),
         });
     });
 
@@ -288,8 +288,9 @@ describe('reconcileIssues', () => {
             }),
         });
 
-        // No outdated packages - the existing issue should be closed
-        const deps: DirectDependency[] = [];
+        // old-pkg is now compliant (version == latest), so the issue should be closed
+        const v = makeVersion({ version: '2.0.0', latestVersion: '2.0.0' });
+        const deps: DirectDependency[] = [makeDep('old-pkg', [v])];
 
         const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.closed).toBe(1);
@@ -988,8 +989,21 @@ describe('reconcileIssues', () => {
                 }),
             });
 
-            // No packages in the group are outdated
-            const deps: DirectDependency[] = [];
+            // Group packages are now compliant (version == latest), but still
+            // reported by the provider with group metadata so the close isn't
+            // blocked by flapping prevention.
+            const vA = makeVersion({ version: '2.0.0', latestVersion: '2.0.0' });
+            const vB = makeVersion({ version: '2.0.0', latestVersion: '2.0.0' });
+            const groupMeta: TestMeta = {
+                surfaceId: 'Surf',
+                teamName: 'TestTeam',
+                policyId: 'mandatory',
+                notificationOptOut: false,
+                group: 'my-group',
+            };
+            populateFacts(store, 'group-a', vA, { meta: groupMeta, versionsBetween: [] });
+            populateFacts(store, 'group-b', vB, { meta: groupMeta, versionsBetween: [] });
+            const deps: DirectDependency[] = [makeDep('group-a', [vA]), makeDep('group-b', [vB])];
 
             const result = await reconcileIssues(
                 deps,
@@ -1202,6 +1216,150 @@ describe('reconcileIssues', () => {
         expect(result.updated).toBe(0);
         expect(result.closed).toBe(0);
         expect(result.closedDuplicates).toBe(0);
+    });
+
+    it('posts a close comment before closing an issue', async () => {
+        const mockState = { type: 'unstarted', name: 'Todo' };
+        mockClient.issues.mockResolvedValue({
+            nodes: [
+                {
+                    id: 'issue-1',
+                    identifier: 'TEST-50',
+                    title: '[Dependicus] Update old-pkg from 1.0.0 to 2.0.0',
+                    dueDate: '2025-06-01',
+                    updatedAt: new Date('2024-01-01'),
+                    state: Promise.resolve(mockState),
+                },
+            ],
+            pageInfo: { hasNextPage: false, endCursor: undefined },
+        });
+
+        mockClient.issue.mockResolvedValue({
+            team: Promise.resolve({
+                states: () =>
+                    Promise.resolve({
+                        nodes: [{ id: 'done-state', type: 'completed', name: 'Done' }],
+                    }),
+            }),
+        });
+
+        // old-pkg is now compliant (version == latest)
+        const v = makeVersion({ version: '2.0.0', latestVersion: '2.0.0' });
+        const deps: DirectDependency[] = [makeDep('old-pkg', [v])];
+        const config = { ...defaultConfig, dryRun: false };
+
+        await reconcileIssues(deps, store, config, testGetLinearIssueSpec);
+
+        // Should have posted a close comment
+        const commentCalls = mockClient.createComment.mock.calls;
+        expect(commentCalls.length).toBeGreaterThanOrEqual(1);
+        const body = commentCalls[0]![0].body as string;
+        expect(body).toContain('Closed by Dependicus');
+        expect(body).toContain('now at version');
+    });
+
+    it('skips closing when dependency is absent from provider input', async () => {
+        const mockState = { type: 'unstarted', name: 'Todo' };
+        mockClient.issues.mockResolvedValue({
+            nodes: [
+                {
+                    id: 'issue-1',
+                    identifier: 'TEST-50',
+                    title: '[Dependicus] Update missing-pkg from 1.0.0 to 2.0.0',
+                    dueDate: '2025-06-01',
+                    updatedAt: new Date('2024-01-01'),
+                    state: Promise.resolve(mockState),
+                },
+            ],
+            pageInfo: { hasNextPage: false, endCursor: undefined },
+        });
+
+        // Empty deps — missing-pkg is not reported by any provider
+        const deps: DirectDependency[] = [];
+
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
+        // Should NOT close — dep was absent, not compliant
+        expect(result.closed).toBe(0);
+        expect(mockClient.updateIssue).not.toHaveBeenCalled();
+    });
+
+    it('skips closing group issue when no deps assigned to that group this run', async () => {
+        const mockState = { type: 'unstarted', name: 'Todo' };
+        mockClient.issues.mockResolvedValue({
+            nodes: [
+                {
+                    id: 'issue-1',
+                    identifier: 'TEST-50',
+                    title: '[Dependicus] Update missing-group group (3 packages)',
+                    dueDate: '2025-06-01',
+                    updatedAt: new Date('2024-01-01'),
+                    state: Promise.resolve(mockState),
+                },
+            ],
+            pageInfo: { hasNextPage: false, endCursor: undefined },
+        });
+
+        // Empty deps — no dependencies assigned to this group
+        const deps: DirectDependency[] = [];
+
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
+        // Should NOT close — group deps were absent, not compliant
+        expect(result.closed).toBe(0);
+    });
+
+    it('reopens a closed issue instead of creating a new one', async () => {
+        const closedState = { type: 'completed', name: 'Done' };
+        const backlogState = { id: 'backlog-state', type: 'backlog', name: 'Backlog' };
+
+        // First call: open issues search returns nothing
+        // Second call (from findClosedIssue): returns a closed issue with an exact title match
+        mockClient.issues
+            .mockResolvedValueOnce({
+                nodes: [],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            })
+            .mockResolvedValueOnce({
+                nodes: [
+                    {
+                        id: 'closed-issue-1',
+                        identifier: 'TEST-99',
+                        title: '[Dependicus] [npm] Update test-pkg from 1.0.0 to 2.0.0',
+                        dueDate: undefined,
+                        updatedAt: new Date('2024-06-01'),
+                        state: Promise.resolve(closedState),
+                    },
+                ],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            });
+
+        // Mock for reopenIssue to look up team states
+        mockClient.issue.mockResolvedValue({
+            team: Promise.resolve({
+                states: () => Promise.resolve({ nodes: [backlogState] }),
+            }),
+        });
+
+        const v = makeVersion();
+        populateFacts(store, 'test-pkg', v);
+        const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
+
+        const config = { ...defaultConfig, dryRun: false };
+        const result = await reconcileIssues(deps, store, config, testGetLinearIssueSpec);
+
+        // Should reopen, not create
+        expect(result.reopened).toBe(1);
+        expect(result.created).toBe(0);
+        expect(mockClient.createIssue).not.toHaveBeenCalled();
+        expect(mockClient.updateIssue).toHaveBeenCalledWith(
+            'closed-issue-1',
+            expect.objectContaining({ stateId: 'backlog-state' }),
+        );
+
+        // Should post a "reopened" comment
+        const commentCalls = mockClient.createComment.mock.calls;
+        expect(commentCalls.length).toBeGreaterThanOrEqual(1);
+        const body = commentCalls[0]![0].body as string;
+        expect(body).toContain('Reopened by Dependicus');
     });
 
     it('handles duplicate close failure gracefully', async () => {

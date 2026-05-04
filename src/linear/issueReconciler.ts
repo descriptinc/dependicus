@@ -33,6 +33,8 @@ import {
     buildIssueDescription,
     buildGroupIssueDescription,
     buildNewVersionsComment,
+    buildIssueClosedComment,
+    buildIssueReopenedComment,
 } from './issueDescriptions';
 
 export interface IssueReconcilerConfig {
@@ -54,6 +56,7 @@ export interface IssueReconcilerConfig {
 
 export interface ReconciliationResult {
     created: number;
+    reopened: number;
     updated: number;
     closed: number;
     closedDuplicates: number;
@@ -338,6 +341,7 @@ export async function reconcileIssues(
                     group: ctx.group,
                     ownerLabel: ctx.ownerLabel,
                     descriptionSections: ctx.descriptionSections,
+                    commentSections: ctx.commentSections,
                 });
             } else {
                 existing.versions.push(version);
@@ -420,13 +424,44 @@ export async function reconcileIssues(
             }
         }
 
+        const allCommentSections = deps.flatMap((d) => d.commentSections ?? []);
         outdatedGroups.set(groupName, {
             groupName,
             dependencies: deps,
             teamId: firstDep.teamId,
             policy: groupPolicy,
             worstCompliance,
+            ...(allCommentSections.length > 0 && { commentSections: allCommentSections }),
         });
+    }
+
+    // Build a set of all groups whose deps were reported this run, including
+    // groups whose deps are all compliant. dependenciesByGroup only has outdated
+    // deps, so we also probe the spec for deps that were entirely skipped
+    // (all versions already on latest). This lets the close loop distinguish
+    // "group is compliant" from "group's deps were absent due to provider failure."
+    const reportedGroups = new Set(dependenciesByGroup.keys());
+    if (getLinearIssueSpec) {
+        for (const dep of dependencies) {
+            const depKey = `${dep.ecosystem}::${dep.name}`;
+            if (outdatedDeps.has(depKey)) continue; // already classified
+            // All versions were compliant (or otherwise skipped) — call the spec
+            // with the first version to learn the group assignment.
+            const version = dep.versions[0];
+            if (!version) continue;
+            const ctx = getLinearIssueSpec(
+                {
+                    name: dep.name,
+                    ecosystem: dep.ecosystem,
+                    currentVersion: version.version,
+                    latestVersion: version.latestVersion,
+                },
+                store.scoped(dep.ecosystem),
+            );
+            if (ctx?.group) {
+                reportedGroups.add(ctx.group);
+            }
+        }
     }
 
     process.stderr.write(
@@ -477,6 +512,7 @@ export async function reconcileIssues(
 
     // Process non-compliant dependencies
     let created = 0;
+    let reopened = 0;
     let updated = 0;
 
     // Process ungrouped dependencies
@@ -663,8 +699,45 @@ export async function reconcileIssues(
             const delegateId =
                 dep.assignment.type === 'delegate' ? dep.assignment.assigneeId : undefined;
 
+            // Check if a closed issue with the same title exists — reopen instead of creating
+            const closedIssue = await linearService.findClosedIssue(dep.name, fullTitle);
+            if (closedIssue) {
+                await linearService.reopenIssue(
+                    closedIssue.id,
+                    { title, description, dueDate },
+                    closedIssue.identifier,
+                );
+
+                const reopenedComment = buildIssueReopenedComment({
+                    name: dep.name,
+                    isGroup: false,
+                    isFyi: notificationsOnly,
+                    updateType: dep.worstCompliance.updateType,
+                    currentVersion: version.version,
+                    latestVersion: version.latestVersion,
+                    thresholdDays: dep.worstCompliance.thresholdDays,
+                    daysOverdue: dep.worstCompliance.daysOverdue,
+                    commentSections: dep.commentSections,
+                });
+                await linearService.createComment(
+                    closedIssue.id,
+                    reopenedComment,
+                    closedIssue.identifier,
+                );
+
+                existingIssuesByTitle.add(fullTitle);
+
+                if (!dryRun) {
+                    process.stderr.write(
+                        `Reopened issue for ${dep.name} (${closedIssue.identifier})\n`,
+                    );
+                }
+                reopened++;
+                continue;
+            }
+
             // Create issue
-            const identifier = await linearService.createIssue({
+            const { identifier } = await linearService.createIssue({
                 dependencyName: dep.name,
                 title,
                 teamId: dep.teamId,
@@ -815,8 +888,45 @@ export async function reconcileIssues(
                 continue;
             }
 
+            // Check if a closed issue with the same title exists — reopen instead of creating
+            const closedIssue = await linearService.findClosedIssue(group.groupName, fullTitle);
+            if (closedIssue) {
+                await linearService.reopenIssue(
+                    closedIssue.id,
+                    { title, description, dueDate: earliestDueDate },
+                    closedIssue.identifier,
+                );
+
+                const reopenedComment = buildIssueReopenedComment({
+                    name: group.groupName,
+                    isGroup: true,
+                    isFyi: groupNotificationsOnly,
+                    updateType: group.worstCompliance.updateType,
+                    currentVersion: '',
+                    latestVersion: '',
+                    thresholdDays: group.worstCompliance.thresholdDays,
+                    daysOverdue: group.worstCompliance.daysOverdue,
+                    commentSections: group.commentSections,
+                });
+                await linearService.createComment(
+                    closedIssue.id,
+                    reopenedComment,
+                    closedIssue.identifier,
+                );
+
+                existingIssuesByTitle.add(fullTitle);
+
+                if (!dryRun) {
+                    process.stderr.write(
+                        `Reopened issue for ${group.groupName} group (${closedIssue.identifier}) - ${group.dependencies.length} dependencies\n`,
+                    );
+                }
+                reopened++;
+                continue;
+            }
+
             // Create issue for the group (don't auto-delegate groups - they're more complex)
-            const identifier = await linearService.createIssue({
+            const { identifier } = await linearService.createIssue({
                 dependencyName: group.groupName,
                 title,
                 teamId: group.teamId,
@@ -835,9 +945,46 @@ export async function reconcileIssues(
         }
     }
 
-    // Close issues for packages that are now compliant
+    // Close issues for packages that are now compliant.
+    // Build a lookup of all dependencies reported this run so we can distinguish
+    // "genuinely compliant" from "provider didn't report it" (flapping prevention).
+    const reportedDeps = new Map<string, DirectDependency>();
+    for (const dep of dependencies) {
+        reportedDeps.set(dep.name, dep);
+        reportedDeps.set(`${dep.ecosystem}::${dep.name}`, dep);
+    }
+
     let closed = 0;
     for (const issue of existingIssuesByName.values()) {
+        // Flapping prevention: don't close issues when we have no evidence
+        // the dependency is actually compliant.
+        // - For individual deps: skip if the dep wasn't reported by any provider
+        // - For group issues: skip if no dep was assigned to this group
+        // In both cases the absence could be a transient provider failure.
+        if (!issue.isGroup && !reportedDeps.has(issue.dependencyName)) {
+            process.stderr.write(
+                `Skipping close for ${issue.dependencyName} (${issue.identifier}) — dependency not reported by any provider this run\n`,
+            );
+            continue;
+        }
+        if (issue.isGroup && !reportedGroups.has(issue.dependencyName)) {
+            process.stderr.write(
+                `Skipping close for ${issue.dependencyName} group (${issue.identifier}) — no dependencies assigned to this group this run\n`,
+            );
+            continue;
+        }
+
+        // Look up version info for the close comment
+        const reportedDep = reportedDeps.get(issue.dependencyName);
+        const firstVersion = reportedDep?.versions[0];
+
+        const closeComment = buildIssueClosedComment({
+            name: issue.dependencyName,
+            isGroup: issue.isGroup,
+            currentVersion: firstVersion?.version,
+            latestVersion: firstVersion?.latestVersion,
+        });
+        await linearService.createComment(issue.id, closeComment, issue.identifier);
         await linearService.closeIssue(issue.id, issue.identifier);
         if (!dryRun) {
             process.stderr.write(
@@ -848,8 +995,8 @@ export async function reconcileIssues(
     }
 
     process.stderr.write(
-        `\nSummary: created=${created}, updated=${updated}, closed=${closed}, closedDuplicates=${closedDuplicates}\n`,
+        `\nSummary: created=${created}, reopened=${reopened}, updated=${updated}, closed=${closed}, closedDuplicates=${closedDuplicates}\n`,
     );
 
-    return { created, updated, closed, closedDuplicates };
+    return { created, reopened, updated, closed, closedDuplicates };
 }

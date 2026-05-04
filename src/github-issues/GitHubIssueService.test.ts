@@ -10,6 +10,9 @@ const mockOctokit = {
         update: vi.fn(),
         createComment: vi.fn(),
     },
+    search: {
+        issuesAndPullRequests: vi.fn(),
+    },
 };
 
 // Mock @octokit/rest
@@ -170,6 +173,112 @@ describe('GitHubIssueService', () => {
             expect(issues).toHaveLength(1);
             expect(issues[0]!.dependencyName).toBe('sentry');
             expect(issues[0]!.isGroup).toBe(true);
+        });
+    });
+
+    describe('findClosedIssue', () => {
+        it('returns issue when title matches exactly', async () => {
+            mockOctokit.search.issuesAndPullRequests.mockResolvedValue({
+                data: {
+                    items: [
+                        {
+                            number: 42,
+                            title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
+                            body: 'desc',
+                            updated_at: '2024-06-01T00:00:00Z',
+                        },
+                    ],
+                },
+            });
+
+            const result = await service.findClosedIssue(
+                'owner',
+                'repo',
+                'react',
+                '[Dependicus] Update react from 18.2.0 to 19.0.0',
+            );
+            expect(result).toBeDefined();
+            expect(result!.number).toBe(42);
+            expect(result!.dependencyName).toBe('react');
+        });
+
+        it('returns undefined when title does not match', async () => {
+            mockOctokit.search.issuesAndPullRequests.mockResolvedValue({
+                data: {
+                    items: [
+                        {
+                            number: 42,
+                            title: '[Dependicus] Update react from 18.2.0 to 18.3.0',
+                            body: 'desc',
+                            updated_at: '2024-06-01T00:00:00Z',
+                        },
+                    ],
+                },
+            });
+
+            const result = await service.findClosedIssue(
+                'owner',
+                'repo',
+                'react',
+                '[Dependicus] Update react from 18.2.0 to 19.0.0',
+            );
+            expect(result).toBeUndefined();
+        });
+
+        it('returns undefined when no results', async () => {
+            mockOctokit.search.issuesAndPullRequests.mockResolvedValue({
+                data: { items: [] },
+            });
+
+            const result = await service.findClosedIssue(
+                'owner',
+                'repo',
+                'react',
+                '[Dependicus] Update react from 18.2.0 to 19.0.0',
+            );
+            expect(result).toBeUndefined();
+        });
+
+        it('skips pull requests in results', async () => {
+            mockOctokit.search.issuesAndPullRequests.mockResolvedValue({
+                data: {
+                    items: [
+                        {
+                            number: 42,
+                            title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
+                            body: 'desc',
+                            updated_at: '2024-06-01T00:00:00Z',
+                            pull_request: { url: 'https://...' },
+                        },
+                    ],
+                },
+            });
+
+            const result = await service.findClosedIssue(
+                'owner',
+                'repo',
+                'react',
+                '[Dependicus] Update react from 18.2.0 to 19.0.0',
+            );
+            expect(result).toBeUndefined();
+        });
+    });
+
+    describe('reopenIssue', () => {
+        it('sets state to open and updates title/description', async () => {
+            await service.reopenIssue('owner', 'repo', 42, {
+                title: 'Update react from 18.2.0 to 19.0.0',
+                description: 'Updated description',
+            });
+
+            expect(mockOctokit.issues.update).toHaveBeenCalledWith({
+                owner: 'owner',
+                repo: 'repo',
+                issue_number: 42,
+                state: 'open',
+                title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
+                body: 'Updated description',
+            });
         });
     });
 

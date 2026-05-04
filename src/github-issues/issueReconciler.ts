@@ -33,6 +33,8 @@ import {
     buildIssueDescription,
     buildGroupIssueDescription,
     buildNewVersionsComment,
+    buildIssueClosedComment,
+    buildIssueReopenedComment,
 } from './issueDescriptions';
 
 export interface IssueReconcilerConfig {
@@ -52,6 +54,7 @@ export interface IssueReconcilerConfig {
 
 export interface ReconciliationResult {
     created: number;
+    reopened: number;
     updated: number;
     skipped: number;
     closed: number;
@@ -326,6 +329,7 @@ export async function reconcileGitHubIssues(
                     ownerLabel: ctx.ownerLabel,
                     labels: ctx.labels,
                     descriptionSections: ctx.descriptionSections,
+                    commentSections: ctx.commentSections,
                 });
             } else {
                 existing.versions.push(version);
@@ -399,6 +403,7 @@ export async function reconcileGitHubIssues(
             }
         }
 
+        const allCommentSections = deps.flatMap((d) => d.commentSections ?? []);
         outdatedGroups.set(groupName, {
             groupName,
             dependencies: deps,
@@ -406,7 +411,35 @@ export async function reconcileGitHubIssues(
             repo: firstDep.repo,
             policy: groupPolicy,
             worstCompliance,
+            ...(allCommentSections.length > 0 && { commentSections: allCommentSections }),
         });
+    }
+
+    // Build a set of all groups whose deps were reported this run, including
+    // groups whose deps are all compliant. dependenciesByGroup only has outdated
+    // deps, so we also probe the spec for deps that were entirely skipped
+    // (all versions already on latest). This lets the close loop distinguish
+    // "group is compliant" from "group's deps were absent due to provider failure."
+    const reportedGroups = new Set(dependenciesByGroup.keys());
+    if (getGitHubIssueSpec) {
+        for (const dep of dependencies) {
+            const depKey = `${dep.ecosystem}::${dep.name}`;
+            if (outdatedDeps.has(depKey)) continue; // already classified
+            const version = dep.versions[0];
+            if (!version) continue;
+            const ctx = getGitHubIssueSpec(
+                {
+                    name: dep.name,
+                    ecosystem: dep.ecosystem,
+                    currentVersion: version.version,
+                    latestVersion: version.latestVersion,
+                },
+                store.scoped(dep.ecosystem),
+            );
+            if (ctx?.group) {
+                reportedGroups.add(ctx.group);
+            }
+        }
     }
 
     process.stderr.write(
@@ -417,7 +450,7 @@ export async function reconcileGitHubIssues(
     const firstDep = outdatedDeps.values().next().value as OutdatedDependency | undefined;
     if (!firstDep && ungroupedDeps.size === 0 && outdatedGroups.size === 0) {
         process.stderr.write('No outdated dependencies to reconcile\n');
-        return { created: 0, updated: 0, skipped: 0, closed: 0, closedDuplicates: 0 };
+        return { created: 0, reopened: 0, updated: 0, skipped: 0, closed: 0, closedDuplicates: 0 };
     }
 
     const owner = firstDep?.owner ?? '';
@@ -425,7 +458,7 @@ export async function reconcileGitHubIssues(
 
     if (!owner || !repo) {
         process.stderr.write('No owner/repo found in issue specs\n');
-        return { created: 0, updated: 0, skipped: 0, closed: 0, closedDuplicates: 0 };
+        return { created: 0, reopened: 0, updated: 0, skipped: 0, closed: 0, closedDuplicates: 0 };
     }
 
     // Search for existing issues
@@ -476,6 +509,7 @@ export async function reconcileGitHubIssues(
 
     // Process non-compliant dependencies
     let created = 0;
+    let reopened = 0;
     let updated = 0;
     let skipped = 0;
 
@@ -657,6 +691,43 @@ export async function reconcileGitHubIssues(
             const assignees =
                 dep.assignment.type === 'assign' ? dep.assignment.assignees : undefined;
 
+            // Check if a closed issue exists for this dependency — reopen instead of creating
+            const closedIssue = await githubService.findClosedIssue(
+                owner,
+                repo,
+                dep.name,
+                fullTitle,
+            );
+            if (closedIssue) {
+                await githubService.reopenIssue(owner, repo, closedIssue.number, {
+                    title,
+                    description,
+                });
+
+                const reopenedComment = buildIssueReopenedComment({
+                    name: dep.name,
+                    isGroup: false,
+                    isFyi: notificationsOnly,
+                    updateType: dep.worstCompliance.updateType,
+                    currentVersion: version.version,
+                    latestVersion: version.latestVersion,
+                    thresholdDays: dep.worstCompliance.thresholdDays,
+                    daysOverdue: dep.worstCompliance.daysOverdue,
+                    commentSections: dep.commentSections,
+                });
+                await githubService.createComment(owner, repo, closedIssue.number, reopenedComment);
+
+                existingIssuesByTitle.add(fullTitle);
+
+                if (!dryRun) {
+                    process.stderr.write(
+                        `Reopened issue for ${dep.name} (#${closedIssue.number})\n`,
+                    );
+                }
+                reopened++;
+                continue;
+            }
+
             // Create issue
             const issueNumber = await githubService.createIssue({
                 dependencyName: dep.name,
@@ -810,6 +881,43 @@ export async function reconcileGitHubIssues(
                 continue;
             }
 
+            // Check if a closed issue exists for this group — reopen instead of creating
+            const closedIssue = await githubService.findClosedIssue(
+                owner,
+                repo,
+                group.groupName,
+                fullTitle,
+            );
+            if (closedIssue) {
+                await githubService.reopenIssue(owner, repo, closedIssue.number, {
+                    title,
+                    description,
+                });
+
+                const reopenedComment = buildIssueReopenedComment({
+                    name: group.groupName,
+                    isGroup: true,
+                    isFyi: groupNotificationsOnly,
+                    updateType: group.worstCompliance.updateType,
+                    currentVersion: '',
+                    latestVersion: '',
+                    thresholdDays: group.worstCompliance.thresholdDays,
+                    daysOverdue: group.worstCompliance.daysOverdue,
+                    commentSections: group.commentSections,
+                });
+                await githubService.createComment(owner, repo, closedIssue.number, reopenedComment);
+
+                existingIssuesByTitle.add(fullTitle);
+
+                if (!dryRun) {
+                    process.stderr.write(
+                        `Reopened issue for ${group.groupName} group (#${closedIssue.number}) - ${group.dependencies.length} dependencies\n`,
+                    );
+                }
+                reopened++;
+                continue;
+            }
+
             // Create issue for the group
             const issueNumber = await githubService.createIssue({
                 dependencyName: group.groupName,
@@ -830,9 +938,42 @@ export async function reconcileGitHubIssues(
         }
     }
 
-    // Close issues for dependencies that are now compliant
+    // Close issues for packages that are now compliant.
+    // Build a lookup of all dependencies reported this run so we can distinguish
+    // "genuinely compliant" from "provider didn't report it" (flapping prevention).
+    const reportedDeps = new Map<string, DirectDependency>();
+    for (const dep of dependencies) {
+        reportedDeps.set(dep.name, dep);
+        reportedDeps.set(`${dep.ecosystem}::${dep.name}`, dep);
+    }
+
     let closed = 0;
     for (const issue of existingIssuesByDependency.values()) {
+        // Flapping prevention: don't close issues when we have no evidence
+        // the dependency is actually compliant.
+        if (!issue.isGroup && !reportedDeps.has(issue.dependencyName)) {
+            process.stderr.write(
+                `Skipping close for ${issue.dependencyName} (#${issue.number}) — dependency not reported by any provider this run\n`,
+            );
+            continue;
+        }
+        if (issue.isGroup && !reportedGroups.has(issue.dependencyName)) {
+            process.stderr.write(
+                `Skipping close for ${issue.dependencyName} group (#${issue.number}) — no dependencies assigned to this group this run\n`,
+            );
+            continue;
+        }
+
+        const reportedDep = reportedDeps.get(issue.dependencyName);
+        const firstVersion = reportedDep?.versions[0];
+
+        const closeComment = buildIssueClosedComment({
+            name: issue.dependencyName,
+            isGroup: issue.isGroup,
+            currentVersion: firstVersion?.version,
+            latestVersion: firstVersion?.latestVersion,
+        });
+        await githubService.createComment(owner, repo, issue.number, closeComment);
         await githubService.closeIssue(owner, repo, issue.number);
         if (!dryRun) {
             process.stderr.write(
@@ -843,8 +984,8 @@ export async function reconcileGitHubIssues(
     }
 
     process.stderr.write(
-        `\nSummary: created=${created}, updated=${updated}, skipped=${skipped}, closed=${closed}, closedDuplicates=${closedDuplicates}\n`,
+        `\nSummary: created=${created}, reopened=${reopened}, updated=${updated}, skipped=${skipped}, closed=${closed}, closedDuplicates=${closedDuplicates}\n`,
     );
 
-    return { created, updated, skipped, closed, closedDuplicates };
+    return { created, reopened, updated, skipped, closed, closedDuplicates };
 }

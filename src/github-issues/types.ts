@@ -59,6 +59,8 @@ export const gitHubIssueSpecSchema = z.object({
     /** Additional labels to apply to the issue (beyond the "dependicus" label). */
     labels: z.array(z.string()).optional(),
     descriptionSections: z.array(descriptionSectionSchema).optional(),
+    /** Sections to include in lifecycle comments (e.g., reopen). */
+    commentSections: z.array(descriptionSectionSchema).optional(),
 });
 
 // ── Derived types ────────────────────────────────────────────────────
@@ -115,6 +117,8 @@ export interface OutdatedDependency {
     /** Additional labels beyond "dependicus". */
     labels?: string[];
     descriptionSections?: DescriptionSection[];
+    /** Consumer-provided sections to include in lifecycle comments (e.g., reopen). */
+    commentSections?: DescriptionSection[];
 }
 
 export interface OutdatedGroup {
@@ -128,4 +132,6 @@ export interface OutdatedGroup {
         daysOverdue: number;
         thresholdDays: number | undefined;
     };
+    /** Aggregated comment sections from all dependencies in the group. */
+    commentSections?: DescriptionSection[];
 }

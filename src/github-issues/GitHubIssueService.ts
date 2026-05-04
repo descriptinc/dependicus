@@ -132,6 +132,47 @@ export class GitHubIssueService {
     }
 
     /**
+     * Find a closed Dependicus issue with an exactly matching title.
+     * Uses the GitHub search API with the dependency name as a pre-filter,
+     * then verifies the full title locally.
+     *
+     * Returns the matching issue, or undefined if none found.
+     */
+    async findClosedIssue(
+        owner: string,
+        repo: string,
+        dependencyName: string,
+        fullTitle: string,
+    ): Promise<DependicusIssue | undefined> {
+        const response = await this.octokit.search.issuesAndPullRequests({
+            q: `repo:${owner}/${repo} label:${DEPENDICUS_LABEL_NAME} is:closed "${dependencyName}" in:title`,
+            per_page: 10,
+            sort: 'updated',
+            order: 'desc',
+        });
+
+        for (const item of response.data.items) {
+            if (item.pull_request) continue;
+            if (item.title !== fullTitle) continue;
+
+            const groupName = extractGroupNameFromTitle(item.title);
+            const extractedName = groupName ?? extractDependencyNameFromTitle(item.title);
+            if (!extractedName) continue;
+
+            return {
+                number: item.number,
+                title: item.title,
+                body: item.body ?? '',
+                dependencyName: extractedName,
+                isGroup: groupName !== undefined,
+                updatedAt: item.updated_at,
+            };
+        }
+
+        return undefined;
+    }
+
+    /**
      * Create a new Dependicus issue.
      * Returns the issue number or -1 in dry-run mode.
      */
@@ -219,6 +260,36 @@ export class GitHubIssueService {
             repo,
             issue_number: issueNumber,
             body,
+        });
+    }
+
+    /**
+     * Reopen a closed issue and update its title and description.
+     */
+    async reopenIssue(
+        owner: string,
+        repo: string,
+        issueNumber: number,
+        params: { title: string; description: string },
+    ): Promise<void> {
+        if (this.dryRun) {
+            process.stderr.write('\n');
+            process.stderr.write('='.repeat(80) + '\n');
+            process.stderr.write(`[DRY RUN] Would REOPEN issue #${issueNumber}\n`);
+            process.stderr.write('='.repeat(80) + '\n');
+            process.stderr.write(`\nTitle: ${TITLE_PREFIX} ${params.title}\n\n`);
+            process.stderr.write(`Description:\n${params.description}\n`);
+            process.stderr.write('\n' + '='.repeat(80) + '\n');
+            return;
+        }
+
+        await this.octokit.issues.update({
+            owner,
+            repo,
+            issue_number: issueNumber,
+            state: 'open',
+            title: `${TITLE_PREFIX} ${params.title}`,
+            body: params.description,
         });
     }
 

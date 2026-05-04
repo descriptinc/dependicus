@@ -57,6 +57,8 @@ export const linearIssueSpecSchema = z.object({
     group: z.string().optional(),
     ownerLabel: z.string().optional(),
     descriptionSections: z.array(descriptionSectionSchema).optional(),
+    /** Sections to include in lifecycle comments (e.g., reopen). */
+    commentSections: z.array(descriptionSectionSchema).optional(),
 });
 
 // ── Derived types ────────────────────────────────────────────────────
@@ -125,6 +127,8 @@ export interface OutdatedDependency {
     ownerLabel?: string;
     /** Consumer-provided sections to include in issue descriptions (e.g., policy info). */
     descriptionSections?: DescriptionSection[];
+    /** Consumer-provided sections to include in lifecycle comments (e.g., reopen). */
+    commentSections?: DescriptionSection[];
 }
 
 /**
@@ -144,4 +148,6 @@ export interface OutdatedGroup {
         daysOverdue: number;
         thresholdDays: number | undefined;
     };
+    /** Aggregated comment sections from all dependencies in the group. */
+    commentSections?: DescriptionSection[];
 }

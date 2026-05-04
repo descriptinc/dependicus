@@ -12,6 +12,9 @@
 - `CacheService` is now re-exported from the top-level `dependicus` package, so plugins and consumers no longer need to import it from `@dependicus/core` directly.
 - `getGroupingFilename()` helper for building URL-safe filenames from grouping values, analogous to `getDetailFilename()` for dependency pages.
 - `SecurityPlugin` for querying public vulnerability databases (OSV, deps.dev, GitHub Advisory) and enriching the dashboard with severity, fix availability, deprecation status, and advisory details. Findings are attached to Linear and GitHub issue tickets and shown on grouping detail pages. Enable via `--vuln-source` CLI flag or programmatically.
+- Issue lifecycle comments: when Dependicus closes or reopens an issue, it posts a comment explaining why with version details and policy context. Plugins can contribute additional context via `commentSections` on the issue spec (same shape as `descriptionSections`).
+- Closed-issue reopen: when about to create a new issue, Dependicus first searches for a closed issue with an identical title and reopens it instead of creating a duplicate.
+- Flapping prevention: the close loop skips closing when a dependency or group was absent from provider input, preventing spurious close/reopen cycles caused by transient provider failures or external agents closing tickets.
 
 ### Changed
 
