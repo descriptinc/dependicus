@@ -451,49 +451,6 @@ describe('reconcileGitHubIssues', () => {
         expect(result.closed).toBe(0);
     });
 
-    it('posts a creation comment after creating an issue', async () => {
-        setupMocks();
-
-        const deps: DirectDependency[] = [
-            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
-        ];
-        const store = makeStore();
-
-        await reconcileGitHubIssues(deps, store, baseConfig, () =>
-            makeSpec({ policy: { type: 'fyi' } }),
-        );
-
-        expect(mockOctokit.issues.createComment).toHaveBeenCalled();
-        const commentCall = mockOctokit.issues.createComment.mock.calls[0]![0];
-        expect(commentCall.body).toContain('Issue opened by Dependicus');
-        expect(commentCall.owner).toBe('myorg');
-        expect(commentCall.repo).toBe('myrepo');
-        expect(commentCall.issue_number).toBe(999);
-    });
-
-    it('includes commentSections in creation comment', async () => {
-        setupMocks();
-
-        const deps: DirectDependency[] = [
-            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
-        ];
-        const store = makeStore();
-
-        await reconcileGitHubIssues(deps, store, baseConfig, () =>
-            makeSpec({
-                policy: { type: 'fyi' },
-                commentSections: [
-                    { title: 'Security', body: 'CVE-2024-1234 found in this version.' },
-                ],
-            }),
-        );
-
-        expect(mockOctokit.issues.createComment).toHaveBeenCalled();
-        const commentCall = mockOctokit.issues.createComment.mock.calls[0]![0];
-        expect(commentCall.body).toContain('Security');
-        expect(commentCall.body).toContain('CVE-2024-1234');
-    });
-
     it('posts a close comment before closing an issue', async () => {
         // An existing issue for old-pkg (now compliant) plus a still-outdated
         // dep (test-pkg) so the reconciler doesn't early-return.

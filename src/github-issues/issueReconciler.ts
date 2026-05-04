@@ -33,7 +33,6 @@ import {
     buildIssueDescription,
     buildGroupIssueDescription,
     buildNewVersionsComment,
-    buildIssueCreatedComment,
     buildIssueClosedComment,
     buildIssueReopenedComment,
 } from './issueDescriptions';
@@ -709,18 +708,6 @@ export async function reconcileGitHubIssues(
                 assignees,
             });
 
-            // Post lifecycle comment explaining why the issue was opened
-            const createdComment = buildIssueCreatedComment({
-                name: dep.name,
-                isGroup: false,
-                isFyi: notificationsOnly,
-                updateType: dep.worstCompliance.updateType,
-                thresholdDays: dep.worstCompliance.thresholdDays,
-                daysOverdue: dep.worstCompliance.daysOverdue,
-                commentSections: dep.commentSections,
-            });
-            await githubService.createComment(owner, repo, issueNumber, createdComment);
-
             existingIssuesByTitle.add(fullTitle);
 
             if (!dryRun) {
@@ -906,18 +893,6 @@ export async function reconcileGitHubIssues(
                 repo,
                 description,
             });
-
-            // Post lifecycle comment explaining why the issue was opened
-            const createdComment = buildIssueCreatedComment({
-                name: group.groupName,
-                isGroup: true,
-                isFyi: groupNotificationsOnly,
-                updateType: group.worstCompliance.updateType,
-                thresholdDays: group.worstCompliance.thresholdDays,
-                daysOverdue: group.worstCompliance.daysOverdue,
-                commentSections: group.commentSections,
-            });
-            await githubService.createComment(owner, repo, issueNumber, createdComment);
 
             existingIssuesByTitle.add(fullTitle);
 

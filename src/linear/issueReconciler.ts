@@ -33,7 +33,6 @@ import {
     buildIssueDescription,
     buildGroupIssueDescription,
     buildNewVersionsComment,
-    buildIssueCreatedComment,
     buildIssueClosedComment,
     buildIssueReopenedComment,
 } from './issueDescriptions';
@@ -705,7 +704,7 @@ export async function reconcileIssues(
             }
 
             // Create issue
-            const { id: issueId, identifier } = await linearService.createIssue({
+            const { identifier } = await linearService.createIssue({
                 dependencyName: dep.name,
                 title,
                 teamId: dep.teamId,
@@ -713,18 +712,6 @@ export async function reconcileIssues(
                 description,
                 delegateId,
             });
-
-            // Post lifecycle comment explaining why the issue was opened
-            const createdComment = buildIssueCreatedComment({
-                name: dep.name,
-                isGroup: false,
-                isFyi: notificationsOnly,
-                updateType: dep.worstCompliance.updateType,
-                thresholdDays: dep.worstCompliance.thresholdDays,
-                daysOverdue: dep.worstCompliance.daysOverdue,
-                commentSections: dep.commentSections,
-            });
-            await linearService.createComment(issueId, createdComment, identifier);
 
             existingIssuesByTitle.add(fullTitle);
 
@@ -904,25 +891,13 @@ export async function reconcileIssues(
             }
 
             // Create issue for the group (don't auto-delegate groups - they're more complex)
-            const { id: issueId, identifier } = await linearService.createIssue({
+            const { identifier } = await linearService.createIssue({
                 dependencyName: group.groupName,
                 title,
                 teamId: group.teamId,
                 dueDate: earliestDueDate,
                 description,
             });
-
-            // Post lifecycle comment explaining why the issue was opened
-            const createdComment = buildIssueCreatedComment({
-                name: group.groupName,
-                isGroup: true,
-                isFyi: groupNotificationsOnly,
-                updateType: group.worstCompliance.updateType,
-                thresholdDays: group.worstCompliance.thresholdDays,
-                daysOverdue: group.worstCompliance.daysOverdue,
-                commentSections: group.commentSections,
-            });
-            await linearService.createComment(issueId, createdComment, identifier);
 
             existingIssuesByTitle.add(fullTitle);
 
