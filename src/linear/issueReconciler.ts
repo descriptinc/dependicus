@@ -684,6 +684,8 @@ export async function reconcileIssues(
                     isGroup: false,
                     isFyi: notificationsOnly,
                     updateType: dep.worstCompliance.updateType,
+                    currentVersion: version.version,
+                    latestVersion: version.latestVersion,
                     thresholdDays: dep.worstCompliance.thresholdDays,
                     daysOverdue: dep.worstCompliance.daysOverdue,
                     commentSections: dep.commentSections,
@@ -871,6 +873,8 @@ export async function reconcileIssues(
                     isGroup: true,
                     isFyi: groupNotificationsOnly,
                     updateType: group.worstCompliance.updateType,
+                    currentVersion: '',
+                    latestVersion: '',
                     thresholdDays: group.worstCompliance.thresholdDays,
                     daysOverdue: group.worstCompliance.daysOverdue,
                     commentSections: group.commentSections,
@@ -912,12 +916,35 @@ export async function reconcileIssues(
         }
     }
 
-    // Close issues for packages that are now compliant
+    // Close issues for packages that are now compliant.
+    // Build a lookup of all dependencies reported this run so we can distinguish
+    // "genuinely compliant" from "provider didn't report it" (flapping prevention).
+    const reportedDeps = new Map<string, DirectDependency>();
+    for (const dep of dependencies) {
+        reportedDeps.set(dep.name, dep);
+    }
+
     let closed = 0;
     for (const issue of existingIssuesByName.values()) {
+        // For non-group issues: if the dependency wasn't reported by any provider
+        // this run, don't close — we have no evidence it's compliant, and closing
+        // would cause flapping if the provider recovers next run.
+        if (!issue.isGroup && !reportedDeps.has(issue.dependencyName)) {
+            process.stderr.write(
+                `Skipping close for ${issue.dependencyName} (${issue.identifier}) — dependency not reported by any provider this run\n`,
+            );
+            continue;
+        }
+
+        // Look up version info for the close comment
+        const reportedDep = reportedDeps.get(issue.dependencyName);
+        const firstVersion = reportedDep?.versions[0];
+
         const closeComment = buildIssueClosedComment({
             name: issue.dependencyName,
             isGroup: issue.isGroup,
+            currentVersion: firstVersion?.version,
+            latestVersion: firstVersion?.latestVersion,
         });
         await linearService.createComment(issue.id, closeComment, issue.identifier);
         await linearService.closeIssue(issue.id, issue.identifier);

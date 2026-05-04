@@ -288,8 +288,9 @@ describe('reconcileIssues', () => {
             }),
         });
 
-        // No outdated packages - the existing issue should be closed
-        const deps: DirectDependency[] = [];
+        // old-pkg is now compliant (version == latest), so the issue should be closed
+        const v = makeVersion({ version: '2.0.0', latestVersion: '2.0.0' });
+        const deps: DirectDependency[] = [makeDep('old-pkg', [v])];
 
         const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.closed).toBe(1);
@@ -1229,7 +1230,9 @@ describe('reconcileIssues', () => {
             }),
         });
 
-        const deps: DirectDependency[] = [];
+        // old-pkg is now compliant (version == latest)
+        const v = makeVersion({ version: '2.0.0', latestVersion: '2.0.0' });
+        const deps: DirectDependency[] = [makeDep('old-pkg', [v])];
         const config = { ...defaultConfig, dryRun: false };
 
         await reconcileIssues(deps, store, config, testGetLinearIssueSpec);
@@ -1239,7 +1242,32 @@ describe('reconcileIssues', () => {
         expect(commentCalls.length).toBeGreaterThanOrEqual(1);
         const body = commentCalls[0]![0].body as string;
         expect(body).toContain('Closed by Dependicus');
-        expect(body).toContain('now compliant');
+        expect(body).toContain('now at version');
+    });
+
+    it('skips closing when dependency is absent from provider input', async () => {
+        const mockState = { type: 'unstarted', name: 'Todo' };
+        mockClient.issues.mockResolvedValue({
+            nodes: [
+                {
+                    id: 'issue-1',
+                    identifier: 'TEST-50',
+                    title: '[Dependicus] Update missing-pkg from 1.0.0 to 2.0.0',
+                    dueDate: '2025-06-01',
+                    updatedAt: new Date('2024-01-01'),
+                    state: Promise.resolve(mockState),
+                },
+            ],
+            pageInfo: { hasNextPage: false, endCursor: undefined },
+        });
+
+        // Empty deps — missing-pkg is not reported by any provider
+        const deps: DirectDependency[] = [];
+
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
+        // Should NOT close — dep was absent, not compliant
+        expect(result.closed).toBe(0);
+        expect(mockClient.updateIssue).not.toHaveBeenCalled();
     });
 
     it('reopens a closed issue instead of creating a new one', async () => {
@@ -1258,7 +1286,7 @@ describe('reconcileIssues', () => {
                     {
                         id: 'closed-issue-1',
                         identifier: 'TEST-99',
-                        title: '[Dependicus] Update test-pkg from 1.0.0 to 2.0.0',
+                        title: '[Dependicus] [npm] Update test-pkg from 1.0.0 to 2.0.0',
                         dueDate: undefined,
                         updatedAt: new Date('2024-06-01'),
                         state: Promise.resolve(closedState),

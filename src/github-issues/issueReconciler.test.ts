@@ -464,6 +464,12 @@ describe('reconcileGitHubIssues', () => {
 
         const deps: DirectDependency[] = [
             { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            // old-pkg is now compliant (in the input so close isn't skipped)
+            {
+                name: 'old-pkg',
+                ecosystem: 'npm',
+                versions: [makeVersion({ version: '2.0.0', latestVersion: '2.0.0' })],
+            },
         ];
         const store = makeStore();
 
@@ -488,7 +494,7 @@ describe('reconcileGitHubIssues', () => {
                 items: [
                     {
                         number: 55,
-                        title: '[Dependicus] FYI: test-pkg 2.0.0 is available (currently on 1.0.0)',
+                        title: '[Dependicus] [npm] FYI: test-pkg 2.0.0 is available (currently on 1.0.0)',
                         updated_at: '2024-06-01T00:00:00Z',
                         body: 'old body',
                     },

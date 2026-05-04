@@ -3,7 +3,7 @@
 {{#if isGroup}}
 The **{{name}}** dependency group is non-compliant again. Reopening this issue instead of creating a new one.
 {{else}}
-**{{name}}** is non-compliant again. Reopening this issue instead of creating a new one.
+**{{name}}** is non-compliant again (`{{currentVersion}}` installed, `{{latestVersion}}` available). Reopening this issue instead of creating a new one.
 {{/if}}
 
 {{#unless isFyi}}

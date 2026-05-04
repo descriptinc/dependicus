@@ -3,5 +3,9 @@
 {{#if isGroup}}
 All dependencies in the **{{name}}** group are now compliant. Closing automatically.
 {{else}}
-**{{name}}** is now compliant. Closing automatically.
+{{#if currentVersion}}
+**{{name}}** is now at version `{{currentVersion}}` (latest: `{{latestVersion}}`). Closing automatically.
+{{else}}
+**{{name}}** is no longer tracked by the current policy. Closing automatically.
+{{/if}}
 {{/if}}

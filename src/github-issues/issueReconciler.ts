@@ -682,6 +682,8 @@ export async function reconcileGitHubIssues(
                     isGroup: false,
                     isFyi: notificationsOnly,
                     updateType: dep.worstCompliance.updateType,
+                    currentVersion: version.version,
+                    latestVersion: version.latestVersion,
                     thresholdDays: dep.worstCompliance.thresholdDays,
                     daysOverdue: dep.worstCompliance.daysOverdue,
                     commentSections: dep.commentSections,
@@ -870,6 +872,8 @@ export async function reconcileGitHubIssues(
                     isGroup: true,
                     isFyi: groupNotificationsOnly,
                     updateType: group.worstCompliance.updateType,
+                    currentVersion: '',
+                    latestVersion: '',
                     thresholdDays: group.worstCompliance.thresholdDays,
                     daysOverdue: group.worstCompliance.daysOverdue,
                     commentSections: group.commentSections,
@@ -907,12 +911,31 @@ export async function reconcileGitHubIssues(
         }
     }
 
-    // Close issues for dependencies that are now compliant
+    // Close issues for packages that are now compliant.
+    // Build a lookup of all dependencies reported this run so we can distinguish
+    // "genuinely compliant" from "provider didn't report it" (flapping prevention).
+    const reportedDeps = new Map<string, DirectDependency>();
+    for (const dep of dependencies) {
+        reportedDeps.set(dep.name, dep);
+    }
+
     let closed = 0;
     for (const issue of existingIssuesByDependency.values()) {
+        if (!issue.isGroup && !reportedDeps.has(issue.dependencyName)) {
+            process.stderr.write(
+                `Skipping close for ${issue.dependencyName} (#${issue.number}) — dependency not reported by any provider this run\n`,
+            );
+            continue;
+        }
+
+        const reportedDep = reportedDeps.get(issue.dependencyName);
+        const firstVersion = reportedDep?.versions[0];
+
         const closeComment = buildIssueClosedComment({
             name: issue.dependencyName,
             isGroup: issue.isGroup,
+            currentVersion: firstVersion?.version,
+            latestVersion: firstVersion?.latestVersion,
         });
         await githubService.createComment(owner, repo, issue.number, closeComment);
         await githubService.closeIssue(owner, repo, issue.number);

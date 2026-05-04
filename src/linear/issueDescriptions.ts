@@ -310,6 +310,8 @@ export interface IssueReopenedCommentParams {
     isGroup: boolean;
     isFyi: boolean;
     updateType: string;
+    currentVersion: string;
+    latestVersion: string;
     thresholdDays: number | undefined;
     daysOverdue: number;
     commentSections?: DescriptionSection[];
@@ -318,6 +320,10 @@ export interface IssueReopenedCommentParams {
 export interface IssueClosedCommentParams {
     name: string;
     isGroup: boolean;
+    /** Current installed version. Present when the dep is in the input (compliant). */
+    currentVersion?: string;
+    /** Latest available version. Present when the dep is in the input. */
+    latestVersion?: string;
 }
 
 /**
