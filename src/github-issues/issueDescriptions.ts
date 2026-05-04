@@ -15,6 +15,7 @@ import groupDescriptionHbs from './templates/group-description.hbs';
 import newVersionsCommentHbs from './templates/new-versions-comment.hbs';
 import issueCreatedCommentHbs from './templates/issue-created-comment.hbs';
 import issueClosedCommentHbs from './templates/issue-closed-comment.hbs';
+import issueReopenedCommentHbs from './templates/issue-reopened-comment.hbs';
 
 function createHandlebars(): typeof Handlebars {
     const hbs = Handlebars.create();
@@ -35,6 +36,7 @@ const groupDescriptionTemplate = hbs.compile(groupDescriptionHbs);
 const newVersionsCommentTemplate = hbs.compile(newVersionsCommentHbs);
 const issueCreatedCommentTemplate = hbs.compile(issueCreatedCommentHbs);
 const issueClosedCommentTemplate = hbs.compile(issueClosedCommentHbs);
+const issueReopenedCommentTemplate = hbs.compile(issueReopenedCommentHbs);
 
 export interface IssueDescriptionParams {
     dep: OutdatedDependency;
@@ -338,4 +340,11 @@ export interface IssueClosedCommentParams {
  */
 export function buildIssueClosedComment(params: IssueClosedCommentParams): string {
     return issueClosedCommentTemplate(params).trim();
+}
+
+/**
+ * Build a comment explaining why a closed issue was reopened.
+ */
+export function buildIssueReopenedComment(params: IssueCreatedCommentParams): string {
+    return issueReopenedCommentTemplate(params).trim();
 }

@@ -14,6 +14,9 @@ const mockOctokit = {
         update: vi.fn(),
         createComment: vi.fn(),
     },
+    search: {
+        issuesAndPullRequests: vi.fn(),
+    },
 };
 
 // Mock @octokit/rest
@@ -103,6 +106,7 @@ function setupMocks(
     mockOctokit.issues.create.mockResolvedValue({ data: { number: 999 } });
     mockOctokit.issues.update.mockResolvedValue({});
     mockOctokit.issues.createComment.mockResolvedValue({});
+    mockOctokit.search.issuesAndPullRequests.mockResolvedValue({ data: { items: [] } });
 }
 
 describe('reconcileGitHubIssues', () => {
@@ -517,6 +521,52 @@ describe('reconcileGitHubIssues', () => {
                 c[0] && typeof c[0].body === 'string' && c[0].body.includes('Closed by Dependicus'),
         );
         expect(closeComment).toBeDefined();
+    });
+
+    it('reopens a closed issue instead of creating a new one', async () => {
+        // Open issues search returns nothing; search API returns a closed issue with exact title match
+        setupMocks();
+        mockOctokit.search.issuesAndPullRequests.mockResolvedValue({
+            data: {
+                items: [
+                    {
+                        number: 55,
+                        title: '[Dependicus] FYI: test-pkg 2.0.0 is available (currently on 1.0.0)',
+                        updated_at: '2024-06-01T00:00:00Z',
+                        body: 'old body',
+                    },
+                ],
+            },
+        });
+
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
+        const store = makeStore();
+
+        const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({ policy: { type: 'fyi' } }),
+        );
+
+        // Should reopen, not create
+        expect(result.created).toBe(1);
+        expect(mockOctokit.issues.create).not.toHaveBeenCalled();
+        expect(mockOctokit.issues.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                issue_number: 55,
+                state: 'open',
+            }),
+        );
+
+        // Should post a "reopened" comment
+        const commentCalls = mockOctokit.issues.createComment.mock.calls;
+        const reopenComment = commentCalls.find(
+            (c: Array<{ body: string }>) =>
+                c[0] &&
+                typeof c[0].body === 'string' &&
+                c[0].body.includes('Reopened by Dependicus'),
+        );
+        expect(reopenComment).toBeDefined();
     });
 
     it('returns zeros when no outdated packages', async () => {

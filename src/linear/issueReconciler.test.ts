@@ -1287,6 +1287,60 @@ describe('reconcileIssues', () => {
         expect(body).toContain('now compliant');
     });
 
+    it('reopens a closed issue instead of creating a new one', async () => {
+        const closedState = { type: 'completed', name: 'Done' };
+        const backlogState = { id: 'backlog-state', type: 'backlog', name: 'Backlog' };
+
+        // First call: open issues search returns nothing
+        // Second call (from findClosedIssue): returns a closed issue with an exact title match
+        mockClient.issues
+            .mockResolvedValueOnce({
+                nodes: [],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            })
+            .mockResolvedValueOnce({
+                nodes: [
+                    {
+                        id: 'closed-issue-1',
+                        identifier: 'TEST-99',
+                        title: '[Dependicus] Update test-pkg from 1.0.0 to 2.0.0',
+                        dueDate: undefined,
+                        updatedAt: new Date('2024-06-01'),
+                        state: Promise.resolve(closedState),
+                    },
+                ],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            });
+
+        // Mock for reopenIssue to look up team states
+        mockClient.issue.mockResolvedValue({
+            team: Promise.resolve({
+                states: () => Promise.resolve({ nodes: [backlogState] }),
+            }),
+        });
+
+        const v = makeVersion();
+        populateFacts(store, 'test-pkg', v);
+        const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
+
+        const config = { ...defaultConfig, dryRun: false };
+        const result = await reconcileIssues(deps, store, config, testGetLinearIssueSpec);
+
+        // Should reopen, not create
+        expect(result.created).toBe(1);
+        expect(mockClient.createIssue).not.toHaveBeenCalled();
+        expect(mockClient.updateIssue).toHaveBeenCalledWith(
+            'closed-issue-1',
+            expect.objectContaining({ stateId: 'backlog-state' }),
+        );
+
+        // Should post a "reopened" comment
+        const commentCalls = mockClient.createComment.mock.calls;
+        expect(commentCalls.length).toBeGreaterThanOrEqual(1);
+        const body = commentCalls[0]![0].body as string;
+        expect(body).toContain('Reopened by Dependicus');
+    });
+
     it('handles duplicate close failure gracefully', async () => {
         const mockState = { type: 'unstarted', name: 'Todo' };
         mockClient.issues.mockResolvedValue({

@@ -35,6 +35,7 @@ import {
     buildNewVersionsComment,
     buildIssueCreatedComment,
     buildIssueClosedComment,
+    buildIssueReopenedComment,
 } from './issueDescriptions';
 
 export interface IssueReconcilerConfig {
@@ -668,6 +669,41 @@ export async function reconcileIssues(
             const delegateId =
                 dep.assignment.type === 'delegate' ? dep.assignment.assigneeId : undefined;
 
+            // Check if a closed issue with the same title exists — reopen instead of creating
+            const closedIssue = await linearService.findClosedIssue(dep.name, fullTitle);
+            if (closedIssue) {
+                await linearService.reopenIssue(
+                    closedIssue.id,
+                    { title, description, dueDate },
+                    closedIssue.identifier,
+                );
+
+                const reopenedComment = buildIssueReopenedComment({
+                    name: dep.name,
+                    isGroup: false,
+                    isFyi: notificationsOnly,
+                    updateType: dep.worstCompliance.updateType,
+                    thresholdDays: dep.worstCompliance.thresholdDays,
+                    daysOverdue: dep.worstCompliance.daysOverdue,
+                    commentSections: dep.commentSections,
+                });
+                await linearService.createComment(
+                    closedIssue.id,
+                    reopenedComment,
+                    closedIssue.identifier,
+                );
+
+                existingIssuesByTitle.add(fullTitle);
+
+                if (!dryRun) {
+                    process.stderr.write(
+                        `Reopened issue for ${dep.name} (${closedIssue.identifier})\n`,
+                    );
+                }
+                created++;
+                continue;
+            }
+
             // Create issue
             const { id: issueId, identifier } = await linearService.createIssue({
                 dependencyName: dep.name,
@@ -829,6 +865,41 @@ export async function reconcileIssues(
                 process.stderr.write(
                     `Skipping ${group.groupName} group - issue with same title already exists\n`,
                 );
+                continue;
+            }
+
+            // Check if a closed issue with the same title exists — reopen instead of creating
+            const closedIssue = await linearService.findClosedIssue(group.groupName, fullTitle);
+            if (closedIssue) {
+                await linearService.reopenIssue(
+                    closedIssue.id,
+                    { title, description, dueDate: earliestDueDate },
+                    closedIssue.identifier,
+                );
+
+                const reopenedComment = buildIssueReopenedComment({
+                    name: group.groupName,
+                    isGroup: true,
+                    isFyi: groupNotificationsOnly,
+                    updateType: group.worstCompliance.updateType,
+                    thresholdDays: group.worstCompliance.thresholdDays,
+                    daysOverdue: group.worstCompliance.daysOverdue,
+                    commentSections: group.commentSections,
+                });
+                await linearService.createComment(
+                    closedIssue.id,
+                    reopenedComment,
+                    closedIssue.identifier,
+                );
+
+                existingIssuesByTitle.add(fullTitle);
+
+                if (!dryRun) {
+                    process.stderr.write(
+                        `Reopened issue for ${group.groupName} group (${closedIssue.identifier}) - ${group.dependencies.length} dependencies\n`,
+                    );
+                }
+                created++;
                 continue;
             }
 

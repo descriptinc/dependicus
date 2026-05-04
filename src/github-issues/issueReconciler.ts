@@ -35,6 +35,7 @@ import {
     buildNewVersionsComment,
     buildIssueCreatedComment,
     buildIssueClosedComment,
+    buildIssueReopenedComment,
 } from './issueDescriptions';
 
 export interface IssueReconcilerConfig {
@@ -662,6 +663,41 @@ export async function reconcileGitHubIssues(
             const assignees =
                 dep.assignment.type === 'assign' ? dep.assignment.assignees : undefined;
 
+            // Check if a closed issue exists for this dependency — reopen instead of creating
+            const closedIssue = await githubService.findClosedIssue(
+                owner,
+                repo,
+                dep.name,
+                fullTitle,
+            );
+            if (closedIssue) {
+                await githubService.reopenIssue(owner, repo, closedIssue.number, {
+                    title,
+                    description,
+                });
+
+                const reopenedComment = buildIssueReopenedComment({
+                    name: dep.name,
+                    isGroup: false,
+                    isFyi: notificationsOnly,
+                    updateType: dep.worstCompliance.updateType,
+                    thresholdDays: dep.worstCompliance.thresholdDays,
+                    daysOverdue: dep.worstCompliance.daysOverdue,
+                    commentSections: dep.commentSections,
+                });
+                await githubService.createComment(owner, repo, closedIssue.number, reopenedComment);
+
+                existingIssuesByTitle.add(fullTitle);
+
+                if (!dryRun) {
+                    process.stderr.write(
+                        `Reopened issue for ${dep.name} (#${closedIssue.number})\n`,
+                    );
+                }
+                created++;
+                continue;
+            }
+
             // Create issue
             const issueNumber = await githubService.createIssue({
                 dependencyName: dep.name,
@@ -824,6 +860,41 @@ export async function reconcileGitHubIssues(
                 process.stderr.write(
                     `Skipping ${group.groupName} group - issue with same title already exists\n`,
                 );
+                continue;
+            }
+
+            // Check if a closed issue exists for this group — reopen instead of creating
+            const closedIssue = await githubService.findClosedIssue(
+                owner,
+                repo,
+                group.groupName,
+                fullTitle,
+            );
+            if (closedIssue) {
+                await githubService.reopenIssue(owner, repo, closedIssue.number, {
+                    title,
+                    description,
+                });
+
+                const reopenedComment = buildIssueReopenedComment({
+                    name: group.groupName,
+                    isGroup: true,
+                    isFyi: groupNotificationsOnly,
+                    updateType: group.worstCompliance.updateType,
+                    thresholdDays: group.worstCompliance.thresholdDays,
+                    daysOverdue: group.worstCompliance.daysOverdue,
+                    commentSections: group.commentSections,
+                });
+                await githubService.createComment(owner, repo, closedIssue.number, reopenedComment);
+
+                existingIssuesByTitle.add(fullTitle);
+
+                if (!dryRun) {
+                    process.stderr.write(
+                        `Reopened issue for ${group.groupName} group (#${closedIssue.number}) - ${group.dependencies.length} dependencies\n`,
+                    );
+                }
+                created++;
                 continue;
             }
 
