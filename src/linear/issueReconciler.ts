@@ -951,6 +951,7 @@ export async function reconcileIssues(
     const reportedDeps = new Map<string, DirectDependency>();
     for (const dep of dependencies) {
         reportedDeps.set(dep.name, dep);
+        reportedDeps.set(`${dep.ecosystem}::${dep.name}`, dep);
     }
 
     let closed = 0;

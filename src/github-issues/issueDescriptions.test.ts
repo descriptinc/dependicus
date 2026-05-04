@@ -7,6 +7,8 @@ import {
     buildIssueDescription,
     buildGroupIssueDescription,
     buildNewVersionsComment,
+    buildIssueClosedComment,
+    buildIssueReopenedComment,
 } from './issueDescriptions';
 
 const defaultVersionsBetween: PackageVersionInfo[] = [
@@ -516,5 +518,86 @@ describe('buildNewVersionsComment', () => {
 
         const result = buildNewVersionsComment('test-pkg', '2.0.0', newVersions, github);
         expect(result).toContain('[GitHub Release]');
+    });
+});
+
+describe('buildIssueClosedComment', () => {
+    it('includes version info for individual dependency', () => {
+        const result = buildIssueClosedComment({
+            name: 'test-pkg',
+            isGroup: false,
+            currentVersion: '2.0.0',
+            latestVersion: '2.0.0',
+        });
+        expect(result).toContain('Closed by Dependicus');
+        expect(result).toContain('test-pkg');
+        expect(result).toContain('now at version');
+    });
+
+    it('handles group issues without version info', () => {
+        const result = buildIssueClosedComment({
+            name: 'my-group',
+            isGroup: true,
+        });
+        expect(result).toContain('Closed by Dependicus');
+        expect(result).toContain('my-group');
+    });
+
+    it('handles missing version info gracefully', () => {
+        const result = buildIssueClosedComment({
+            name: 'test-pkg',
+            isGroup: false,
+        });
+        expect(result).toContain('Closed by Dependicus');
+    });
+});
+
+describe('buildIssueReopenedComment', () => {
+    it('includes version info for individual dependency', () => {
+        const result = buildIssueReopenedComment({
+            name: 'test-pkg',
+            isGroup: false,
+            isFyi: false,
+            updateType: 'major',
+            currentVersion: '1.0.0',
+            latestVersion: '2.0.0',
+            thresholdDays: 360,
+            daysOverdue: 30,
+        });
+        expect(result).toContain('Reopened by Dependicus');
+        expect(result).toContain('test-pkg');
+        expect(result).toContain('1.0.0');
+        expect(result).toContain('2.0.0');
+    });
+
+    it('handles group issues', () => {
+        const result = buildIssueReopenedComment({
+            name: 'my-group',
+            isGroup: true,
+            isFyi: false,
+            updateType: 'major',
+            currentVersion: '',
+            latestVersion: '',
+            thresholdDays: 360,
+            daysOverdue: 10,
+        });
+        expect(result).toContain('Reopened by Dependicus');
+        expect(result).toContain('my-group');
+    });
+
+    it('renders comment sections when provided', () => {
+        const result = buildIssueReopenedComment({
+            name: 'test-pkg',
+            isGroup: false,
+            isFyi: false,
+            updateType: 'minor',
+            currentVersion: '1.0.0',
+            latestVersion: '1.2.0',
+            thresholdDays: 180,
+            daysOverdue: 5,
+            commentSections: [{ title: 'Policy', body: 'Must update within 180 days.' }],
+        });
+        expect(result).toContain('Policy');
+        expect(result).toContain('Must update within 180 days.');
     });
 });
