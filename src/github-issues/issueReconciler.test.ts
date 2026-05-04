@@ -533,6 +533,77 @@ describe('reconcileGitHubIssues', () => {
         expect(reopenComment).toBeDefined();
     });
 
+    it('skips closing group issue when no deps assigned to that group this run', async () => {
+        // An outdated dep is needed to provide owner/repo and avoid early return
+        setupMocks([
+            {
+                number: 42,
+                title: '[Dependicus] [npm] FYI: test-pkg 2.0.0 is available (currently on 1.0.0)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+            {
+                number: 80,
+                title: '[Dependicus] Update missing-group group (3 packages)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+        ]);
+
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
+        const store = makeStore();
+
+        const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({ policy: { type: 'fyi' } }),
+        );
+
+        // Group issue should NOT be closed — no deps assigned to that group
+        expect(result.closed).toBe(0);
+    });
+
+    it('closes group issue when all packages in group are compliant', async () => {
+        setupMocks([
+            {
+                number: 42,
+                title: '[Dependicus] [npm] FYI: test-pkg 2.0.0 is available (currently on 1.0.0)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+            {
+                number: 80,
+                title: '[Dependicus] Update my-group group (2 packages)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+        ]);
+
+        const deps: DirectDependency[] = [
+            // Still-outdated non-group dep to provide owner/repo
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            // Compliant group deps
+            {
+                name: 'group-a',
+                ecosystem: 'npm',
+                versions: [makeVersion({ version: '2.0.0', latestVersion: '2.0.0' })],
+            },
+            {
+                name: 'group-b',
+                ecosystem: 'npm',
+                versions: [makeVersion({ version: '2.0.0', latestVersion: '2.0.0' })],
+            },
+        ];
+        const store = makeStore();
+
+        // Spec that assigns compliant group deps to "my-group"
+        const result = await reconcileGitHubIssues(deps, store, baseConfig, (ctx) => {
+            if (ctx.name === 'group-a' || ctx.name === 'group-b') {
+                return makeSpec({ policy: { type: 'fyi' }, group: 'my-group' });
+            }
+            return makeSpec({ policy: { type: 'fyi' } });
+        });
+
+        // Group issue should be closed — all group deps are compliant
+        expect(result.closed).toBe(1);
+    });
+
     it('returns zeros when no outdated packages', async () => {
         setupMocks();
 

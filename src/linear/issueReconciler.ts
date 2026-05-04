@@ -435,6 +435,35 @@ export async function reconcileIssues(
         });
     }
 
+    // Build a set of all groups whose deps were reported this run, including
+    // groups whose deps are all compliant. dependenciesByGroup only has outdated
+    // deps, so we also probe the spec for deps that were entirely skipped
+    // (all versions already on latest). This lets the close loop distinguish
+    // "group is compliant" from "group's deps were absent due to provider failure."
+    const reportedGroups = new Set(dependenciesByGroup.keys());
+    if (getLinearIssueSpec) {
+        for (const dep of dependencies) {
+            const depKey = `${dep.ecosystem}::${dep.name}`;
+            if (outdatedDeps.has(depKey)) continue; // already classified
+            // All versions were compliant (or otherwise skipped) — call the spec
+            // with the first version to learn the group assignment.
+            const version = dep.versions[0];
+            if (!version) continue;
+            const ctx = getLinearIssueSpec(
+                {
+                    name: dep.name,
+                    ecosystem: dep.ecosystem,
+                    currentVersion: version.version,
+                    latestVersion: version.latestVersion,
+                },
+                store.scoped(dep.ecosystem),
+            );
+            if (ctx?.group) {
+                reportedGroups.add(ctx.group);
+            }
+        }
+    }
+
     process.stderr.write(
         `  Ungrouped: ${ungroupedDeps.size}, Groups: ${outdatedGroups.size} (${dependenciesByGroup.size > 0 ? [...dependenciesByGroup.values()].reduce((sum, d) => sum + d.length, 0) : 0} dependencies)\n`,
     );
@@ -926,12 +955,20 @@ export async function reconcileIssues(
 
     let closed = 0;
     for (const issue of existingIssuesByName.values()) {
-        // For non-group issues: if the dependency wasn't reported by any provider
-        // this run, don't close — we have no evidence it's compliant, and closing
-        // would cause flapping if the provider recovers next run.
+        // Flapping prevention: don't close issues when we have no evidence
+        // the dependency is actually compliant.
+        // - For individual deps: skip if the dep wasn't reported by any provider
+        // - For group issues: skip if no dep was assigned to this group
+        // In both cases the absence could be a transient provider failure.
         if (!issue.isGroup && !reportedDeps.has(issue.dependencyName)) {
             process.stderr.write(
                 `Skipping close for ${issue.dependencyName} (${issue.identifier}) — dependency not reported by any provider this run\n`,
+            );
+            continue;
+        }
+        if (issue.isGroup && !reportedGroups.has(issue.dependencyName)) {
+            process.stderr.write(
+                `Skipping close for ${issue.dependencyName} group (${issue.identifier}) — no dependencies assigned to this group this run\n`,
             );
             continue;
         }

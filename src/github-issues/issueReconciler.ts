@@ -415,6 +415,33 @@ export async function reconcileGitHubIssues(
         });
     }
 
+    // Build a set of all groups whose deps were reported this run, including
+    // groups whose deps are all compliant. dependenciesByGroup only has outdated
+    // deps, so we also probe the spec for deps that were entirely skipped
+    // (all versions already on latest). This lets the close loop distinguish
+    // "group is compliant" from "group's deps were absent due to provider failure."
+    const reportedGroups = new Set(dependenciesByGroup.keys());
+    if (getGitHubIssueSpec) {
+        for (const dep of dependencies) {
+            const depKey = `${dep.ecosystem}::${dep.name}`;
+            if (outdatedDeps.has(depKey)) continue; // already classified
+            const version = dep.versions[0];
+            if (!version) continue;
+            const ctx = getGitHubIssueSpec(
+                {
+                    name: dep.name,
+                    ecosystem: dep.ecosystem,
+                    currentVersion: version.version,
+                    latestVersion: version.latestVersion,
+                },
+                store.scoped(dep.ecosystem),
+            );
+            if (ctx?.group) {
+                reportedGroups.add(ctx.group);
+            }
+        }
+    }
+
     process.stderr.write(
         `  Ungrouped: ${ungroupedDeps.size}, Groups: ${outdatedGroups.size} (${dependenciesByGroup.size > 0 ? [...dependenciesByGroup.values()].reduce((sum, d) => sum + d.length, 0) : 0} dependencies)\n`,
     );
@@ -921,9 +948,17 @@ export async function reconcileGitHubIssues(
 
     let closed = 0;
     for (const issue of existingIssuesByDependency.values()) {
+        // Flapping prevention: don't close issues when we have no evidence
+        // the dependency is actually compliant.
         if (!issue.isGroup && !reportedDeps.has(issue.dependencyName)) {
             process.stderr.write(
                 `Skipping close for ${issue.dependencyName} (#${issue.number}) — dependency not reported by any provider this run\n`,
+            );
+            continue;
+        }
+        if (issue.isGroup && !reportedGroups.has(issue.dependencyName)) {
+            process.stderr.write(
+                `Skipping close for ${issue.dependencyName} group (#${issue.number}) — no dependencies assigned to this group this run\n`,
             );
             continue;
         }

@@ -989,8 +989,21 @@ describe('reconcileIssues', () => {
                 }),
             });
 
-            // No packages in the group are outdated
-            const deps: DirectDependency[] = [];
+            // Group packages are now compliant (version == latest), but still
+            // reported by the provider with group metadata so the close isn't
+            // blocked by flapping prevention.
+            const vA = makeVersion({ version: '2.0.0', latestVersion: '2.0.0' });
+            const vB = makeVersion({ version: '2.0.0', latestVersion: '2.0.0' });
+            const groupMeta: TestMeta = {
+                surfaceId: 'Surf',
+                teamName: 'TestTeam',
+                policyId: 'mandatory',
+                notificationOptOut: false,
+                group: 'my-group',
+            };
+            populateFacts(store, 'group-a', vA, { meta: groupMeta, versionsBetween: [] });
+            populateFacts(store, 'group-b', vB, { meta: groupMeta, versionsBetween: [] });
+            const deps: DirectDependency[] = [makeDep('group-a', [vA]), makeDep('group-b', [vB])];
 
             const result = await reconcileIssues(
                 deps,
@@ -1268,6 +1281,30 @@ describe('reconcileIssues', () => {
         // Should NOT close — dep was absent, not compliant
         expect(result.closed).toBe(0);
         expect(mockClient.updateIssue).not.toHaveBeenCalled();
+    });
+
+    it('skips closing group issue when no deps assigned to that group this run', async () => {
+        const mockState = { type: 'unstarted', name: 'Todo' };
+        mockClient.issues.mockResolvedValue({
+            nodes: [
+                {
+                    id: 'issue-1',
+                    identifier: 'TEST-50',
+                    title: '[Dependicus] Update missing-group group (3 packages)',
+                    dueDate: '2025-06-01',
+                    updatedAt: new Date('2024-01-01'),
+                    state: Promise.resolve(mockState),
+                },
+            ],
+            pageInfo: { hasNextPage: false, endCursor: undefined },
+        });
+
+        // Empty deps — no dependencies assigned to this group
+        const deps: DirectDependency[] = [];
+
+        const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
+        // Should NOT close — group deps were absent, not compliant
+        expect(result.closed).toBe(0);
     });
 
     it('reopens a closed issue instead of creating a new one', async () => {
