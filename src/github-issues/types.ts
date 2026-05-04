@@ -117,7 +117,7 @@ export interface OutdatedDependency {
     /** Additional labels beyond "dependicus". */
     labels?: string[];
     descriptionSections?: DescriptionSection[];
-    /** Consumer-provided sections to include in lifecycle comments (e.g., why the issue was opened). */
+    /** Consumer-provided sections to include in lifecycle comments (e.g., reopen). */
     commentSections?: DescriptionSection[];
 }
 
