@@ -307,6 +307,126 @@ describe('LinearService', () => {
         });
     });
 
+    describe('findClosedIssue', () => {
+        it('returns issue when title matches exactly', async () => {
+            mockClient.issueLabels.mockResolvedValue({
+                nodes: [{ id: 'label-123', name: 'Dependicus' }],
+            });
+            const closedState = { type: 'completed', name: 'Done' };
+            mockClient.issues.mockResolvedValue({
+                nodes: [
+                    {
+                        id: 'issue-uuid-1',
+                        identifier: 'TEST-50',
+                        title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
+                        dueDate: undefined,
+                        updatedAt: new Date('2024-06-01'),
+                        state: Promise.resolve(closedState),
+                    },
+                ],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            });
+
+            const result = await service.findClosedIssue(
+                'react',
+                '[Dependicus] Update react from 18.2.0 to 19.0.0',
+            );
+            expect(result).toBeDefined();
+            expect(result!.id).toBe('issue-uuid-1');
+            expect(result!.dependencyName).toBe('react');
+        });
+
+        it('returns undefined when title does not match', async () => {
+            mockClient.issueLabels.mockResolvedValue({
+                nodes: [{ id: 'label-123', name: 'Dependicus' }],
+            });
+            mockClient.issues.mockResolvedValue({
+                nodes: [
+                    {
+                        id: 'issue-uuid-1',
+                        identifier: 'TEST-50',
+                        title: '[Dependicus] Update react from 18.2.0 to 18.3.0',
+                        dueDate: undefined,
+                        updatedAt: new Date('2024-06-01'),
+                        state: Promise.resolve({ type: 'completed', name: 'Done' }),
+                    },
+                ],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            });
+
+            const result = await service.findClosedIssue(
+                'react',
+                '[Dependicus] Update react from 18.2.0 to 19.0.0',
+            );
+            expect(result).toBeUndefined();
+        });
+
+        it('returns undefined when no closed issues exist', async () => {
+            mockClient.issueLabels.mockResolvedValue({
+                nodes: [{ id: 'label-123', name: 'Dependicus' }],
+            });
+            mockClient.issues.mockResolvedValue({
+                nodes: [],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            });
+
+            const result = await service.findClosedIssue(
+                'react',
+                '[Dependicus] Update react from 18.2.0 to 19.0.0',
+            );
+            expect(result).toBeUndefined();
+        });
+    });
+
+    describe('reopenIssue', () => {
+        it('sets state to backlog and updates title/description', async () => {
+            const backlogState = { id: 'backlog-state', type: 'backlog', name: 'Backlog' };
+            mockClient.issue.mockResolvedValue({
+                team: Promise.resolve({
+                    states: () => Promise.resolve({ nodes: [backlogState] }),
+                }),
+            });
+
+            await service.reopenIssue('issue-1', {
+                title: 'Update react from 18.2.0 to 19.0.0',
+                description: 'Updated description',
+                dueDate: new Date('2025-06-01'),
+            });
+
+            expect(mockClient.updateIssue).toHaveBeenCalledWith('issue-1', {
+                stateId: 'backlog-state',
+                title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
+                description: 'Updated description',
+                dueDate: '2025-06-01',
+            });
+        });
+
+        it('throws when no team found', async () => {
+            mockClient.issue.mockResolvedValue({
+                team: Promise.resolve(undefined),
+            });
+
+            await expect(
+                service.reopenIssue('issue-1', { title: 'x', description: 'y' }),
+            ).rejects.toThrow('no team found');
+        });
+
+        it('throws when no backlog/unstarted state found', async () => {
+            mockClient.issue.mockResolvedValue({
+                team: Promise.resolve({
+                    states: () =>
+                        Promise.resolve({
+                            nodes: [{ id: 'done-state', type: 'completed', name: 'Done' }],
+                        }),
+                }),
+            });
+
+            await expect(
+                service.reopenIssue('issue-1', { title: 'x', description: 'y' }),
+            ).rejects.toThrow('no backlog/unstarted state found');
+        });
+    });
+
     describe('closeIssue edge cases', () => {
         it('throws when no team found', async () => {
             mockClient.issue.mockResolvedValue({

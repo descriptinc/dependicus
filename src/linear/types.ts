@@ -57,7 +57,7 @@ export const linearIssueSpecSchema = z.object({
     group: z.string().optional(),
     ownerLabel: z.string().optional(),
     descriptionSections: z.array(descriptionSectionSchema).optional(),
-    /** Sections to include in the lifecycle comment posted when the issue is created. */
+    /** Sections to include in lifecycle comments (e.g., reopen). */
     commentSections: z.array(descriptionSectionSchema).optional(),
 });
 

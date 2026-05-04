@@ -54,6 +54,7 @@ export interface IssueReconcilerConfig {
 
 export interface ReconciliationResult {
     created: number;
+    reopened: number;
     updated: number;
     skipped: number;
     closed: number;
@@ -422,7 +423,7 @@ export async function reconcileGitHubIssues(
     const firstDep = outdatedDeps.values().next().value as OutdatedDependency | undefined;
     if (!firstDep && ungroupedDeps.size === 0 && outdatedGroups.size === 0) {
         process.stderr.write('No outdated dependencies to reconcile\n');
-        return { created: 0, updated: 0, skipped: 0, closed: 0, closedDuplicates: 0 };
+        return { created: 0, reopened: 0, updated: 0, skipped: 0, closed: 0, closedDuplicates: 0 };
     }
 
     const owner = firstDep?.owner ?? '';
@@ -430,7 +431,7 @@ export async function reconcileGitHubIssues(
 
     if (!owner || !repo) {
         process.stderr.write('No owner/repo found in issue specs\n');
-        return { created: 0, updated: 0, skipped: 0, closed: 0, closedDuplicates: 0 };
+        return { created: 0, reopened: 0, updated: 0, skipped: 0, closed: 0, closedDuplicates: 0 };
     }
 
     // Search for existing issues
@@ -481,6 +482,7 @@ export async function reconcileGitHubIssues(
 
     // Process non-compliant dependencies
     let created = 0;
+    let reopened = 0;
     let updated = 0;
     let skipped = 0;
 
@@ -693,7 +695,7 @@ export async function reconcileGitHubIssues(
                         `Reopened issue for ${dep.name} (#${closedIssue.number})\n`,
                     );
                 }
-                created++;
+                reopened++;
                 continue;
             }
 
@@ -881,7 +883,7 @@ export async function reconcileGitHubIssues(
                         `Reopened issue for ${group.groupName} group (#${closedIssue.number}) - ${group.dependencies.length} dependencies\n`,
                     );
                 }
-                created++;
+                reopened++;
                 continue;
             }
 
@@ -923,8 +925,8 @@ export async function reconcileGitHubIssues(
     }
 
     process.stderr.write(
-        `\nSummary: created=${created}, updated=${updated}, skipped=${skipped}, closed=${closed}, closedDuplicates=${closedDuplicates}\n`,
+        `\nSummary: created=${created}, reopened=${reopened}, updated=${updated}, skipped=${skipped}, closed=${closed}, closedDuplicates=${closedDuplicates}\n`,
     );
 
-    return { created, updated, skipped, closed, closedDuplicates };
+    return { created, reopened, updated, skipped, closed, closedDuplicates };
 }

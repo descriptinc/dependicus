@@ -506,7 +506,8 @@ describe('reconcileGitHubIssues', () => {
         );
 
         // Should reopen, not create
-        expect(result.created).toBe(1);
+        expect(result.reopened).toBe(1);
+        expect(result.created).toBe(0);
         expect(mockOctokit.issues.create).not.toHaveBeenCalled();
         expect(mockOctokit.issues.update).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -544,6 +545,7 @@ describe('reconcileGitHubIssues', () => {
 
         expect(result).toEqual({
             created: 0,
+            reopened: 0,
             updated: 0,
             skipped: 0,
             closed: 0,

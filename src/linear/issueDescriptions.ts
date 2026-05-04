@@ -305,7 +305,7 @@ export function buildNewVersionsComment(
     return newVersionsCommentTemplate(context).trim();
 }
 
-export interface IssueCreatedCommentParams {
+export interface IssueReopenedCommentParams {
     name: string;
     isGroup: boolean;
     isFyi: boolean;
@@ -330,6 +330,6 @@ export function buildIssueClosedComment(params: IssueClosedCommentParams): strin
 /**
  * Build a comment explaining why a closed issue was reopened.
  */
-export function buildIssueReopenedComment(params: IssueCreatedCommentParams): string {
+export function buildIssueReopenedComment(params: IssueReopenedCommentParams): string {
     return issueReopenedCommentTemplate(params).trim();
 }

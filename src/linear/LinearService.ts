@@ -277,11 +277,6 @@ export class LinearService {
         dependencyName: string,
         fullTitle: string,
     ): Promise<DependicusIssue | undefined> {
-        if (this.dryRun) {
-            // In dry-run mode we still want to report what would happen,
-            // so we perform the read-only search.
-        }
-
         const labelId = await this.ensureLabel();
 
         const issues = await this.client.issues({

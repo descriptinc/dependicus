@@ -56,6 +56,7 @@ export interface IssueReconcilerConfig {
 
 export interface ReconciliationResult {
     created: number;
+    reopened: number;
     updated: number;
     closed: number;
     closedDuplicates: number;
@@ -482,6 +483,7 @@ export async function reconcileIssues(
 
     // Process non-compliant dependencies
     let created = 0;
+    let reopened = 0;
     let updated = 0;
 
     // Process ungrouped dependencies
@@ -699,7 +701,7 @@ export async function reconcileIssues(
                         `Reopened issue for ${dep.name} (${closedIssue.identifier})\n`,
                     );
                 }
-                created++;
+                reopened++;
                 continue;
             }
 
@@ -886,7 +888,7 @@ export async function reconcileIssues(
                         `Reopened issue for ${group.groupName} group (${closedIssue.identifier}) - ${group.dependencies.length} dependencies\n`,
                     );
                 }
-                created++;
+                reopened++;
                 continue;
             }
 
@@ -928,8 +930,8 @@ export async function reconcileIssues(
     }
 
     process.stderr.write(
-        `\nSummary: created=${created}, updated=${updated}, closed=${closed}, closedDuplicates=${closedDuplicates}\n`,
+        `\nSummary: created=${created}, reopened=${reopened}, updated=${updated}, closed=${closed}, closedDuplicates=${closedDuplicates}\n`,
     );
 
-    return { created, updated, closed, closedDuplicates };
+    return { created, reopened, updated, closed, closedDuplicates };
 }

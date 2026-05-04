@@ -1282,7 +1282,8 @@ describe('reconcileIssues', () => {
         const result = await reconcileIssues(deps, store, config, testGetLinearIssueSpec);
 
         // Should reopen, not create
-        expect(result.created).toBe(1);
+        expect(result.reopened).toBe(1);
+        expect(result.created).toBe(0);
         expect(mockClient.createIssue).not.toHaveBeenCalled();
         expect(mockClient.updateIssue).toHaveBeenCalledWith(
             'closed-issue-1',

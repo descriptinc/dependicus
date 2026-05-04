@@ -240,6 +240,7 @@ describe('dependicusCli', () => {
             mockReadDependicusJson.mockResolvedValue({ providers, store });
             mockReconcileIssues.mockResolvedValue({
                 created: 0,
+                reopened: 0,
                 updated: 0,
                 closed: 0,
                 closedDuplicates: 0,
@@ -276,6 +277,7 @@ describe('dependicusCli', () => {
             mockReadDependicusJson.mockResolvedValue({ providers, store });
             mockReconcileIssues.mockResolvedValue({
                 created: 0,
+                reopened: 0,
                 updated: 0,
                 closed: 0,
                 closedDuplicates: 0,
@@ -602,6 +604,7 @@ describe('dependicusCli', () => {
             mockReadDependicusJson.mockResolvedValue({ providers, store });
             mockReconcileIssues.mockResolvedValue({
                 created: 0,
+                reopened: 0,
                 updated: 0,
                 closed: 0,
                 closedDuplicates: 0,
@@ -676,10 +679,11 @@ describe('dependicusCli', () => {
             mockReadDependicusJson.mockResolvedValue({ providers, store });
             mockReconcileGitHubIssues.mockResolvedValue({
                 created: 0,
+                reopened: 0,
                 updated: 0,
+                skipped: 0,
                 closed: 0,
                 closedDuplicates: 0,
-                skipped: 0,
             });
             mockCreateDependicus.mockResolvedValue({
                 collectData: vi.fn(),

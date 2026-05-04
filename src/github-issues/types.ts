@@ -59,7 +59,7 @@ export const gitHubIssueSpecSchema = z.object({
     /** Additional labels to apply to the issue (beyond the "dependicus" label). */
     labels: z.array(z.string()).optional(),
     descriptionSections: z.array(descriptionSectionSchema).optional(),
-    /** Sections to include in the lifecycle comment posted when the issue is created. */
+    /** Sections to include in lifecycle comments (e.g., reopen). */
     commentSections: z.array(descriptionSectionSchema).optional(),
 });
 
