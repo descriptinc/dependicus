@@ -836,6 +836,7 @@ describe('buildIssueClosedComment', () => {
     it('includes version info for individual dependency', () => {
         const result = buildIssueClosedComment({
             name: 'test-pkg',
+            ecosystem: 'npm',
             isGroup: false,
             currentVersion: '2.0.0',
             latestVersion: '2.0.0',
@@ -843,6 +844,18 @@ describe('buildIssueClosedComment', () => {
         expect(result).toContain('Closed by Dependicus');
         expect(result).toContain('test-pkg');
         expect(result).toContain('now at version');
+    });
+
+    it('renders bare name without ecosystem prefix', () => {
+        const result = buildIssueClosedComment({
+            name: 'electron',
+            ecosystem: 'npm',
+            isGroup: false,
+            currentVersion: '30.0.0',
+            latestVersion: '30.0.0',
+        });
+        expect(result).toContain('**electron**');
+        expect(result).not.toContain('npm::');
     });
 
     it('handles group issues without version info', () => {
@@ -867,6 +880,7 @@ describe('buildIssueReopenedComment', () => {
     it('includes version info for individual dependency', () => {
         const result = buildIssueReopenedComment({
             name: 'test-pkg',
+            ecosystem: 'npm',
             isGroup: false,
             isFyi: false,
             updateType: 'major',
@@ -877,6 +891,7 @@ describe('buildIssueReopenedComment', () => {
         });
         expect(result).toContain('Reopened by Dependicus');
         expect(result).toContain('test-pkg');
+        expect(result).not.toContain('npm::');
         expect(result).toContain('1.0.0');
         expect(result).toContain('2.0.0');
     });
@@ -899,6 +914,7 @@ describe('buildIssueReopenedComment', () => {
     it('renders comment sections when provided', () => {
         const result = buildIssueReopenedComment({
             name: 'test-pkg',
+            ecosystem: 'npm',
             isGroup: false,
             isFyi: false,
             updateType: 'minor',

@@ -307,6 +307,7 @@ export function buildNewVersionsComment(
 
 export interface IssueReopenedCommentParams {
     name: string;
+    ecosystem?: string;
     isGroup: boolean;
     isFyi: boolean;
     updateType: string;
@@ -319,6 +320,7 @@ export interface IssueReopenedCommentParams {
 
 export interface IssueClosedCommentParams {
     name: string;
+    ecosystem?: string;
     isGroup: boolean;
     /** Current installed version. Present when the dep is in the input (compliant). */
     currentVersion?: string;
