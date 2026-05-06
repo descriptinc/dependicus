@@ -10,19 +10,14 @@
     git add packages/dependicus/package.json CHANGELOG.md pnpm-lock.yaml package-lock.json yarn.lock bun.lock
     git commit -m "Release v<version>"
     ```
-8. **STOP and ask the user to run `mise release`**. Wait for them to confirm that the publish succeeded before continuing.
-9. After the user confirms:
-    - Create and push the tag:
-        ```bash
-        git tag v<version>
-        git push origin main
-        git push origin v<version>
-        ```
-    - Create a GitHub release with the changelog notes for this version:
-        ```bash
-        gh release create v<version> --title "v<version>" --notes-file <(extract release notes from CHANGELOG.md for this version)
-        ```
-10. Bump to the next patch version with `-rc.0` suffix (e.g., `0.1.9` → `0.1.10-rc.0`), add a new unreleased section to CHANGELOG.md, run `mise update-all-lockfiles`, then commit and push:
+8. Tag, push, and create a GitHub release with the changelog notes:
+    ```bash
+    git tag v<version>
+    git push origin main
+    git push origin v<version>
+    gh release create v<version> --title "v<version>" --notes-file <(extract release notes from CHANGELOG.md for this version)
+    ```
+9. Bump to the next patch version with `-rc.0` suffix (e.g., `0.1.9` → `0.1.10-rc.0`), add a new unreleased section to CHANGELOG.md, run `mise update-all-lockfiles`, then commit and push:
     ```bash
     git add packages/dependicus/package.json CHANGELOG.md pnpm-lock.yaml package-lock.json yarn.lock bun.lock
     git commit -m "Begin v<next-version> development"

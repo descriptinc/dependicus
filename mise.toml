@@ -150,17 +150,6 @@ for pm in npm yarn bun aube pnpm; do
 done
 """
 
-[tasks.release]
-description = "Build, test, and publish dependicus to NPM"
-depends = ["pnpm:build", "pnpm:test", "pnpm:typecheck"]
-interactive = true
-run = "pnpm publish"
-
-[tasks.prerelease]
-description = "Build, test, and publish a prerelease to NPM"
-depends = ["pnpm:build", "pnpm:test", "pnpm:typecheck"]
-interactive = true
-run = "pnpm publish --tag rc"
 
 [tasks.delete-node-modules]
 description = "Delete node_modules"

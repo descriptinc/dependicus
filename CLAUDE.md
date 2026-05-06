@@ -8,4 +8,6 @@ Read @mise.toml and prefer Mise tasks over random shell expressions.
 
 ## Changelog
 
+Update CHANGELOG.md whenever you make any user-facing change, at commit or PR creation time. Phrase changes for a low-context reader who doesn't know the history of the project or of the change, and will probably read the release notes in isolation.
+
 When updating CHANGELOG.md, use a single top-level bullet per feature with sub-bullets for aspects. Focus on the final feature, not the sequence of events leading to it. Only document user-facing changes.

@@ -1,8 +1,8 @@
 name: Publish
 
 on:
-    push:
-        tags: ['v*']
+    release:
+        types: [published]
 
 permissions:
     contents: read
@@ -11,12 +11,11 @@ permissions:
 jobs:
     publish:
         runs-on: ubuntu-latest
+        environment: Publish
         steps:
             - uses: actions/checkout@v4
             - uses: jdx/mise-action@v2
             - run: pnpm install
             - run: pnpm run build
             - name: Publish to NPM
-              env:
-                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-              run: pnpm publish --no-git-checks --provenance
+              run: pnpm publish --no-git-checks --provenance ${{ github.event.release.prerelease && '--tag rc' || '' }}
