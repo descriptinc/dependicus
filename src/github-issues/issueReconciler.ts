@@ -706,6 +706,7 @@ export async function reconcileGitHubIssues(
 
                 const reopenedComment = buildIssueReopenedComment({
                     name: dep.name,
+                    ecosystem: dep.ecosystem,
                     isGroup: false,
                     isFyi: notificationsOnly,
                     updateType: dep.worstCompliance.updateType,
@@ -967,8 +968,12 @@ export async function reconcileGitHubIssues(
         const reportedDep = reportedDeps.get(issue.dependencyName);
         const firstVersion = reportedDep?.versions[0];
 
+        const [depEcosystem, depName] = issue.dependencyName.includes('::')
+            ? issue.dependencyName.split('::')
+            : [undefined, issue.dependencyName];
         const closeComment = buildIssueClosedComment({
-            name: issue.dependencyName,
+            name: depName!,
+            ecosystem: depEcosystem,
             isGroup: issue.isGroup,
             currentVersion: firstVersion?.version,
             latestVersion: firstVersion?.latestVersion,
