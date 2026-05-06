@@ -17,7 +17,13 @@
     git push origin v<version>
     gh release create v<version> --title "v<version>" --notes-file <(extract release notes from CHANGELOG.md for this version)
     ```
-9. Bump to the next patch version with `-rc.0` suffix (e.g., `0.1.9` → `0.1.10-rc.0`), add a new unreleased section to CHANGELOG.md, run `mise update-all-lockfiles`, then commit and push:
+9. Wait for the publish workflow triggered by the release to succeed before continuing. If it fails, STOP and tell the user; do not bump the version:
+    ```bash
+    sleep 10
+    RUN_ID=$(gh run list --workflow=publish.yml --event=release --limit 1 --json databaseId --jq '.[0].databaseId')
+    gh run watch "$RUN_ID" --exit-status
+    ```
+10. Bump to the next patch version with `-rc.0` suffix (e.g., `0.1.9` → `0.1.10-rc.0`), add a new unreleased section to CHANGELOG.md, run `mise update-all-lockfiles`, then commit and push:
     ```bash
     git add packages/dependicus/package.json CHANGELOG.md pnpm-lock.yaml package-lock.json yarn.lock bun.lock
     git commit -m "Begin v<next-version> development"

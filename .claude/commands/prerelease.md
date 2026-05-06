@@ -9,10 +9,16 @@
     git push origin v<current-version>
     gh release create v<current-version> --prerelease --title "v<current-version>" --notes ""
     ```
-5. Increment the rc number: `-rc.5` → `-rc.6`
-6. Update the version in `packages/dependicus/package.json`
-7. Run `mise update-all-lockfiles` to update all lockfiles
-8. Commit and push:
+5. Wait for the publish workflow triggered by the release to succeed before continuing. If it fails, STOP and tell the user; do not bump the version:
+    ```bash
+    sleep 10
+    RUN_ID=$(gh run list --workflow=publish.yml --event=release --limit 1 --json databaseId --jq '.[0].databaseId')
+    gh run watch "$RUN_ID" --exit-status
+    ```
+6. Increment the rc number: `-rc.5` → `-rc.6`
+7. Update the version in `packages/dependicus/package.json`
+8. Run `mise update-all-lockfiles` to update all lockfiles
+9. Commit and push:
     ```bash
     git add packages/dependicus/package.json pnpm-lock.yaml package-lock.json yarn.lock bun.lock
     git commit -m "Begin v<new-version> development"
