@@ -9,11 +9,10 @@
     git push origin v<current-version>
     gh release create v<current-version> --prerelease --title "v<current-version>" --notes ""
     ```
-5. **STOP and wait for the user to confirm that the publish workflow succeeded** (the GitHub release triggers the publish workflow automatically).
-6. After the user confirms, increment the rc number: `-rc.5` → `-rc.6`
-7. Update the version in `packages/dependicus/package.json`
-8. Run `mise update-all-lockfiles` to update all lockfiles
-9. Commit and push:
+5. Increment the rc number: `-rc.5` → `-rc.6`
+6. Update the version in `packages/dependicus/package.json`
+7. Run `mise update-all-lockfiles` to update all lockfiles
+8. Commit and push:
     ```bash
     git add packages/dependicus/package.json pnpm-lock.yaml package-lock.json yarn.lock bun.lock
     git commit -m "Begin v<new-version> development"
