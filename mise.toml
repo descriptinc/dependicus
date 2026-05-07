@@ -8,6 +8,7 @@ hk = "1.36.0"
 jq = "latest"
 node = "22"
 pkl = "0.30.2"
+# Also pinned in .github/workflows/publish.yml
 pnpm = "10.27.0"
 rust = "latest"
 uv = "0.10.7"
