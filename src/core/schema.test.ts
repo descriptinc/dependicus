@@ -126,6 +126,35 @@ describe('schema', () => {
             expect(() => parseDependicusOutput(invalid)).toThrow();
         });
 
+        it('accepts versions with missing publishDate', () => {
+            const input = {
+                ...validInput,
+                providers: [
+                    {
+                        name: 'mise',
+                        supportsCatalog: false,
+                        dependencies: [
+                            {
+                                name: 'node',
+                                ecosystem: 'mise',
+                                versions: [
+                                    {
+                                        version: '22.0.0',
+                                        latestVersion: '24.0.0',
+                                        usedBy: ['mise.toml'],
+                                        dependencyTypes: ['prod' as const],
+                                        inCatalog: false,
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            };
+            const result = parseDependicusOutput(input);
+            expect(result.providers[0]?.dependencies[0]?.versions[0]?.publishDate).toBeUndefined();
+        });
+
         it('rejects non-object input', () => {
             expect(() => parseDependicusOutput('not an object')).toThrow();
             expect(() => parseDependicusOutput(42)).toThrow();

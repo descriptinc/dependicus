@@ -6,7 +6,7 @@ const dependencyVersionSchema = z.object({
     latestVersion: z.string(),
     usedBy: z.array(z.string()),
     dependencyTypes: z.array(z.enum(['dev', 'prod'])),
-    publishDate: z.union([z.string(), z.undefined()]),
+    publishDate: z.string().optional(),
     inCatalog: z.boolean(),
 });
 
