@@ -2,7 +2,7 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.2.0 - 2026-05-07
+## 0.2.0 - Unreleased
 
 ### Added
 
@@ -28,6 +28,8 @@
 
 - Grouping detail pages (surfaces, teams) with spaces, parentheses, or other URL-unsafe characters in their names now produce sanitized filenames instead of raw values, fixing 404s on static file servers.
 - The pnpm and aube providers now work on single-package repos (no `pnpm-workspace.yaml`). Previously they unconditionally used `-r list` which could produce malformed output or error outside a workspace.
+
+### Removed
 
 ## 0.1.10 - 2026-04-22
 
