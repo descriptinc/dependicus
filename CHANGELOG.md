@@ -2,17 +2,11 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.2.1 - Unreleased
-
-### Added
-
-### Changed
+## 0.2.1 - 2026-05-07
 
 ### Fixed
 
 - The output schema rejected data from providers that don't set `publishDate` (like Mise), causing `make-github-issues` and `make-linear-issues` to crash with a ZodError when run against multi-ecosystem output.
-
-### Removed
 
 ## 0.2.0 - 2026-05-07
 
