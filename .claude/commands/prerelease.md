@@ -1,5 +1,5 @@
 1. Verify you're on the main branch and it's up to date with origin
-2. Parse the current version from `packages/dependicus/package.json`
+2. Parse the current version from `package.json`
 3. Validate the version is in format `X.Y.Z-rc.N` (e.g., `0.1.9-rc.5`)
     - If not in this format, ERROR and tell the user to manually fix it first
 4. Tag, push, and create a GitHub prerelease:
@@ -15,11 +15,11 @@
     ```
     Tell the user this run requires environment approval before it will publish.
 6. Increment the rc number: `-rc.5` → `-rc.6`
-7. Update the version in `packages/dependicus/package.json`
+7. Update the version in `package.json`
 8. Run `mise update-all-lockfiles` to update all lockfiles
 9. Commit and push:
     ```bash
-    git add packages/dependicus/package.json pnpm-lock.yaml package-lock.json yarn.lock bun.lock
+    git add package.json pnpm-lock.yaml package-lock.json yarn.lock bun.lock aube-lock.yaml
     git commit -m "Begin v<new-version> development"
     git push origin main
     ```
