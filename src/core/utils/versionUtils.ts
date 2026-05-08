@@ -105,14 +105,16 @@ export function extractLatestVersionFromTitle(title: string): string | undefined
         return latestMatch[1];
     }
 
-    // Try FYI format: "FYI: package X.Y.Z is available"
-    const fyiMatch = title.match(/FYI:\s+\S+\s+(\d+\.\d+\.\d+(?:-[\w.]+)?)\s+is available/);
+    // Try FYI format: "FYI: package <version> is available"
+    // Anchor on "is available" to be version-format-agnostic (handles semver, calver, etc.)
+    const fyiMatch = title.match(/FYI:\s+\S+\s+(\S+)\s+is available/);
     if (fyiMatch) {
         return fyiMatch[1];
     }
 
-    // Try format "to X.Y.Z" (when min === latest)
-    const toMatch = title.match(/to\s+(\d+\.\d+\.\d+(?:-[\w.]+)?)\s*$/);
+    // Try format "to <version>" (when min === latest)
+    // Anchor on end-of-string to be version-format-agnostic
+    const toMatch = title.match(/to\s+(\S+)\s*$/);
     if (toMatch) {
         return toMatch[1];
     }
@@ -133,8 +135,11 @@ export function extractDependencyNameFromTitle(title: string): string | undefine
         return `${ecoUpdateMatch[1]}::${ecoUpdateMatch[2]}`;
     }
 
-    // Try new FYI format with ecosystem tag: "[Dependicus] [npm] FYI: X Y.Z is available"
-    const ecoFyiMatch = title.match(/^\[Dependicus\]\s+\[(\w+)\]\s+FYI:\s+(.+?)\s+\d+\.\d+/);
+    // Try new FYI format with ecosystem tag: "[Dependicus] [eco] FYI: X <version> is available"
+    // Anchor on "is available" to be version-format-agnostic (handles semver, calver, etc.)
+    const ecoFyiMatch = title.match(
+        /^\[Dependicus\]\s+\[(\w+)\]\s+FYI:\s+(.+?)\s+\S+\s+is available/,
+    );
     if (ecoFyiMatch) {
         return `${ecoFyiMatch[1]}::${ecoFyiMatch[2]}`;
     }
@@ -146,7 +151,7 @@ export function extractDependencyNameFromTitle(title: string): string | undefine
     }
 
     // Backward compat: FYI format (no ecosystem tag)
-    const fyiMatch = title.match(/^\[Dependicus\]\s+FYI:\s+(.+?)\s+\d+\.\d+/);
+    const fyiMatch = title.match(/^\[Dependicus\]\s+FYI:\s+(.+?)\s+\S+\s+is available/);
     if (fyiMatch) {
         return fyiMatch[1];
     }

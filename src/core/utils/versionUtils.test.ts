@@ -169,6 +169,22 @@ describe('extractLatestVersionFromTitle', () => {
         ).toBe('2.0.0-beta.1');
     });
 
+    it('extracts calver version from FYI format', () => {
+        expect(
+            extractLatestVersionFromTitle(
+                '[Dependicus] [pypi] FYI: sudachidict-core 20260428 is available (currently on 20241021)',
+            ),
+        ).toBe('20260428');
+    });
+
+    it('extracts calver version from "to X" format', () => {
+        expect(
+            extractLatestVersionFromTitle(
+                '[Dependicus] [pypi] Update sudachidict-core from 20241021 to 20260428',
+            ),
+        ).toBe('20260428');
+    });
+
     it('returns undefined for old format without version', () => {
         expect(extractLatestVersionFromTitle('[Dependicus] Update react')).toBeUndefined();
     });
@@ -233,6 +249,22 @@ describe('extractDependencyNameFromTitle', () => {
                 '[Dependicus] [npm] Update @linear/sdk from 32.0.0 to 65.0.0',
             ),
         ).toBe('npm::@linear/sdk');
+    });
+
+    it('extracts name from FYI title with calver version', () => {
+        expect(
+            extractDependencyNameFromTitle(
+                '[Dependicus] [pypi] FYI: sudachidict-core 20260428 is available (currently on 20241021)',
+            ),
+        ).toBe('pypi::sudachidict-core');
+    });
+
+    it('extracts name from FYI title with calver version (no ecosystem tag)', () => {
+        expect(
+            extractDependencyNameFromTitle(
+                '[Dependicus] FYI: sudachidict-core 20260428 is available (currently on 20241021)',
+            ),
+        ).toBe('sudachidict-core');
     });
 
     it('returns undefined for non-Dependicus titles', () => {

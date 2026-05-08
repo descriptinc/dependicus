@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- Fix version numbers without `.` failing to match open tickets, resulting in duplicates
+
 ### Removed
 
 ## 0.2.1 - 2026-05-07
