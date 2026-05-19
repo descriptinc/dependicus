@@ -144,6 +144,16 @@ export function extractDependencyNameFromTitle(title: string): string | undefine
         return `${ecoFyiMatch[1]}::${ecoFyiMatch[2]}`;
     }
 
+    // Backward compat: older FYI titles used an arrow instead of "is available".
+    const legacyFyiMatch = title.match(
+        /^\[Dependicus\]\s+(?:\[(\w+)\]\s+)?FYI:\s+(.+?)\s+\S+\s+→\s+\S+/,
+    );
+    if (legacyFyiMatch) {
+        const ecosystem = legacyFyiMatch[1];
+        const dependencyName = legacyFyiMatch[2];
+        return ecosystem ? `${ecosystem}::${dependencyName}` : dependencyName;
+    }
+
     // Backward compat: standard "Update X from..." format (no ecosystem tag)
     const updateMatch = title.match(/^\[Dependicus\]\s+Update\s+(.+?)\s+from\s+/);
     if (updateMatch) {

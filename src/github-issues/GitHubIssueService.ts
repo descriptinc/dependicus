@@ -81,6 +81,12 @@ export class GitHubIssueService {
      * Search for all open Dependicus issues in a repo.
      * Filters by the "dependicus" label and state=open.
      * Handles pagination to ensure ALL issues are fetched.
+     *
+     * GitHub's issues endpoint returns pull requests alongside issues when
+     * filtered by label. Pull requests are always skipped (regardless of
+     * draft state) so that callers only see real issues, and any item with
+     * a draft flag is skipped defensively so downstream consumers (such as
+     * the bot that yells about the open count) never see in-progress work.
      */
     async searchDependicusIssues(
         owner: string,
@@ -103,8 +109,10 @@ export class GitHubIssueService {
             });
 
             for (const issue of response.data) {
-                // Skip pull requests (GitHub API returns PRs in issues endpoint)
-                if (issue.pull_request) continue;
+                // GitHub returns PRs in the issues endpoint — skip every PR
+                // (draft or not). Also skip anything explicitly flagged as
+                // a draft so non-PR draft items can't slip through either.
+                if (issue.pull_request || issue.draft) continue;
 
                 const groupName = extractGroupNameFromTitle(issue.title);
                 const dependencyName = groupName ?? extractDependencyNameFromTitle(issue.title);

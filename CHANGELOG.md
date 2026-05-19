@@ -2,11 +2,13 @@
 
 <!-- loosely based on https://keepachangelog.com/en/1.0.0/ -->
 
-## 0.2.2 - Unreleased
+## 0.2.2 - 2026-05-19
 
 ### Added
 
 ### Changed
+
+- `searchDependicusIssues` (in `@dependicus/github-issues`) now skips every pull request returned by GitHub's issues endpoint — drafts and ready-to-review alike — and also skips anything flagged as a draft. Only real, non-draft issues are returned, so notification bots and reports built on this helper stop counting pull requests as open Dependicus items.
 
 ### Fixed
 

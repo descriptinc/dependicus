@@ -267,6 +267,14 @@ describe('extractDependencyNameFromTitle', () => {
         ).toBe('sudachidict-core');
     });
 
+    it('extracts name from legacy arrow FYI title', () => {
+        expect(
+            extractDependencyNameFromTitle(
+                '[Dependicus] FYI: test-pkg 1.0.0 → 2.0.0 (latest: 2.0.0)',
+            ),
+        ).toBe('test-pkg');
+    });
+
     it('returns undefined for non-Dependicus titles', () => {
         expect(extractDependencyNameFromTitle('Update react to 19.0.0')).toBeUndefined();
         expect(extractDependencyNameFromTitle('Fix bug in react')).toBeUndefined();
