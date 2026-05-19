@@ -8,6 +8,8 @@
 
 ### Changed
 
+- `searchDependicusIssues` (in `@dependicus/github-issues`) no longer drops every pull request returned by the GitHub issues endpoint. Issues are still always included; pull requests labeled `dependicus` are now included only when they are ready for review. Draft PRs continue to be skipped, so bots and reports built on top of this helper stop counting in-progress work as something to yell about.
+
 ### Fixed
 
 - Fix version numbers without `.` failing to match open tickets, resulting in duplicates

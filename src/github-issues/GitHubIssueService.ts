@@ -78,9 +78,15 @@ export class GitHubIssueService {
     }
 
     /**
-     * Search for all open Dependicus issues in a repo.
+     * Search for all open Dependicus items in a repo.
      * Filters by the "dependicus" label and state=open.
-     * Handles pagination to ensure ALL issues are fetched.
+     * Handles pagination to ensure ALL items are fetched.
+     *
+     * GitHub's issues endpoint returns both issues and pull requests when
+     * filtered by label. Issues are always included; pull requests are
+     * included only when they are ready for review (drafts are skipped) so
+     * that downstream consumers — including bots that yell about the open
+     * count — don't get noise from in-progress work.
      */
     async searchDependicusIssues(
         owner: string,
@@ -103,8 +109,9 @@ export class GitHubIssueService {
             });
 
             for (const issue of response.data) {
-                // Skip pull requests (GitHub API returns PRs in issues endpoint)
-                if (issue.pull_request) continue;
+                // GitHub returns PRs in the issues endpoint. Skip draft PRs;
+                // ready-to-review PRs and regular issues are both included.
+                if (issue.pull_request && issue.draft) continue;
 
                 const groupName = extractGroupNameFromTitle(issue.title);
                 const dependencyName = groupName ?? extractDependencyNameFromTitle(issue.title);

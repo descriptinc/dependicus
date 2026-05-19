@@ -102,7 +102,7 @@ describe('GitHubIssueService', () => {
             });
         });
 
-        it('skips pull requests', async () => {
+        it('skips draft pull requests', async () => {
             mockOctokit.issues.getLabel.mockResolvedValue({ data: { name: 'dependicus' } });
 
             mockOctokit.issues.listForRepo.mockResolvedValue({
@@ -112,12 +112,33 @@ describe('GitHubIssueService', () => {
                         title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
                         updated_at: '2025-01-15T00:00:00Z',
                         pull_request: { url: 'https://...' },
+                        draft: true,
                     },
                 ],
             });
 
             const issues = await service.searchDependicusIssues('owner', 'repo');
             expect(issues).toHaveLength(0);
+        });
+
+        it('includes ready-to-review pull requests', async () => {
+            mockOctokit.issues.getLabel.mockResolvedValue({ data: { name: 'dependicus' } });
+
+            mockOctokit.issues.listForRepo.mockResolvedValue({
+                data: [
+                    {
+                        number: 42,
+                        title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
+                        updated_at: '2025-01-15T00:00:00Z',
+                        pull_request: { url: 'https://...' },
+                        draft: false,
+                    },
+                ],
+            });
+
+            const issues = await service.searchDependicusIssues('owner', 'repo');
+            expect(issues).toHaveLength(1);
+            expect(issues[0]!.number).toBe(42);
         });
 
         it('calls onProgress callback', async () => {
