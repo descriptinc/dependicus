@@ -237,6 +237,90 @@ describe('reconcileIssues', () => {
         expect(result.created).toBe(0);
     });
 
+    it('skips new issues when the team issue limit is already reached', async () => {
+        const mockState = { type: 'unstarted', name: 'Todo' };
+        mockClient.issues
+            .mockResolvedValueOnce({
+                nodes: [],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            })
+            .mockResolvedValueOnce({
+                nodes: [
+                    {
+                        id: 'recent-issue-1',
+                        identifier: 'TEST-10',
+                        title: '[Dependicus] Update recent-pkg from 1.0.0 to 2.0.0',
+                        createdAt: new Date('2026-05-20'),
+                        dueDate: undefined,
+                        updatedAt: new Date('2026-05-20'),
+                        state: Promise.resolve(mockState),
+                        team: Promise.resolve({ id: 'linear-team-123' }),
+                    },
+                ],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            });
+
+        const v = makeVersion();
+        populateFacts(store, 'test-pkg', v);
+        const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
+
+        const result = await reconcileIssues(
+            deps,
+            store,
+            {
+                ...defaultConfig,
+                dryRun: false,
+                teamIssueRateLimit: { windowDays: 7, maxIssuesPerTeam: 1 },
+            },
+            testGetLinearIssueSpec,
+        );
+
+        expect(result.created).toBe(0);
+        expect(mockClient.createIssue).not.toHaveBeenCalled();
+    });
+
+    it('counts new issues opened earlier in the same run against the team limit', async () => {
+        mockClient.issues
+            .mockResolvedValueOnce({
+                nodes: [],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            })
+            .mockResolvedValueOnce({
+                nodes: [],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            })
+            .mockResolvedValueOnce({
+                nodes: [],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            });
+
+        const first = makeVersion();
+        const second = makeVersion();
+        populateFacts(store, 'first-pkg', first);
+        populateFacts(store, 'second-pkg', second);
+        const deps: DirectDependency[] = [
+            makeDep('first-pkg', [first]),
+            makeDep('second-pkg', [second]),
+        ];
+
+        const result = await reconcileIssues(
+            deps,
+            store,
+            {
+                ...defaultConfig,
+                dryRun: false,
+                teamIssueRateLimit: { windowDays: 7, maxIssuesPerTeam: 1 },
+            },
+            testGetLinearIssueSpec,
+        );
+
+        expect(result.created).toBe(1);
+        expect(mockClient.createIssue).toHaveBeenCalledTimes(1);
+        expect(mockClient.createIssue.mock.calls[0]![0]).toMatchObject({
+            title: expect.stringContaining('first-pkg'),
+        });
+    });
+
     it('updates existing issues when package is still outdated', async () => {
         const mockState = { type: 'unstarted', name: 'Todo' };
         mockClient.issues.mockResolvedValue({
