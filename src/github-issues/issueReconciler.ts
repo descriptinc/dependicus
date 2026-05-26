@@ -472,18 +472,24 @@ export async function reconcileGitHubIssues(
     );
     process.stderr.write(`Found ${existingIssues.length} existing issues\n`);
 
-    // Build maps for deduplication
+    // Build maps for deduplication. Pull requests (always ready-for-review at
+    // this point — drafts are filtered upstream) are recorded by title so we
+    // don't create a duplicate issue when an agent has already opened a PR,
+    // but they're excluded from the by-dependency map so the reconciler never
+    // mutates them like an issue (an `octokit.issues.update` against a PR
+    // number would clobber the PR's title and body).
     const existingIssuesByDependency = new Map<string, DependicusIssue>();
     const existingIssuesByTitle = new Set<string>();
     const duplicateIssues: DependicusIssue[] = [];
 
     for (const issue of existingIssues) {
+        existingIssuesByTitle.add(issue.title);
+        if (issue.isPullRequest) continue;
         if (!existingIssuesByDependency.has(issue.dependencyName)) {
             existingIssuesByDependency.set(issue.dependencyName, issue);
         } else {
             duplicateIssues.push(issue);
         }
-        existingIssuesByTitle.add(issue.title);
     }
 
     // Close duplicate issues proactively

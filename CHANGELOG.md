@@ -8,7 +8,7 @@
 
 ### Changed
 
-- `searchDependicusIssues` (in `@dependicus/github-issues`) now skips every pull request returned by GitHub's issues endpoint — drafts and ready-to-review alike — and also skips anything flagged as a draft. Only real, non-draft issues are returned, so notification bots and reports built on this helper stop counting pull requests as open Dependicus items.
+- `searchDependicusIssues` (in `@dependicus/github-issues`) now treats draft pull requests as not yet open for review and excludes them from results, while ready-for-review pull requests are returned alongside regular issues. Each returned entry carries an `isPullRequest` boolean so notification bots can count open Dependicus items accurately — drafts no longer pad the total — and the reconciler can avoid mutating pull requests. Anything explicitly flagged as a draft (PR or otherwise) is still skipped defensively.
 
 ### Fixed
 

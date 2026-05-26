@@ -5,7 +5,7 @@ const DEPENDICUS_LABEL_NAME = 'dependicus';
 const TITLE_PREFIX = '[Dependicus]';
 
 export interface DependicusIssue {
-    /** GitHub issue number */
+    /** GitHub issue number (or pull request number — they share a numbering scheme) */
     number: number;
     title: string;
     /** Issue body (markdown description) */
@@ -21,6 +21,13 @@ export interface DependicusIssue {
     isGroup: boolean;
     /** ISO date string when the issue was last updated */
     updatedAt: string;
+    /**
+     * True when this entry is a pull request. Drafts are filtered out by
+     * `searchDependicusIssues`, so any PR here is ready-for-review. PRs are
+     * surfaced so notification bots can count open Dependicus items
+     * accurately, but the reconciler must avoid mutating them.
+     */
+    isPullRequest: boolean;
 }
 
 export interface CreateIssueParams {
@@ -78,15 +85,18 @@ export class GitHubIssueService {
     }
 
     /**
-     * Search for all open Dependicus issues in a repo.
+     * Search for all open Dependicus items in a repo.
      * Filters by the "dependicus" label and state=open.
-     * Handles pagination to ensure ALL issues are fetched.
+     * Handles pagination to ensure ALL items are fetched.
      *
      * GitHub's issues endpoint returns pull requests alongside issues when
-     * filtered by label. Pull requests are always skipped (regardless of
-     * draft state) so that callers only see real issues, and any item with
-     * a draft flag is skipped defensively so downstream consumers (such as
-     * the bot that yells about the open count) never see in-progress work.
+     * filtered by label. Draft pull requests are skipped because a draft is
+     * explicitly not "open for review" — the bot that yells about the open
+     * Dependicus count shouldn't honk at half-finished work. Ready-for-review
+     * pull requests and regular issues are both returned (with
+     * `isPullRequest` set accordingly) so they can be counted as legitimately
+     * open. Anything flagged as a draft (PR or otherwise) is also skipped
+     * defensively.
      */
     async searchDependicusIssues(
         owner: string,
@@ -109,10 +119,10 @@ export class GitHubIssueService {
             });
 
             for (const issue of response.data) {
-                // GitHub returns PRs in the issues endpoint — skip every PR
-                // (draft or not). Also skip anything explicitly flagged as
-                // a draft so non-PR draft items can't slip through either.
-                if (issue.pull_request || issue.draft) continue;
+                // Draft items (PRs or otherwise) are not open for review yet,
+                // so they don't count toward the open total. Non-draft PRs
+                // and regular issues both flow through.
+                if (issue.draft) continue;
 
                 const groupName = extractGroupNameFromTitle(issue.title);
                 const dependencyName = groupName ?? extractDependencyNameFromTitle(issue.title);
@@ -125,6 +135,7 @@ export class GitHubIssueService {
                     dependencyName,
                     isGroup: groupName !== undefined,
                     updatedAt: issue.updated_at,
+                    isPullRequest: Boolean(issue.pull_request),
                 });
             }
 
@@ -174,6 +185,7 @@ export class GitHubIssueService {
                 dependencyName: extractedName,
                 isGroup: groupName !== undefined,
                 updatedAt: item.updated_at,
+                isPullRequest: false,
             };
         }
 
