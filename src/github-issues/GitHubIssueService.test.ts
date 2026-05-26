@@ -99,10 +99,11 @@ describe('GitHubIssueService', () => {
                 dependencyName: 'react',
                 isGroup: false,
                 updatedAt: '2025-01-15T00:00:00Z',
+                isPullRequest: false,
             });
         });
 
-        it('skips pull requests regardless of draft state', async () => {
+        it('skips draft PRs and includes ready-for-review PRs flagged as pull requests', async () => {
             mockOctokit.issues.getLabel.mockResolvedValue({ data: { name: 'dependicus' } });
 
             mockOctokit.issues.listForRepo.mockResolvedValue({
@@ -125,7 +126,27 @@ describe('GitHubIssueService', () => {
             });
 
             const issues = await service.searchDependicusIssues('owner', 'repo');
-            expect(issues).toHaveLength(0);
+            expect(issues).toHaveLength(1);
+            expect(issues[0]!.number).toBe(43);
+            expect(issues[0]!.isPullRequest).toBe(true);
+        });
+
+        it('flags non-PR matches as not being a pull request', async () => {
+            mockOctokit.issues.getLabel.mockResolvedValue({ data: { name: 'dependicus' } });
+
+            mockOctokit.issues.listForRepo.mockResolvedValue({
+                data: [
+                    {
+                        number: 7,
+                        title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
+                        updated_at: '2025-01-15T00:00:00Z',
+                    },
+                ],
+            });
+
+            const issues = await service.searchDependicusIssues('owner', 'repo');
+            expect(issues).toHaveLength(1);
+            expect(issues[0]!.isPullRequest).toBe(false);
         });
 
         it('skips items flagged as draft', async () => {
