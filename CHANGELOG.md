@@ -6,6 +6,8 @@
 
 ### Added
 
+- Linear issue creation can now be rate-limited per team with `linear.teamIssueRateLimit`, capping how many new or reopened Dependicus tickets one Linear team receives during a rolling window while still updating and closing existing tickets.
+
 ### Changed
 
 - `searchDependicusIssues` (in `@dependicus/github-issues`) now treats draft pull requests as not yet open for review and excludes them from results, while ready-for-review pull requests are returned alongside regular issues. Each returned entry carries an `isPullRequest` boolean so notification bots can count open Dependicus items accurately — drafts no longer pad the total — and the reconciler can avoid mutating pull requests. Anything explicitly flagged as a draft (PR or otherwise) is still skipped defensively.
