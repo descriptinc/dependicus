@@ -91,12 +91,10 @@ export class GitHubIssueService {
      *
      * GitHub's issues endpoint returns pull requests alongside issues when
      * filtered by label. Draft pull requests are skipped because a draft is
-     * explicitly not "open for review" — the bot that yells about the open
-     * Dependicus count shouldn't honk at half-finished work. Ready-for-review
-     * pull requests and regular issues are both returned (with
-     * `isPullRequest` set accordingly) so they can be counted as legitimately
-     * open. Anything flagged as a draft (PR or otherwise) is also skipped
-     * defensively.
+     * explicitly not "ready for review". Actually ready-for-review pull
+     * requests and regular issues are both returned (with `isPullRequest` set
+     * accordingly) so they can be counted as legitimately open. Anything
+     * flagged as a draft (PR or otherwise) is also skipped defensively.
      */
     async searchDependicusIssues(
         owner: string,
