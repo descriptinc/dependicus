@@ -20,7 +20,7 @@ import { UvProvider } from './providers-python/index';
 import { GoProvider } from './provider-go/index';
 import { CargoProvider } from './provider-rust/index';
 import { reconcileIssues } from './linear/index';
-import type { VersionContext, LinearIssueSpec } from './linear/index';
+import type { VersionContext, LinearIssueSpec, TeamIssueRateLimitConfig } from './linear/index';
 import { reconcileGitHubIssues } from './github-issues/index';
 import type { GitHubIssueSpec } from './github-issues/index';
 import type { VersionContext as GitHubVersionContext } from './github-issues/index';
@@ -64,6 +64,8 @@ export interface DependicusCliConfig {
         skipStateNames?: string[];
         /** Default rate limit days for notification throttling. Used when per-policy rateLimitDays is not set. */
         rateLimitDays?: number;
+        /** Limit new/reopened Dependicus issues per Linear team over a rolling window. */
+        teamIssueRateLimit?: TeamIssueRateLimitConfig;
     };
     /** GitHub Issues integration configuration. */
     github?: {
@@ -415,6 +417,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                                     options.rateLimitDays != null
                                         ? Number(options.rateLimitDays)
                                         : linearConfig.rateLimitDays,
+                                teamIssueRateLimit: linearConfig.teamIssueRateLimit,
                             },
                             effectiveGetLinearIssueSpec,
                         );

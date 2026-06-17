@@ -595,6 +595,7 @@ describe('dependicusCli', () => {
                 cooldownDays: 7,
                 allowNewIssues: true,
                 skipStateNames: ['done'],
+                teamIssueRateLimit: { windowDays: 7, maxIssuesPerTeam: 3 },
             },
         };
 
@@ -660,6 +661,20 @@ describe('dependicusCli', () => {
 
             const config = mockReconcileIssues.mock.calls[0]![2];
             expect(config).toHaveProperty('rateLimitDays', 7);
+        });
+
+        it('passes team issue rate limit config through', async () => {
+            setEnv('LINEAR_API_KEY', 'test-key');
+            setupLinearMocks();
+
+            const cli = dependicusCli(linearConfig);
+            await cli.run(argv('make-linear-issues'));
+
+            const config = mockReconcileIssues.mock.calls[0]![2];
+            expect(config).toHaveProperty('teamIssueRateLimit', {
+                windowDays: 7,
+                maxIssuesPerTeam: 3,
+            });
         });
     });
 

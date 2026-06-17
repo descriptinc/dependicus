@@ -13,6 +13,10 @@ void dependicusCli({
     repoRoot,
     dependicusBaseUrl: 'https://mycompany.internal/dependicus',
     linear: {
+        teamIssueRateLimit: {
+            windowDays: 7,
+            maxIssuesPerTeam: 5,
+        },
         getLinearIssueSpec: (context, store) => {
             const { name, currentVersion, latestVersion } = context;
             const updateType = getUpdateType(currentVersion, latestVersion);
@@ -59,6 +63,19 @@ void dependicusCli({
         },
     },
 }).run(process.argv);
+```
+
+## Team Issue Rate Limits
+
+Set `linear.teamIssueRateLimit` to cap how many new or reopened Dependicus issues any one Linear team receives during a rolling window. Existing issue updates, comments, and closures still run, so the rate limit reduces ticket noise without making existing tickets stale.
+
+```ts
+linear: {
+    teamIssueRateLimit: {
+        windowDays: 7,
+        maxIssuesPerTeam: 5,
+    },
+}
 ```
 
 ## CLI flags

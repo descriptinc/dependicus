@@ -10,6 +10,10 @@ export interface DependicusIssue {
     id: string;
     identifier: string; // e.g., "CORE-123"
     title: string;
+    /** ISO date string when the issue was created */
+    createdAt?: string;
+    /** Linear team UUID for the issue, when requested by the caller */
+    teamId?: string;
     /**
      * For single-dependency issues: the dependency name (e.g., "react")
      * For group issues: the group name (e.g., "sentry")
@@ -39,6 +43,15 @@ export interface CreateIssueParams {
     description: string;
     /** Optional - delegate to a Linear user or bot for automatic handling */
     delegateId?: string;
+}
+
+export interface SearchDependicusIssuesOptions {
+    /** Include completed and canceled issues in addition to open issues. */
+    includeClosed?: boolean;
+    /** Only return issues created at or after this timestamp. */
+    createdSince?: Date;
+    /** Populate `teamId` on returned issues. */
+    includeTeamId?: boolean;
 }
 
 export class LinearService {
@@ -100,6 +113,7 @@ export class LinearService {
      */
     async searchDependicusIssues(
         onProgress?: (fetched: number, page: number) => void,
+        options: SearchDependicusIssuesOptions = {},
     ): Promise<DependicusIssue[]> {
         const labelId = await this.ensureLabel();
 
@@ -116,9 +130,16 @@ export class LinearService {
             const issues = await this.client.issues({
                 filter: {
                     labels: { id: { eq: labelId } },
-                    state: {
-                        type: { nin: ['completed', 'canceled'] },
-                    },
+                    ...(options.includeClosed
+                        ? {}
+                        : {
+                              state: {
+                                  type: { nin: ['completed', 'canceled'] },
+                              },
+                          }),
+                    ...(options.createdSince
+                        ? { createdAt: { gte: options.createdSince.toISOString() } }
+                        : {}),
                 },
                 first: 100, // Max page size for efficiency
                 after: afterCursor,
@@ -131,11 +152,14 @@ export class LinearService {
                 if (!dependencyName) continue;
 
                 const state = await issue.state;
+                const team = options.includeTeamId ? await issue.team : undefined;
 
                 existingIssues.push({
                     id: issue.id,
                     identifier: issue.identifier,
                     title: issue.title,
+                    createdAt: issue.createdAt?.toISOString(),
+                    teamId: team?.id,
                     dependencyName,
                     isGroup: groupName !== undefined,
                     dueDate: issue.dueDate ?? undefined,
@@ -303,6 +327,8 @@ export class LinearService {
                 id: issue.id,
                 identifier: issue.identifier,
                 title: issue.title,
+                createdAt: issue.createdAt?.toISOString(),
+                teamId: undefined,
                 dependencyName: extractedName,
                 isGroup: groupName !== undefined,
                 dueDate: issue.dueDate ?? undefined,

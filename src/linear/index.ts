@@ -12,4 +12,5 @@ export {
     reconcileIssues,
     type IssueReconcilerConfig,
     type ReconciliationResult,
+    type TeamIssueRateLimitConfig,
 } from './issueReconciler';

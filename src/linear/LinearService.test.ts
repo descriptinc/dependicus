@@ -76,6 +76,7 @@ describe('LinearService', () => {
                         id: 'issue-1',
                         identifier: 'CORE-100',
                         title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
+                        createdAt: new Date('2025-01-10'),
                         dueDate: '2025-06-01',
                         updatedAt: new Date('2025-01-15'),
                         state: Promise.resolve(mockState),
@@ -90,6 +91,8 @@ describe('LinearService', () => {
                 id: 'issue-1',
                 identifier: 'CORE-100',
                 title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
+                createdAt: '2025-01-10T00:00:00.000Z',
+                teamId: undefined,
                 dependencyName: 'react',
                 isGroup: false,
                 dueDate: '2025-06-01',
@@ -111,6 +114,50 @@ describe('LinearService', () => {
             const onProgress = vi.fn();
             await service.searchDependicusIssues(onProgress);
             expect(onProgress).toHaveBeenCalledWith(0, 1);
+        });
+
+        it('can include closed issues, created-date filtering, and team ids', async () => {
+            mockClient.issueLabels.mockResolvedValue({
+                nodes: [{ id: 'label-123', name: 'Dependicus' }],
+            });
+
+            const mockState = { type: 'completed', name: 'Done' };
+            mockClient.issues.mockResolvedValue({
+                nodes: [
+                    {
+                        id: 'issue-1',
+                        identifier: 'CORE-100',
+                        title: '[Dependicus] Update react from 18.2.0 to 19.0.0',
+                        createdAt: new Date('2025-01-10'),
+                        dueDate: undefined,
+                        updatedAt: new Date('2025-01-15'),
+                        state: Promise.resolve(mockState),
+                        team: Promise.resolve({ id: 'team-1' }),
+                    },
+                ],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            });
+
+            const issues = await service.searchDependicusIssues(undefined, {
+                includeClosed: true,
+                createdSince: new Date('2025-01-01'),
+                includeTeamId: true,
+            });
+
+            expect(mockClient.issues).toHaveBeenCalledWith({
+                filter: {
+                    labels: { id: { eq: 'label-123' } },
+                    createdAt: { gte: '2025-01-01T00:00:00.000Z' },
+                },
+                first: 100,
+                after: undefined,
+            });
+            expect(issues[0]).toMatchObject({
+                id: 'issue-1',
+                teamId: 'team-1',
+                createdAt: '2025-01-10T00:00:00.000Z',
+                state: { type: 'completed', name: 'Done' },
+            });
         });
     });
 

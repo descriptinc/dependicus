@@ -52,6 +52,15 @@ export interface IssueReconcilerConfig {
     skipStateNames?: string[];
     /** Default rate limit days for notification throttling. Used when per-policy rateLimitDays is not set. */
     rateLimitDays?: number;
+    /** Limit new/reopened Dependicus issues per Linear team over a rolling window. */
+    teamIssueRateLimit?: TeamIssueRateLimitConfig;
+}
+
+export interface TeamIssueRateLimitConfig {
+    /** Rolling window size in days. */
+    windowDays: number;
+    /** Maximum Dependicus issues a team may receive during the window. */
+    maxIssuesPerTeam: number;
 }
 
 export interface ReconciliationResult {
@@ -60,6 +69,12 @@ export interface ReconciliationResult {
     updated: number;
     closed: number;
     closedDuplicates: number;
+}
+
+interface TeamIssueRateLimitState {
+    windowDays: number;
+    maxIssuesPerTeam: number;
+    issueCountsByTeam: Map<string, number>;
 }
 
 /**
@@ -208,6 +223,64 @@ function findExistingIssue(
     const byName = map.get(unqualifiedName);
     if (byName) return { issue: byName, mapKey: unqualifiedName };
     return undefined;
+}
+
+function validateTeamIssueRateLimitConfig(
+    config: TeamIssueRateLimitConfig,
+): TeamIssueRateLimitConfig {
+    if (!Number.isFinite(config.windowDays) || config.windowDays <= 0) {
+        throw new Error('teamIssueRateLimit.windowDays must be greater than 0');
+    }
+    if (!Number.isFinite(config.maxIssuesPerTeam) || config.maxIssuesPerTeam <= 0) {
+        throw new Error('teamIssueRateLimit.maxIssuesPerTeam must be greater than 0');
+    }
+    return config;
+}
+
+async function loadTeamIssueRateLimitState(
+    linearService: LinearService,
+    config: TeamIssueRateLimitConfig | undefined,
+): Promise<TeamIssueRateLimitState | undefined> {
+    if (!config) return undefined;
+
+    const { windowDays, maxIssuesPerTeam } = validateTeamIssueRateLimitConfig(config);
+    const createdSince = new Date();
+    createdSince.setDate(createdSince.getDate() - windowDays);
+
+    process.stderr.write(
+        `Searching for Dependicus issues created in the last ${windowDays} days...\n`,
+    );
+    const recentIssues = await linearService.searchDependicusIssues(
+        (fetched, page) => {
+            process.stderr.write(`  Fetched ${fetched} recent issues (page ${page})...\n`);
+        },
+        { includeClosed: true, createdSince, includeTeamId: true },
+    );
+
+    const issueCountsByTeam = new Map<string, number>();
+    for (const issue of recentIssues) {
+        if (!issue.teamId) continue;
+        issueCountsByTeam.set(issue.teamId, (issueCountsByTeam.get(issue.teamId) ?? 0) + 1);
+    }
+
+    return { windowDays, maxIssuesPerTeam, issueCountsByTeam };
+}
+
+function shouldSkipDueToTeamIssueRateLimit(
+    state: TeamIssueRateLimitState | undefined,
+    teamId: string,
+): { count: number; limit: number; windowDays: number } | undefined {
+    if (!state) return undefined;
+
+    const count = state.issueCountsByTeam.get(teamId) ?? 0;
+    if (count < state.maxIssuesPerTeam) return undefined;
+
+    return { count, limit: state.maxIssuesPerTeam, windowDays: state.windowDays };
+}
+
+function recordTeamIssueOpened(state: TeamIssueRateLimitState | undefined, teamId: string): void {
+    if (!state) return;
+    state.issueCountsByTeam.set(teamId, (state.issueCountsByTeam.get(teamId) ?? 0) + 1);
 }
 
 /** Default policy when the issue spec doesn't specify one. */
@@ -475,6 +548,11 @@ export async function reconcileIssues(
     });
     process.stderr.write(`Found ${existingIssues.length} existing issues\n`);
 
+    const teamIssueRateLimitState = await loadTeamIssueRateLimitState(
+        linearService,
+        allowNewIssues ? config.teamIssueRateLimit : undefined,
+    );
+
     // Build maps for deduplication
     const existingIssuesByName = new Map<string, DependicusIssue>();
     const existingIssuesByTitle = new Set<string>();
@@ -695,6 +773,17 @@ export async function reconcileIssues(
                 continue;
             }
 
+            const teamIssueRateLimit = shouldSkipDueToTeamIssueRateLimit(
+                teamIssueRateLimitState,
+                dep.teamId,
+            );
+            if (teamIssueRateLimit) {
+                process.stderr.write(
+                    `Skipping ${dep.name} - team issue limit reached (${teamIssueRateLimit.count}/${teamIssueRateLimit.limit} in ${teamIssueRateLimit.windowDays} days)\n`,
+                );
+                continue;
+            }
+
             // Determine delegate from assignment
             const delegateId =
                 dep.assignment.type === 'delegate' ? dep.assignment.assigneeId : undefined;
@@ -727,6 +816,7 @@ export async function reconcileIssues(
                 );
 
                 existingIssuesByTitle.add(fullTitle);
+                recordTeamIssueOpened(teamIssueRateLimitState, dep.teamId);
 
                 if (!dryRun) {
                     process.stderr.write(
@@ -748,6 +838,7 @@ export async function reconcileIssues(
             });
 
             existingIssuesByTitle.add(fullTitle);
+            recordTeamIssueOpened(teamIssueRateLimitState, dep.teamId);
 
             if (!dryRun) {
                 const delegateNote = delegateId ? ' [delegated]' : '';
@@ -889,6 +980,17 @@ export async function reconcileIssues(
                 continue;
             }
 
+            const teamIssueRateLimit = shouldSkipDueToTeamIssueRateLimit(
+                teamIssueRateLimitState,
+                group.teamId,
+            );
+            if (teamIssueRateLimit) {
+                process.stderr.write(
+                    `Skipping ${group.groupName} group - team issue limit reached (${teamIssueRateLimit.count}/${teamIssueRateLimit.limit} in ${teamIssueRateLimit.windowDays} days)\n`,
+                );
+                continue;
+            }
+
             // Check if a closed issue with the same title exists — reopen instead of creating
             const closedIssue = await linearService.findClosedIssue(group.groupName, fullTitle);
             if (closedIssue) {
@@ -916,6 +1018,7 @@ export async function reconcileIssues(
                 );
 
                 existingIssuesByTitle.add(fullTitle);
+                recordTeamIssueOpened(teamIssueRateLimitState, group.teamId);
 
                 if (!dryRun) {
                     process.stderr.write(
@@ -936,6 +1039,7 @@ export async function reconcileIssues(
             });
 
             existingIssuesByTitle.add(fullTitle);
+            recordTeamIssueOpened(teamIssueRateLimitState, group.teamId);
 
             if (!dryRun) {
                 process.stderr.write(
