@@ -294,7 +294,11 @@ describe('reconcileGitHubIssues', () => {
         setupMocks();
 
         const deps: DirectDependency[] = [
-            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion({ publishDate: '2025-08-01' })] },
+            {
+                name: 'test-pkg',
+                ecosystem: 'npm',
+                versions: [makeVersion({ publishDate: '2025-08-01' })],
+            },
         ];
         const store = makeStore();
         // Update the versions between to have a recent major version
@@ -325,7 +329,11 @@ describe('reconcileGitHubIssues', () => {
         setupMocks();
 
         const deps: DirectDependency[] = [
-            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion({ publishDate: '2023-01-01' })] },
+            {
+                name: 'test-pkg',
+                ecosystem: 'npm',
+                versions: [makeVersion({ publishDate: '2023-01-01' })],
+            },
         ];
         const store = makeStore();
         // Update the versions between to have an old major version
