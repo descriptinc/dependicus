@@ -76,7 +76,6 @@
         "vitest": "^4.1.9"
     },
     "resolutions": {
-        "rolldown": "1.0.0-rc.10",
         "@rolldown/binding-android-arm64": "1.0.0-rc.10",
         "@rolldown/binding-darwin-arm64": "1.0.0-rc.10",
         "@rolldown/binding-darwin-x64": "1.0.0-rc.10",
@@ -89,7 +88,8 @@
         "@rolldown/binding-openharmony-arm64": "1.0.0-rc.10",
         "@rolldown/binding-wasm32-wasi": "1.0.0-rc.10",
         "@rolldown/binding-win32-arm64-msvc": "1.0.0-rc.10",
-        "@rolldown/binding-win32-x64-msvc": "1.0.0-rc.10"
+        "@rolldown/binding-win32-x64-msvc": "1.0.0-rc.10",
+        "rolldown": "1.0.0-rc.10"
     },
     "engines": {
         "node": ">=20"
