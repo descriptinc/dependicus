@@ -13,6 +13,7 @@
 ### Fixed
 
 - Fix version numbers without `.` failing to match open tickets, resulting in duplicates
+- Dependicus no longer sets due dates that are in the past for overdue dependencies. When a calculated due date falls before today, the issue is created without a due date instead.
 
 ### Removed
 
