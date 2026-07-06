@@ -429,6 +429,34 @@ describe('buildGroupIssueDescription', () => {
         expect(result).toContain('react: 2.0.0');
     });
 
+    it('does not output "undefined" when catalogFile is missing', () => {
+        const group: OutdatedGroup = {
+            groupName: 'test-group',
+            dependencies: [makeDependency({ name: 'react' })],
+            owner: 'myorg',
+            repo: 'myrepo',
+            policy: { type: 'dueDate' },
+            worstCompliance: { updateType: 'major', daysOverdue: 0, thresholdDays: 360 },
+        };
+
+        const providerWithoutCatalogFile = {
+            ...npmProviderInfo,
+            catalogFile: undefined,
+        };
+        const providerMapWithoutCatalogFile = new Map([['npm', providerWithoutCatalogFile]]);
+
+        const store = makeGroupStore(group);
+        const result = buildGroupIssueDescription({
+            group: group,
+            store: store,
+            getDetailUrl: testGetDetailUrl,
+            providerInfoMap: providerMapWithoutCatalogFile,
+        });
+        // Should not contain the literal string "undefined"
+        expect(result).not.toContain('undefined');
+        expect(result).not.toContain('`undefined`');
+    });
+
     it('quotes scoped package names in group catalog YAML', () => {
         const group: OutdatedGroup = {
             groupName: 'scoped-group',

@@ -19,7 +19,8 @@ import issueReopenedCommentHbs from './templates/issue-reopened-comment.hbs';
 function createHandlebars(): typeof Handlebars {
     const hbs = Handlebars.create();
     // Disable HTML escaping — output is markdown, not HTML.
-    hbs.Utils.escapeExpression = (str: string) => str;
+    // Handle undefined/null by returning empty string to avoid outputting "undefined" as text.
+    hbs.Utils.escapeExpression = (str: string) => (str == null ? '' : str);
 
     for (const [name, helper] of Object.entries(helpers)) {
         hbs.registerHelper(name, helper);

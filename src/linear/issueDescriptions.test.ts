@@ -296,6 +296,26 @@ describe('buildIssueDescription', () => {
         expect(result).toContain('  test-pkg: 2.0.0');
     });
 
+    it('does not output "undefined" when catalogFile is missing', () => {
+        const pkg = makeDependency();
+        const store = makeStore(pkg);
+        const providerWithoutCatalogFile = {
+            ...npmProviderInfo,
+            catalogFile: undefined,
+        };
+        const result = buildIssueDescription({
+            dep: pkg,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: providerWithoutCatalogFile,
+        });
+        // Should not contain the literal string "undefined"
+        expect(result).not.toContain('undefined');
+        expect(result).not.toContain('Edit `undefined`');
+    });
+
     it('shows non-catalog How to Update for single consumer', () => {
         const pkg = makeDependency({
             versions: [makeVersion({ inCatalog: false, usedBy: ['@app/web'] })],
