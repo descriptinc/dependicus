@@ -426,28 +426,62 @@ describe('calculateDueDate', () => {
     });
 
     it('calculates due date from first required version publish date', () => {
+        const now = new Date('2024-01-01');
         const versions = [makeVersion('2.0.0', '2024-06-15'), makeVersion('2.0.1', '2024-07-01')];
 
-        const dueDate = calculateDueDate('1.0.0', versions, 'major', 360, '2023-01-01');
+        const dueDate = calculateDueDate('1.0.0', versions, 'major', 360, '2023-01-01', now);
 
-        expect(dueDate.getFullYear()).toBe(2025);
-        expect(dueDate.getMonth()).toBe(5); // June is 5 (0-indexed)
+        expect(dueDate?.getFullYear()).toBe(2025);
+        expect(dueDate?.getMonth()).toBe(5); // June is 5 (0-indexed)
     });
 
     it('falls back to fallback publish date if no versions between', () => {
-        const dueDate = calculateDueDate('1.0.0', [], 'major', 360, '2024-01-15');
+        const now = new Date('2024-01-01');
+        const dueDate = calculateDueDate('1.0.0', [], 'major', 360, '2024-01-15', now);
 
-        expect(dueDate.getFullYear()).toBe(2025);
-        expect(dueDate.getMonth()).toBe(0); // January
+        expect(dueDate?.getFullYear()).toBe(2025);
+        expect(dueDate?.getMonth()).toBe(0); // January
     });
 
     it('uses correct threshold for different update types', () => {
+        const now = new Date('2024-01-01');
         const versions = [makeVersion('1.1.0', '2024-06-15')];
 
-        const dueDate = calculateDueDate('1.0.0', versions, 'minor', 180, '2024-01-01');
+        const dueDate = calculateDueDate('1.0.0', versions, 'minor', 180, '2024-01-01', now);
 
-        expect(dueDate.getFullYear()).toBe(2024);
-        expect(dueDate.getMonth()).toBe(11); // December
+        expect(dueDate?.getFullYear()).toBe(2024);
+        expect(dueDate?.getMonth()).toBe(11); // December
+    });
+
+    it('returns undefined when calculated due date is in the past', () => {
+        const now = new Date('2026-07-06');
+        const versions = [makeVersion('2.0.0', '2023-07-24')];
+
+        // Due date would be 2023-07-24 + 180 days = 2024-01-20 (in the past)
+        const dueDate = calculateDueDate('1.0.0', versions, 'major', 180, undefined, now);
+
+        expect(dueDate).toBeUndefined();
+    });
+
+    it('returns the due date when calculated due date is in the future', () => {
+        const now = new Date('2024-01-01');
+        const versions = [makeVersion('2.0.0', '2024-06-15')];
+
+        // Due date would be 2024-06-15 + 180 days = 2024-12-12 (in the future)
+        const dueDate = calculateDueDate('1.0.0', versions, 'major', 180, undefined, now);
+
+        expect(dueDate).toBeDefined();
+        expect(dueDate?.getFullYear()).toBe(2024);
+        expect(dueDate?.getMonth()).toBe(11); // December
+    });
+
+    it('returns undefined when fallback publish date results in past due date', () => {
+        const now = new Date('2026-07-06');
+
+        // Using fallback date from 2 years ago with 180 day threshold = past due date
+        const dueDate = calculateDueDate('1.0.0', [], 'major', 180, '2023-01-15', now);
+
+        expect(dueDate).toBeUndefined();
     });
 });
 

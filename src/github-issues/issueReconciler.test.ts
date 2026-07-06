@@ -294,9 +294,19 @@ describe('reconcileGitHubIssues', () => {
         setupMocks();
 
         const deps: DirectDependency[] = [
-            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion({ publishDate: '2025-08-01' })] },
         ];
         const store = makeStore();
+        // Update the versions between to have a recent major version
+        const scoped = store.scoped('npm');
+        scoped.setVersionFact('test-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
+            {
+                version: '2.0.0',
+                publishDate: '2025-08-01',
+                isPrerelease: false,
+                registryUrl: 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
+            },
+        ]);
 
         const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
             makeSpec({
@@ -309,6 +319,38 @@ describe('reconcileGitHubIssues', () => {
         expect(result.created).toBe(1);
         const createCall = mockOctokit.issues.create.mock.calls[0]![0];
         expect(createCall.title).toContain('(due ');
+    });
+
+    it('does not append past due dates to title for dueDate policy', async () => {
+        setupMocks();
+
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion({ publishDate: '2023-01-01' })] },
+        ];
+        const store = makeStore();
+        // Update the versions between to have an old major version
+        const scoped = store.scoped('npm');
+        scoped.setVersionFact('test-pkg', '1.0.0', FactKeys.VERSIONS_BETWEEN, [
+            {
+                version: '2.0.0',
+                publishDate: '2023-01-01',
+                isPrerelease: false,
+                registryUrl: 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
+            },
+        ]);
+
+        const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({
+                policy: { type: 'dueDate' },
+                daysOverdue: 10,
+                thresholdDays: 360,
+            }),
+        );
+
+        expect(result.created).toBe(1);
+        const createCall = mockOctokit.issues.create.mock.calls[0]![0];
+        // Should not contain due date since it would be in the past
+        expect(createCall.title).not.toContain('(due ');
     });
 
     it('includes assignees when assignment is assign type', async () => {

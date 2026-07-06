@@ -293,6 +293,9 @@ export function findFirstVersionOfType(
  *
  * If no versions are found between current and latest, falls back to
  * the provided fallbackPublishDate.
+ *
+ * Returns undefined if the calculated due date is in the past, as there's
+ * no value in setting a past due date for already-overdue dependencies.
  */
 export function calculateDueDate(
     currentVersion: string,
@@ -300,7 +303,8 @@ export function calculateDueDate(
     updateType: 'major' | 'minor' | 'patch',
     thresholdDays: number,
     fallbackPublishDate: string | undefined,
-): Date {
+    now: Date = new Date(),
+): Date | undefined {
     const firstVersion = findFirstVersionOfType(currentVersion, versionsBetween, updateType);
 
     const availableDate = firstVersion?.publishDate
@@ -311,6 +315,11 @@ export function calculateDueDate(
 
     const dueDate = new Date(availableDate);
     dueDate.setDate(dueDate.getDate() + thresholdDays);
+
+    // Don't set past due dates for already-overdue dependencies
+    if (dueDate < now) {
+        return undefined;
+    }
 
     return dueDate;
 }
