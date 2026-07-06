@@ -12,6 +12,7 @@
 
 ### Fixed
 
+- Issue descriptions no longer output the literal string "undefined" when a provider has `supportsCatalog=true` but no `catalogFile` is configured. The custom Handlebars escape function now correctly returns an empty string for null/undefined values.
 - Fix version numbers without `.` failing to match open tickets, resulting in duplicates
 
 ### Removed
