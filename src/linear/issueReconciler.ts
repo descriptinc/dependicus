@@ -786,7 +786,7 @@ export async function reconcileIssues(
                     dep.worstCompliance.thresholdDays ?? group.worstCompliance.thresholdDays ?? 0,
                     version.publishDate,
                 );
-                if (!earliestDueDate || depDueDate < earliestDueDate) {
+                if (depDueDate && (!earliestDueDate || depDueDate < earliestDueDate)) {
                     earliestDueDate = depDueDate;
                 }
             }
