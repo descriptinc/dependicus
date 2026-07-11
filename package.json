@@ -75,10 +75,10 @@
         "typescript": "^5.9.3",
         "vitest": "^4.1.0"
     },
-    "overrides": {
+    "resolutions": {
         "esbuild": "0.28.1"
     },
-    "resolutions": {
+    "overrides": {
         "esbuild": "0.28.1"
     },
     "engines": {
