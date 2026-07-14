@@ -8,6 +8,7 @@ import {
     convertGitUrlToHttps,
     formatBytes,
     formatSizeChange,
+    normalizeCatalogFile,
 } from './formatters';
 
 describe('sanitizeCacheKey', () => {
@@ -22,6 +23,28 @@ describe('sanitizeCacheKey', () => {
 
     it('handles empty string', () => {
         expect(sanitizeCacheKey('')).toBe('');
+    });
+});
+
+describe('normalizeCatalogFile', () => {
+    it('returns a real path unchanged (trimmed)', () => {
+        expect(normalizeCatalogFile('pnpm-workspace.yaml')).toBe('pnpm-workspace.yaml');
+        expect(normalizeCatalogFile('  package.json  ')).toBe('package.json');
+    });
+
+    it('returns undefined for a missing path', () => {
+        expect(normalizeCatalogFile(undefined)).toBeUndefined();
+        expect(normalizeCatalogFile(null as unknown as string)).toBeUndefined();
+    });
+
+    it('returns undefined for empty or whitespace-only paths', () => {
+        expect(normalizeCatalogFile('')).toBeUndefined();
+        expect(normalizeCatalogFile('   ')).toBeUndefined();
+    });
+
+    it('treats the literal strings "undefined" and "null" as missing', () => {
+        expect(normalizeCatalogFile('undefined')).toBeUndefined();
+        expect(normalizeCatalogFile('null')).toBeUndefined();
     });
 });
 

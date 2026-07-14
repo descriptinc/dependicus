@@ -296,6 +296,38 @@ describe('buildIssueDescription', () => {
         expect(result).toContain('  test-pkg: 2.0.0');
     });
 
+    it('avoids a broken catalog file reference when catalogFile is missing', () => {
+        const pkg = makeDependency();
+        const store = makeStore(pkg);
+        const { catalogFile: _catalogFile, ...providerInfoWithoutCatalogFile } = npmProviderInfo;
+        const result = buildIssueDescription({
+            dep: pkg,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: providerInfoWithoutCatalogFile,
+        });
+        expect(result).toContain('managed in the catalog');
+        expect(result).not.toContain('Edit ``');
+        expect(result).not.toContain('undefined');
+    });
+
+    it('treats a literal "undefined" catalogFile as missing', () => {
+        const pkg = makeDependency();
+        const store = makeStore(pkg);
+        const result = buildIssueDescription({
+            dep: pkg,
+            store: store,
+            minVersion: '1.1.0',
+            effectiveLatestVersion: '2.0.0',
+            getDetailUrl: testGetDetailUrl,
+            providerInfo: { ...npmProviderInfo, catalogFile: 'undefined' },
+        });
+        expect(result).toContain('managed in the catalog');
+        expect(result).not.toContain('Edit `undefined`');
+    });
+
     it('shows non-catalog How to Update for single consumer', () => {
         const pkg = makeDependency({
             versions: [makeVersion({ inCatalog: false, usedBy: ['@app/web'] })],
@@ -700,6 +732,28 @@ describe('buildGroupIssueDescription', () => {
         expect(result).toContain('```yaml');
         expect(result).toContain('catalog:');
         expect(result).toContain('react: 2.0.0');
+    });
+
+    it('avoids a broken catalog file reference in groups when catalogFile is missing', () => {
+        const group: OutdatedGroup = {
+            groupName: 'test-group',
+            dependencies: [makeDependency({ name: 'react' })],
+            teamId: 'team-123',
+            policy: { type: 'dueDate' },
+            worstCompliance: { updateType: 'major', daysOverdue: 0, thresholdDays: 360 },
+        };
+
+        const store = makeGroupStore(group);
+        const { catalogFile: _catalogFile, ...providerInfoWithoutCatalogFile } = npmProviderInfo;
+        const result = buildGroupIssueDescription({
+            group: group,
+            store: store,
+            getDetailUrl: testGetDetailUrl,
+            providerInfoMap: new Map([['npm', providerInfoWithoutCatalogFile]]),
+        });
+        expect(result).toContain('Update each dependency in the catalog');
+        expect(result).not.toContain('`` catalog');
+        expect(result).not.toContain('undefined');
     });
 
     it('quotes scoped package names in group catalog YAML', () => {

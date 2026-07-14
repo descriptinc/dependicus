@@ -6,6 +6,7 @@ import {
     findFirstVersionOfType,
     formatBytes,
     formatSizeChange,
+    normalizeCatalogFile,
     resolveUrlPatterns,
 } from '../core/index';
 import { helpers } from './templates/helpers';
@@ -113,7 +114,8 @@ export function buildIssueDescription({
         };
     });
 
-    const { installCommand, supportsCatalog, catalogFile } = providerInfo;
+    const { installCommand, supportsCatalog } = providerInfo;
+    const catalogFile = normalizeCatalogFile(providerInfo.catalogFile);
     const patchHint =
         providerInfo.patchHint ??
         'This dependency has local patches applied. When upgrading, check if the patches are still needed or should be removed.';
@@ -209,7 +211,8 @@ export function buildGroupIssueDescription({
             `No provider info for ecosystem "${firstDep.ecosystem}" in group "${groupName}"`,
         );
     }
-    const { installCommand, supportsCatalog, catalogFile } = groupProviderInfo;
+    const { installCommand, supportsCatalog } = groupProviderInfo;
+    const catalogFile = normalizeCatalogFile(groupProviderInfo.catalogFile);
     const updateInstructions =
         groupProviderInfo.updateInstructions ??
         `Update each dependency's version in the appropriate config file, then run \`${installCommand}\`.`;
