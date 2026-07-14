@@ -31,7 +31,7 @@
 
 {{#if supportsCatalog}}
 {{#if inCatalog}}
-This dependency is managed in the catalog. Edit `{{catalogFile}}`:
+{{#if catalogFile}}This dependency is managed in the catalog. Edit `{{catalogFile}}`:{{else}}This dependency is managed in the catalog. Update it in the catalog:{{/if}}
 
 ```yaml
 catalog:
@@ -43,7 +43,7 @@ Then, run `{{installCommand}}` to update the lockfile.
 {{#if shouldRecommendCatalog}}
 This dependency is used by {{usedByCount}} packages. Consider adding it to the catalog:
 
-1. **Add to catalog** - Edit `{{catalogFile}}`:
+1. **Add to catalog** - {{#if catalogFile}}Edit `{{catalogFile}}`:{{else}}Add it to the catalog:{{/if}}
 
 ```yaml
 catalog:

@@ -37,6 +37,7 @@ export {
     formatSizeChange,
     sanitizeCacheKey,
     convertGitUrlToHttps,
+    normalizeCatalogFile,
 } from './utils/formatters';
 
 export {

@@ -38,7 +38,7 @@ This issue tracks updates for the **{{groupName}}** dependency group.
 ## How to Update
 
 {{#if supportsCatalog}}
-Update each dependency in the `{{catalogFile}}` catalog (if applicable) or individual package.json files:
+Update each dependency in the {{#if catalogFile}}`{{catalogFile}}` catalog{{else}}catalog{{/if}} (if applicable) or individual package.json files:
 
 ```yaml
 catalog:

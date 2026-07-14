@@ -8,6 +8,28 @@ export function sanitizeCacheKey(str: string): string {
     return str.replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
+/**
+ * Normalize a provider's catalog file path for display in issue templates.
+ *
+ * Returns `undefined` for values that would render as a broken instruction such
+ * as `Edit ``:` or `Edit `undefined`:`. That covers a genuinely missing path
+ * (`undefined`/`null`), an empty/whitespace-only string, and the literal strings
+ * `"undefined"`/`"null"` (which can leak in when an upstream value was
+ * string-interpolated before reaching the template). Callers should treat a
+ * `undefined` result as "no specific catalog file" and fall back to generic
+ * wording.
+ */
+export function normalizeCatalogFile(catalogFile: string | undefined): string | undefined {
+    if (catalogFile === undefined || catalogFile === null) {
+        return undefined;
+    }
+    const trimmed = catalogFile.trim();
+    if (trimmed === '' || trimmed === 'undefined' || trimmed === 'null') {
+        return undefined;
+    }
+    return trimmed;
+}
+
 export function formatDate(isoDate: string | undefined): string | undefined {
     if (!isoDate) {
         return undefined;

@@ -12,6 +12,10 @@
 
 ### Fixed
 
+- Catalog-managed dependencies no longer produce a broken "How to Update" instruction in generated GitHub and Linear issues.
+    - Previously, when a provider had no catalog file path available, the instruction rendered nonsense: either ``Edit `undefined`:`` or an "Edit" line with empty backticks and no filename.
+    - Issues now fall back to generic wording ("managed in the catalog. Update it in the catalog:") when the catalog file is unknown, and still show the exact file (e.g. ``Edit `pnpm-workspace.yaml`:``) when it is known.
+    - Both single-dependency and grouped issues are covered. A new `normalizeCatalogFile` helper (exported from `@dependicus/core`) treats missing, empty, and the literal `"undefined"`/`"null"` strings as "no catalog file".
 - Fix version numbers without `.` failing to match open tickets, resulting in duplicates
 
 ### Removed
