@@ -73,7 +73,7 @@
         "tsx": "^4.21.0",
         "typedoc": "^0.28.17",
         "typescript": "^5.9.3",
-        "vitest": "^4.1.10"
+        "vitest": "^4.1.11"
     },
     "resolutions": {
         "@rolldown/binding-android-arm64": "1.0.0-rc.10",
