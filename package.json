@@ -68,12 +68,13 @@
         "@types/semver": "^7.7.1",
         "oxfmt": "^0.35.0",
         "oxlint": "^1.50.0",
-        "rolldown": "1.0.0-rc.10",
-        "tsdown": "^0.20.3",
+        "rolldown": "^1.2.5",
+        "tsdown": "^0.22.14",
         "tsx": "^4.21.0",
         "typedoc": "^0.28.17",
         "typescript": "^5.9.3",
-        "vitest": "^4.1.0"
+        "unrun": "^0.3.1",
+        "vitest": "^4.1.11"
     },
     "engines": {
         "node": ">=20"
