@@ -68,48 +68,15 @@
         "@types/semver": "^7.7.1",
         "oxfmt": "^0.35.0",
         "oxlint": "^1.50.0",
-        "rolldown": "1.0.0-rc.10",
-        "tsdown": "^0.20.3",
+        "rolldown": "^1.2.5",
+        "tsdown": "^0.22.14",
         "tsx": "^4.21.0",
         "typedoc": "^0.28.17",
         "typescript": "^5.9.3",
+        "unrun": "^0.3.1",
         "vitest": "^4.1.11"
-    },
-    "resolutions": {
-        "@rolldown/binding-android-arm64": "1.0.0-rc.10",
-        "@rolldown/binding-darwin-arm64": "1.0.0-rc.10",
-        "@rolldown/binding-darwin-x64": "1.0.0-rc.10",
-        "@rolldown/binding-freebsd-x64": "1.0.0-rc.10",
-        "@rolldown/binding-linux-arm-gnueabihf": "1.0.0-rc.10",
-        "@rolldown/binding-linux-arm64-gnu": "1.0.0-rc.10",
-        "@rolldown/binding-linux-arm64-musl": "1.0.0-rc.10",
-        "@rolldown/binding-linux-x64-gnu": "1.0.0-rc.10",
-        "@rolldown/binding-linux-x64-musl": "1.0.0-rc.10",
-        "@rolldown/binding-openharmony-arm64": "1.0.0-rc.10",
-        "@rolldown/binding-wasm32-wasi": "1.0.0-rc.10",
-        "@rolldown/binding-win32-arm64-msvc": "1.0.0-rc.10",
-        "@rolldown/binding-win32-x64-msvc": "1.0.0-rc.10",
-        "rolldown": "1.0.0-rc.10"
     },
     "engines": {
         "node": ">=20"
-    },
-    "pnpm": {
-        "overrides": {
-            "@rolldown/binding-android-arm64": "1.0.0-rc.10",
-            "@rolldown/binding-darwin-arm64": "1.0.0-rc.10",
-            "@rolldown/binding-darwin-x64": "1.0.0-rc.10",
-            "@rolldown/binding-freebsd-x64": "1.0.0-rc.10",
-            "@rolldown/binding-linux-arm-gnueabihf": "1.0.0-rc.10",
-            "@rolldown/binding-linux-arm64-gnu": "1.0.0-rc.10",
-            "@rolldown/binding-linux-arm64-musl": "1.0.0-rc.10",
-            "@rolldown/binding-linux-x64-gnu": "1.0.0-rc.10",
-            "@rolldown/binding-linux-x64-musl": "1.0.0-rc.10",
-            "@rolldown/binding-openharmony-arm64": "1.0.0-rc.10",
-            "@rolldown/binding-wasm32-wasi": "1.0.0-rc.10",
-            "@rolldown/binding-win32-arm64-msvc": "1.0.0-rc.10",
-            "@rolldown/binding-win32-x64-msvc": "1.0.0-rc.10",
-            "rolldown": "1.0.0-rc.10"
-        }
     }
 }
