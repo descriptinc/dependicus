@@ -13,6 +13,9 @@
 ### Fixed
 
 - Fix version numbers without `.` failing to match open tickets, resulting in duplicates
+- Issues are no longer given a due date that is already in the past
+    - When a dependency passed its SLA deadline before Dependicus ever filed an issue, the issue is now created without a due date instead of being filed already overdue. This covers both the Linear due date field and the `(due YYYY-MM-DD)` suffix on GitHub issue titles.
+    - A due date already recorded on an existing issue is left alone, so deadlines set on earlier runs stay visible after they pass.
 
 ### Removed
 

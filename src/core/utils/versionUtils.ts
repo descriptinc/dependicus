@@ -316,6 +316,20 @@ export function calculateDueDate(
 }
 
 /**
+ * Check whether a due date has already passed.
+ *
+ * Compared by calendar day in UTC, the same way due dates are serialized onto
+ * issues, so a due date of today counts as still upcoming.
+ */
+export function isDueDateInPast(dueDate: Date, now: Date = new Date()): boolean {
+    return startOfUtcDay(dueDate) < startOfUtcDay(now);
+}
+
+function startOfUtcDay(date: Date): number {
+    return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+/**
  * Check if a version is within the cooldown period.
  * Returns true if the first required version was published less than cooldownDays ago.
  */

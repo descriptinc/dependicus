@@ -16,6 +16,7 @@ import {
     buildGroupTicketTitle,
     findFirstVersionOfType,
     calculateDueDate,
+    isDueDateInPast,
     isWithinCooldown,
     isWithinNotificationRateLimit,
     hasMajorVersionSinceLastUpdate,
@@ -238,6 +239,28 @@ function aggregatePolicy(
 /** Format a due date for inclusion in an issue title. */
 function formatDueDateForTitle(dueDate: Date): string {
     return dueDate.toISOString().split('T')[0]!;
+}
+
+/** Read back the due date a previous run appended to an issue title. */
+function extractDueDateFromTitle(title: string): string | undefined {
+    return /\(due (\d{4}-\d{2}-\d{2})\)/.exec(title)?.[1];
+}
+
+/**
+ * Pick the due date to show on an issue.
+ *
+ * A deadline that has already passed is not worth showing — an issue would be
+ * filed overdue on day one — so it is dropped. An issue that already carries a
+ * due date keeps it, so a deadline set on an earlier run stays visible once the
+ * date passes.
+ */
+function resolveDueDate(
+    calculatedDueDate: Date | undefined,
+    existingTitle?: string | undefined,
+): string | undefined {
+    if (!calculatedDueDate) return undefined;
+    if (!isDueDateInPast(calculatedDueDate)) return formatDueDateForTitle(calculatedDueDate);
+    return existingTitle ? extractDueDateFromTitle(existingTitle) : undefined;
 }
 
 export async function reconcileGitHubIssues(
@@ -540,7 +563,7 @@ export async function reconcileGitHubIssues(
         const notificationsOnly = isFyiPolicy(dep.policy);
 
         // Calculate due date (undefined for fyi dependencies)
-        const dueDate =
+        const calculatedDueDate =
             dep.worstCompliance.thresholdDays !== undefined
                 ? calculateDueDate(
                       version.version,
@@ -551,7 +574,7 @@ export async function reconcileGitHubIssues(
                   )
                 : undefined;
 
-        const dueDateStr = dueDate ? formatDueDateForTitle(dueDate) : undefined;
+        const dueDateStr = resolveDueDate(calculatedDueDate, existingIssue?.title);
 
         // Build title and description
         const effectiveLatestVersion = dep.targetVersion ?? version.latestVersion;
@@ -793,7 +816,7 @@ export async function reconcileGitHubIssues(
             }
         }
 
-        const dueDateStr = earliestDueDate ? formatDueDateForTitle(earliestDueDate) : undefined;
+        const dueDateStr = resolveDueDate(earliestDueDate, existingIssue?.title);
 
         let title = buildGroupTicketTitle(group.groupName, group.dependencies.length, {
             notificationsOnly: groupNotificationsOnly,

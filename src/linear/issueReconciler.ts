@@ -16,6 +16,7 @@ import {
     buildGroupTicketTitle,
     findFirstVersionOfType,
     calculateDueDate,
+    isDueDateInPast,
     isWithinCooldown,
     isWithinNotificationRateLimit,
     hasMajorVersionSinceLastUpdate,
@@ -117,6 +118,24 @@ function policyRateLimitDays(policy: LinearPolicy, configDefault?: number): numb
 /** Whether a policy represents a notifications-only / FYI package. */
 function isFyiPolicy(policy: LinearPolicy): boolean {
     return policy.type === 'fyi';
+}
+
+/**
+ * Pick the due date to write to an issue.
+ *
+ * A deadline that has already passed is not worth setting — an issue would be
+ * filed overdue on day one — so it is dropped. An issue that already carries a
+ * due date keeps it, so a deadline set on an earlier run stays visible once the
+ * date passes.
+ */
+function resolveDueDate(
+    calculatedDueDate: Date | undefined,
+    existingDueDate?: string | undefined,
+): Date | undefined {
+    if (!calculatedDueDate || !isDueDateInPast(calculatedDueDate)) {
+        return calculatedDueDate;
+    }
+    return existingDueDate ? new Date(existingDueDate) : undefined;
 }
 
 /**
@@ -536,7 +555,7 @@ export async function reconcileIssues(
         const notificationsOnly = isFyiPolicy(dep.policy);
 
         // Calculate due date (undefined for fyi dependencies)
-        const dueDate =
+        const calculatedDueDate =
             dep.worstCompliance.thresholdDays !== undefined
                 ? calculateDueDate(
                       version.version,
@@ -642,7 +661,7 @@ export async function reconcileIssues(
                 {
                     title,
                     description,
-                    dueDate,
+                    dueDate: resolveDueDate(calculatedDueDate, existingIssue.dueDate),
                 },
                 existingIssue.identifier,
             );
@@ -704,7 +723,7 @@ export async function reconcileIssues(
             if (closedIssue) {
                 await linearService.reopenIssue(
                     closedIssue.id,
-                    { title, description, dueDate },
+                    { title, description, dueDate: resolveDueDate(calculatedDueDate) },
                     closedIssue.identifier,
                 );
 
@@ -742,7 +761,7 @@ export async function reconcileIssues(
                 dependencyName: dep.name,
                 title,
                 teamId: dep.teamId,
-                dueDate,
+                dueDate: resolveDueDate(calculatedDueDate),
                 description,
                 delegateId,
             });
@@ -845,7 +864,7 @@ export async function reconcileIssues(
                 {
                     title,
                     description,
-                    dueDate: earliestDueDate,
+                    dueDate: resolveDueDate(earliestDueDate, existingIssue.dueDate),
                 },
                 existingIssue.identifier,
             );
@@ -894,7 +913,7 @@ export async function reconcileIssues(
             if (closedIssue) {
                 await linearService.reopenIssue(
                     closedIssue.id,
-                    { title, description, dueDate: earliestDueDate },
+                    { title, description, dueDate: resolveDueDate(earliestDueDate) },
                     closedIssue.identifier,
                 );
 
@@ -931,7 +950,7 @@ export async function reconcileIssues(
                 dependencyName: group.groupName,
                 title,
                 teamId: group.teamId,
-                dueDate: earliestDueDate,
+                dueDate: resolveDueDate(earliestDueDate),
                 description,
             });
 

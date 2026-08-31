@@ -49,6 +49,7 @@ export {
     buildGroupTicketTitle,
     findFirstVersionOfType,
     calculateDueDate,
+    isDueDateInPast,
     isWithinCooldown,
     findLatestWithinMajor,
     findLatestWithinMinor,

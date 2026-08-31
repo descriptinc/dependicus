@@ -53,6 +53,23 @@ const defaultVersionsBetween: PackageVersionInfo[] = [
     },
 ];
 
+/** ISO date (YYYY-MM-DD) for a day in the past, relative to when the test runs. */
+function daysAgo(days: number): string {
+    return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]!;
+}
+
+/** Versions between 1.0.0 and 2.0.0 where the major update landed `days` ago. */
+function majorPublishedDaysAgo(days: number): PackageVersionInfo[] {
+    return [
+        {
+            version: '2.0.0',
+            publishDate: daysAgo(days),
+            isPrerelease: false,
+            registryUrl: 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
+        },
+    ];
+}
+
 function testTeamId(dependencyName: string): string | undefined {
     if (dependencyName.includes('unknown-team')) return undefined;
     return 'linear-team-123';
@@ -260,6 +277,95 @@ describe('reconcileIssues', () => {
         const result = await reconcileIssues(deps, store, defaultConfig, testGetLinearIssueSpec);
         expect(result.updated).toBe(1);
         expect(result.created).toBe(0);
+    });
+
+    describe('due dates', () => {
+        const mockState = { type: 'unstarted', name: 'Todo' };
+
+        function mockExistingIssue(dueDate: string | undefined) {
+            mockClient.issues.mockResolvedValue({
+                nodes: [
+                    {
+                        id: 'issue-1',
+                        identifier: 'TEST-50',
+                        title: '[Dependicus] Update test-pkg from 1.0.0 to 2.0.0',
+                        dueDate,
+                        updatedAt: new Date('2024-01-01'),
+                        state: Promise.resolve(mockState),
+                    },
+                ],
+                pageInfo: { hasNextPage: false, endCursor: undefined },
+            });
+        }
+
+        it('sets a due date that is still upcoming', async () => {
+            const v = makeVersion();
+            populateFacts(store, 'test-pkg', v, { versionsBetween: majorPublishedDaysAgo(10) });
+            const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
+
+            await reconcileIssues(
+                deps,
+                store,
+                { ...defaultConfig, dryRun: false, cooldownDays: 0 },
+                testGetLinearIssueSpec,
+            );
+
+            const createArg = mockClient.createIssue.mock.calls[0]![0];
+            expect(createArg.dueDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        });
+
+        it('creates issues without a due date once the deadline has passed', async () => {
+            const v = makeVersion();
+            // The 360-day major threshold ran out long ago for this dependency
+            populateFacts(store, 'test-pkg', v, { versionsBetween: majorPublishedDaysAgo(800) });
+            const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
+
+            await reconcileIssues(
+                deps,
+                store,
+                { ...defaultConfig, dryRun: false },
+                testGetLinearIssueSpec,
+            );
+
+            const createArg = mockClient.createIssue.mock.calls[0]![0];
+            expect(createArg.dueDate).toBeUndefined();
+        });
+
+        it('leaves the due date an existing issue already has in place', async () => {
+            mockExistingIssue('2025-06-01');
+
+            const v = makeVersion();
+            populateFacts(store, 'test-pkg', v, { versionsBetween: majorPublishedDaysAgo(800) });
+            const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
+
+            await reconcileIssues(
+                deps,
+                store,
+                { ...defaultConfig, dryRun: false },
+                testGetLinearIssueSpec,
+            );
+
+            const [, updateArg] = mockClient.updateIssue.mock.calls[0]!;
+            expect(updateArg.dueDate).toBe('2025-06-01');
+        });
+
+        it('does not add a past due date to an existing issue without one', async () => {
+            mockExistingIssue(undefined);
+
+            const v = makeVersion();
+            populateFacts(store, 'test-pkg', v, { versionsBetween: majorPublishedDaysAgo(800) });
+            const deps: DirectDependency[] = [makeDep('test-pkg', [v])];
+
+            await reconcileIssues(
+                deps,
+                store,
+                { ...defaultConfig, dryRun: false },
+                testGetLinearIssueSpec,
+            );
+
+            const [, updateArg] = mockClient.updateIssue.mock.calls[0]!;
+            expect(updateArg.dueDate).toBeNull();
+        });
     });
 
     it('closes issues for packages that are now compliant', async () => {

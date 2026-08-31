@@ -53,15 +53,31 @@ function makeVersion(overrides: Partial<DependencyVersion> = {}): DependencyVers
     };
 }
 
-function makeStore(dependencyName: string = 'test-pkg', version: string = '1.0.0'): FactStore {
+/** ISO date (YYYY-MM-DD) for a day in the past, relative to when the test runs. */
+function daysAgo(days: number): string {
+    return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]!;
+}
+
+/** Versions between 1.0.0 and 2.0.0 where the major update landed `days` ago. */
+function majorPublishedDaysAgo(days: number): PackageVersionInfo[] {
+    return [
+        {
+            version: '2.0.0',
+            publishDate: daysAgo(days),
+            isPrerelease: false,
+            registryUrl: 'https://www.npmjs.com/package/test-pkg/v/2.0.0',
+        },
+    ];
+}
+
+function makeStore(
+    dependencyName: string = 'test-pkg',
+    version: string = '1.0.0',
+    versionsBetween: PackageVersionInfo[] = defaultVersionsBetween,
+): FactStore {
     const root = new RootFactStore();
     const scoped = root.scoped('npm');
-    scoped.setVersionFact(
-        dependencyName,
-        version,
-        FactKeys.VERSIONS_BETWEEN,
-        defaultVersionsBetween,
-    );
+    scoped.setVersionFact(dependencyName, version, FactKeys.VERSIONS_BETWEEN, versionsBetween);
     scoped.setVersionFact(dependencyName, version, FactKeys.DESCRIPTION, 'A test package');
     return root;
 }
@@ -296,7 +312,7 @@ describe('reconcileGitHubIssues', () => {
         const deps: DirectDependency[] = [
             { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
         ];
-        const store = makeStore();
+        const store = makeStore('test-pkg', '1.0.0', majorPublishedDaysAgo(10));
 
         const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
             makeSpec({
@@ -309,6 +325,57 @@ describe('reconcileGitHubIssues', () => {
         expect(result.created).toBe(1);
         const createCall = mockOctokit.issues.create.mock.calls[0]![0];
         expect(createCall.title).toContain('(due ');
+    });
+
+    it('omits the due date from the title when it has already passed', async () => {
+        setupMocks();
+
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
+        // Published well over the 360-day threshold ago, so the due date has passed
+        const store = makeStore('test-pkg', '1.0.0', majorPublishedDaysAgo(800));
+
+        const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({
+                policy: { type: 'dueDate' },
+                daysOverdue: 440,
+                thresholdDays: 360,
+            }),
+        );
+
+        expect(result.created).toBe(1);
+        const createCall = mockOctokit.issues.create.mock.calls[0]![0];
+        expect(createCall.title).not.toContain('(due ');
+        expect(createCall.body).not.toContain('**Due date:**');
+    });
+
+    it('keeps the due date an existing issue already has after it passes', async () => {
+        setupMocks([
+            {
+                number: 42,
+                title: '[Dependicus] [npm] Update test-pkg from 1.0.0 to 2.0.0 (due 2024-05-06)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+        ]);
+
+        const deps: DirectDependency[] = [
+            { name: 'test-pkg', ecosystem: 'npm', versions: [makeVersion()] },
+        ];
+        const store = makeStore('test-pkg', '1.0.0', majorPublishedDaysAgo(800));
+
+        const result = await reconcileGitHubIssues(deps, store, baseConfig, () =>
+            makeSpec({
+                policy: { type: 'dueDate' },
+                daysOverdue: 440,
+                thresholdDays: 360,
+            }),
+        );
+
+        expect(result.created).toBe(0);
+        const updateCall = mockOctokit.issues.update.mock.calls[0]![0];
+        expect(updateCall.title).toContain('(due 2024-05-06)');
+        expect(updateCall.body).toContain('**Due date:** 2024-05-06');
     });
 
     it('includes assignees when assignment is assign type', async () => {
