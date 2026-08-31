@@ -12,6 +12,7 @@ import {
     buildGroupTicketTitle,
     findFirstVersionOfType,
     calculateDueDate,
+    isDueDateInPast,
     isWithinCooldown,
     findLatestWithinMajor,
     isWithinNotificationRateLimit,
@@ -448,6 +449,26 @@ describe('calculateDueDate', () => {
 
         expect(dueDate.getFullYear()).toBe(2024);
         expect(dueDate.getMonth()).toBe(11); // December
+    });
+});
+
+describe('isDueDateInPast', () => {
+    const now = new Date('2026-08-31T12:00:00Z');
+
+    it('returns true for a due date before today', () => {
+        expect(isDueDateInPast(new Date('2026-08-30'), now)).toBe(true);
+    });
+
+    it('returns false for a due date later today', () => {
+        expect(isDueDateInPast(new Date('2026-08-31T23:00:00Z'), now)).toBe(false);
+    });
+
+    it('returns false for a due date earlier today', () => {
+        expect(isDueDateInPast(new Date('2026-08-31T00:00:00Z'), now)).toBe(false);
+    });
+
+    it('returns false for a future due date', () => {
+        expect(isDueDateInPast(new Date('2026-09-01'), now)).toBe(false);
     });
 });
 

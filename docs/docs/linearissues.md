@@ -61,6 +61,12 @@ void dependicusCli({
 }).run(process.argv);
 ```
 
+## Due dates
+
+Issues created from a `dueDate` policy get their Linear due date from the SLA threshold: the date the required version was published plus the policy's `thresholdDays`.
+
+A due date is only set when it is still upcoming. If a dependency already blew through its threshold before an issue existed, the issue is created without a due date rather than being born overdue — the description still reports how many days overdue the dependency is. A due date already set on an issue is kept once it passes, so deadlines set on earlier runs stay visible.
+
 ## CLI flags
 
 The `make-linear-issues` command accepts these flags in addition to `--dry-run`, `--json-file`, and `--linear-team-id`:

@@ -71,6 +71,8 @@ dependicus make-github-issues --cooldown-days 5 --rate-limit-days 14 --no-new-is
 
 Since GitHub Issues have no native due date field, the due date is appended to the issue title: `Update react 18.2.0 → 19.0.0 (due 2025-03-15)`. The due date also appears in the issue body.
 
+A due date is only added when it is still upcoming. If a dependency already blew through its threshold before an issue existed, the issue is filed without a due date rather than being born overdue — the body still reports how many days overdue the dependency is. A due date already present on an issue is kept once it passes, so deadlines set on earlier runs stay visible.
+
 ## Token resolution
 
 The `make-github-issues` command looks for `GITHUB_TOKEN` in the environment first. If not set, it falls back to `gh auth token` (the GitHub CLI). This means local development works without exporting a token if you've already run `gh auth login`.
