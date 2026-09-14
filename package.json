@@ -38,6 +38,7 @@
     "scripts": {
         "dependicus": "node dist/bin.mjs",
         "build": "node scripts/build-assets.mjs && tsdown",
+        "prepare": "node scripts/build-assets.mjs && tsdown",
         "prepack": "pnpm run build",
         "clean": "rm -rf dist",
         "test": "vitest run",
