@@ -12,6 +12,7 @@
 
 ### Fixed
 
+- The dashboard no longer throws on load, which could leave a provider's table blank. Switching to a tab redrew its table before the table had finished building, which raised `Cannot read properties of null (reading 'offsetWidth')` and aborted the rest of the navigation, so the URL hash was never updated either. Tables are now redrawn once they report themselves ready.
 - Fix version numbers without `.` failing to match open tickets, resulting in duplicates
 
 ### Removed
