@@ -12,6 +12,12 @@ function init() {
     // Store table instances keyed by tab id
     const tables = new Map<string, TabulatorInstance>();
 
+    // Tabulator builds a table asynchronously and only reports readiness by
+    // firing tableBuilt. Tabs get shown immediately after the tables are
+    // constructed, and redrawing one that hasn't built yet throws, so keep
+    // track of which are ready.
+    const builtTabs = new Set<string>();
+
     // Navigation state
     let activeProvider = data.providers[0]?.name ?? '';
     let activeTabType: 'deps' | 'dups' = 'deps';
@@ -34,7 +40,9 @@ function init() {
         if (wrapper) {
             wrapper.classList.add('active');
             const table = tables.get(tabId);
-            if (table) table.redraw();
+            // A table that hasn't built yet lays itself out when it does,
+            // and the tableBuilt handler redraws it if it's still on screen.
+            if (table && builtTabs.has(tabId)) table.redraw();
         }
     }
 
@@ -112,6 +120,7 @@ function init() {
             table.destroy();
         }
         tables.clear();
+        builtTabs.clear();
 
         const responsiveLayout: 'collapse' | false = responsive ? 'collapse' : false;
 
@@ -127,6 +136,14 @@ function init() {
             }
 
             const table = new Tabulator(`#table-${tab.id}`, config);
+            table.on('tableBuilt', () => {
+                builtTabs.add(tab.id);
+                // A table that finished building after its tab was already on
+                // screen needs a redraw to size its columns to the container.
+                if (getTabId(activeProvider, activeTabType) === tab.id) {
+                    table.redraw();
+                }
+            });
             tables.set(tab.id, table);
         }
 
