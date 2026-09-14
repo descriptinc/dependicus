@@ -6,6 +6,8 @@
 
 ### Added
 
+- Dependicus can be installed straight from a git URL, not just from the registry. A `prepare` script builds `dist/` after the clone, so `pnpm add github:descriptinc/dependicus` (or the npm, yarn, bun or aube equivalent) gives you a working `dependicus` command. Useful for trying an unreleased fix.
+
 ### Changed
 
 - `searchDependicusIssues` (in `@dependicus/github-issues`) now treats draft pull requests as not yet open for review and excludes them from results, while ready-for-review pull requests are returned alongside regular issues. Each returned entry carries an `isPullRequest` boolean so notification bots can count open Dependicus items accurately — drafts no longer pad the total — and the reconciler can avoid mutating pull requests. Anything explicitly flagged as a draft (PR or otherwise) is still skipped defensively.
