@@ -6,7 +6,10 @@
 
 ### Added
 
-- Dependicus can be installed straight from a git URL, not just from the registry. A `prepare` script builds `dist/` after the clone, so `pnpm add github:descriptinc/dependicus` (or the npm, yarn, bun or aube equivalent) gives you a working `dependicus` command. Useful for trying an unreleased fix.
+- Dependicus can be installed from a git URL, not just from the registry, which is useful for trying a fix that isn't released yet.
+    - Dependicus now builds itself from the clone, so `npm install github:descriptinc/dependicus` gives you a working `dependicus` command instead of an empty one.
+    - pnpm and yarn refuse to run a git dependency's build script until you list the package as trusted. The README has the line of config each one wants.
+    - Bun and aube can't install Dependicus from git. Bun doesn't install a git dependency's devDependencies, so the build has nothing to run with, and aube doesn't accept git specifiers.
 
 ### Changed
 
