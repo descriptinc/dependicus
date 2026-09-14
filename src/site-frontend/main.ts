@@ -42,7 +42,10 @@ function init() {
             const table = tables.get(tabId);
             // A table that hasn't built yet lays itself out when it does,
             // and the tableBuilt handler redraws it if it's still on screen.
-            if (table && builtTabs.has(tabId)) table.redraw();
+            // The redraw is forced because a table that built while its tab
+            // was hidden measured a zero-height container and rendered no
+            // rows; only a forced redraw re-renders them.
+            if (table && builtTabs.has(tabId)) table.redraw(true);
         }
     }
 
@@ -141,7 +144,7 @@ function init() {
                 // A table that finished building after its tab was already on
                 // screen needs a redraw to size its columns to the container.
                 if (getTabId(activeProvider, activeTabType) === tab.id) {
-                    table.redraw();
+                    table.redraw(true);
                 }
             });
             tables.set(tab.id, table);
