@@ -28,9 +28,7 @@ Our workspace packages use `workspace:*` as the canonical specifier for inter-pa
 
 This is the correct specifier for pnpm, bun, yarn, and aube. For npm, `scripts/switch-pm.sh` and CI both run a sed preprocessing step that rewrites `"workspace:*"` to `"*"` in all `packages/*/package.json` files before `npm install` or `npm ci`. The non-npm switch commands run a reverse transformation to restore `"workspace:*"` in case the previous session was npm. This keeps the committed source of truth as `workspace:*` while maintaining npm compatibility at install time.
 
-npm also has the side effect of overwriting `yarn.lock` with a v1-format lockfile during install. The switch script copies the real lockfile aside first and puts it back afterward.
-
-That restore matters more than it looks. `update-all-lockfiles` runs npm before yarn, and yarn treats a v1 `yarn.lock` as a foreign lockfile to import rather than its own pins, so it re-resolves every version range against the registry. Without the restore, `yarn.lock` picks up whatever was published upstream since the last run, and the CI check that regenerates lockfiles and diffs them goes red on every branch with nobody having touched a dependency.
+npm also has the side effect of overwriting `yarn.lock` with a v1-format lockfile during install. `update-all-lockfiles` runs npm before yarn, and yarn imports a v1 `yarn.lock` instead of reading it as its own, so leaving npm's copy in place makes yarn re-resolve every version range against the registry. `yarn.lock` then picks up anything published upstream since the last run, and the CI step that regenerates lockfiles and diffs them fails on branches that never touched a dependency. The switch script copies `yarn.lock` aside before `npm install` and puts it back afterward.
 
 ## Workspace declaration format
 
