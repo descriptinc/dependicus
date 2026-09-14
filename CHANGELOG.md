@@ -12,6 +12,10 @@
 
 ### Fixed
 
+- Deprecation detection now works on pnpm 11 and pnpm 12, not just pnpm 10.
+    - pnpm 12 removed the `pnpm install --resolution-only` flag Dependicus used to find deprecated packages, so `dependicus update` failed outright against any pnpm 12 workspace and produced no output at all.
+    - pnpm 11 and pnpm 12 skip re-resolving when the lockfile and `node_modules` already agree, which left every package looking undeprecated. Dependicus now asks pnpm to resolve anyway.
+    - Deprecation warnings are read from pnpm's machine-readable reporter rather than scraped from console text, and `pnpm why` output is understood in both its old and new shapes, so the deprecated flag and the list of deprecated transitive dependencies are correct on every supported pnpm version.
 - Fix version numbers without `.` failing to match open tickets, resulting in duplicates
 
 ### Removed

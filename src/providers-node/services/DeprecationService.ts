@@ -1,4 +1,4 @@
-import { execFile, execSync } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -11,6 +11,52 @@ import {
 } from '../../core/index';
 
 const execFileAsync = promisify(execFile);
+
+/**
+ * Arguments to the pnpm install that surfaces deprecation warnings. pnpm 10,
+ * 11 and 12 all accept them; pnpm 12 dropped the older `--resolution-only`.
+ *
+ * `--lockfile-only` resolves the dependency graph without downloading packages
+ * or writing `node_modules`. `--no-prefer-frozen-lockfile` and
+ * `optimistic-repeat-install=false` together stop pnpm from short-circuiting
+ * when the lockfile and `node_modules` are already in sync, which it otherwise
+ * does without fetching the registry metadata the warnings come from.
+ *
+ * `--reporter=ndjson` turns the warnings into structured `pnpm:deprecation`
+ * events instead of human-readable text whose format shifts between releases.
+ */
+const RESOLUTION_ARGS = [
+    'install',
+    '--lockfile-only',
+    '--no-frozen-lockfile',
+    '--no-prefer-frozen-lockfile',
+    '--config.optimistic-repeat-install=false',
+    '--reporter=ndjson',
+];
+
+/** A `pnpm:deprecation` event from pnpm's ndjson reporter. */
+interface PnpmDeprecationEvent {
+    name?: string;
+    pkgName?: string;
+    pkgVersion?: string;
+    pkgId?: string;
+}
+
+/**
+ * A node in the dependents tree that pnpm 12's `why --json` returns. Entries
+ * carrying a `depField` are workspace projects rather than packages.
+ */
+interface PnpmWhyDependent {
+    name?: string;
+    depField?: string;
+    dependents?: PnpmWhyDependent[];
+}
+
+/** A top-level entry in `pnpm why --json` output, in either supported shape. */
+interface PnpmWhyEntry extends PnpmWhyDependent {
+    dependencies?: Record<string, unknown>;
+    devDependencies?: Record<string, unknown>;
+}
 
 export class DeprecationService {
     private deprecatedPackages: Set<string> | undefined = undefined;
@@ -34,14 +80,15 @@ export class DeprecationService {
             return this.deprecatedPackages;
         }
 
-        const cacheKey = 'pnpm-install-resolution';
+        const cacheKey = 'pnpm-install-deprecations';
+        const command = `pnpm ${RESOLUTION_ARGS.join(' ')}`;
         let output: string;
 
         if (await this.cacheService.isCacheValid(cacheKey, this.lockfilePath)) {
-            process.stderr.write('Using cached pnpm install --resolution-only output\n');
+            process.stderr.write('Using cached pnpm deprecation output\n');
             output = await this.cacheService.readCache(cacheKey);
         } else {
-            process.stderr.write('Running: pnpm install --resolution-only --no-frozen-lockfile\n');
+            process.stderr.write(`Running: ${command}\n`);
 
             // Backup lockfile before modifying
             const lockfileBackup = `${this.lockfilePath}.bak`;
@@ -50,20 +97,28 @@ export class DeprecationService {
             }
 
             try {
-                output = execSync('pnpm install --resolution-only --no-frozen-lockfile', {
+                const result = spawnSync('pnpm', RESOLUTION_ARGS, {
                     encoding: 'utf-8',
-                    maxBuffer: BUFFER_SIZES.SMALL,
-                    cwd: join(this.lockfilePath, '..'), // Run in repo root
-                    stdio: ['pipe', 'pipe', 'pipe'], // Capture stderr
+                    // The ndjson reporter emits a line per resolved package, so
+                    // this runs to tens of megabytes on a large monorepo.
+                    maxBuffer: BUFFER_SIZES.LARGE,
+                    cwd: this.repoRoot,
                 });
-                await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
+
+                if (result.error) {
+                    throw result.error;
+                }
+
+                // pnpm 10 and 11 write the ndjson stream to stdout, pnpm 12
+                // writes it to stderr, so read both.
+                output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+
+                if (result.status !== 0) {
+                    const failure = (result.stderr || result.stdout || '').trim().slice(-2000);
+                    throw new Error(`${command} exited with code ${result.status}:\n${failure}`);
+                }
             } catch (error) {
-                const err = error as Error & { stderr?: Buffer };
-                process.stderr.write(
-                    `Error running pnpm install --resolution-only --no-frozen-lockfile:\n${
-                        err.stderr?.toString() || err.message
-                    }\n`,
-                );
+                process.stderr.write(`Error running ${command}:\n${(error as Error).message}\n`);
                 throw error;
             } finally {
                 // Restore lockfile from backup (rename is atomic on the same filesystem)
@@ -71,6 +126,10 @@ export class DeprecationService {
                     renameSync(lockfileBackup, this.lockfilePath);
                 }
             }
+
+            // Cache after restoring the lockfile so the stored hash describes
+            // the lockfile the next run will see, not the one pnpm just wrote.
+            await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
         }
 
         this.deprecatedPackages = this.parseDeprecatedPackages(output);
@@ -81,19 +140,67 @@ export class DeprecationService {
      * Parse pnpm install output to extract deprecated packages.
      */
     private parseDeprecatedPackages(output: string): Set<string> {
+        const fromEvents = this.parseDeprecationEvents(output);
+        if (fromEvents.size > 0) {
+            return fromEvents;
+        }
+        // The ndjson reporter can be overridden by pnpm config, so fall back to
+        // reading the warnings the human-readable reporter prints.
+        return this.parseDeprecationWarnings(output);
+    }
+
+    /**
+     * Extract deprecated packages from `pnpm:deprecation` ndjson reporter events.
+     */
+    private parseDeprecationEvents(output: string): Set<string> {
+        const deprecated = new Set<string>();
+
+        for (const line of output.split('\n')) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('{') || !trimmed.includes('pnpm:deprecation')) {
+                continue;
+            }
+
+            let event: PnpmDeprecationEvent;
+            try {
+                event = JSON.parse(trimmed) as PnpmDeprecationEvent;
+            } catch {
+                continue;
+            }
+
+            if (event.name !== 'pnpm:deprecation') {
+                continue;
+            }
+            if (event.pkgName && event.pkgVersion) {
+                deprecated.add(`${event.pkgName}@${event.pkgVersion}`);
+            } else if (event.pkgId) {
+                deprecated.add(event.pkgId);
+            }
+        }
+
+        return deprecated;
+    }
+
+    /**
+     * Extract deprecated packages from pnpm's human-readable install warnings.
+     * pnpm 12 brackets the level ("[WARN]") where earlier versions didn't.
+     */
+    private parseDeprecationWarnings(output: string): Set<string> {
         const deprecated = new Set<string>();
         const lines = output.split('\n');
 
         for (const line of lines) {
             // Direct deprecated dependencies: "services/api                             |  WARN  deprecated elevenlabs@1.59.0"
-            const directMatch = line.match(/\|\s+WARN\s+deprecated\s+([^@\s]+@[\d.]+[^\s]*)/);
+            const directMatch = line.match(
+                /\|\s+\[?WARN\]?\s+deprecated\s+(@?[^@\s]+@[\d.]+[^\s]*)/,
+            );
             if (directMatch && directMatch[1]) {
                 deprecated.add(directMatch[1]);
             }
 
             // Transitive deprecated dependencies: " WARN  56 deprecated subdependencies found: pkg@version, ..."
             const transitiveMatch = line.match(
-                /WARN\s+\d+\s+deprecated subdependencies found:\s+(.+)/,
+                /\[?WARN\]?\s+\d+\s+deprecated subdependencies found:\s+(.+)/,
             );
             if (transitiveMatch && transitiveMatch[1]) {
                 const packages = transitiveMatch[1].split(',').map((p) => p.trim());
@@ -218,19 +325,33 @@ export class DeprecationService {
 
     /**
      * Parse pnpm -r why JSON output to extract direct dependencies.
-     * The output shows which packages have the queried package in their dependency tree.
-     * We extract the top-level dependencies from each package that reference the queried package.
+     *
+     * pnpm 10 and 11 return one entry per workspace project, each holding a
+     * dependency tree pruned to the paths that reach the queried package, so
+     * the top-level keys are the direct dependencies we want.
+     *
+     * pnpm 12 returns one entry per matched package with a `dependents` tree
+     * pointing back up toward the workspace projects, so the direct dependency
+     * is whichever node a workspace project depends on.
      */
     private parsePnpmWhyOutput(output: string): string[] {
         try {
-            const packages = JSON.parse(output);
+            const entries = JSON.parse(output) as PnpmWhyEntry[];
+            if (!Array.isArray(entries)) {
+                return [];
+            }
             const directDeps = new Set<string>();
 
-            for (const pkg of packages) {
+            for (const entry of entries) {
+                if (Array.isArray(entry?.dependents)) {
+                    this.collectDirectDependents(entry, directDeps);
+                    continue;
+                }
+
                 // Look at direct dependencies and devDependencies
                 const allDeps = {
-                    ...pkg.dependencies,
-                    ...pkg.devDependencies,
+                    ...entry?.dependencies,
+                    ...entry?.devDependencies,
                 };
 
                 // Extract all top-level dependency names
@@ -243,6 +364,23 @@ export class DeprecationService {
         } catch {
             // Invalid JSON or empty output
             return [];
+        }
+    }
+
+    /**
+     * Walk a pnpm 12 dependents tree, collecting the name of every node that a
+     * workspace project depends on directly.
+     */
+    private collectDirectDependents(node: PnpmWhyDependent, directDeps: Set<string>): void {
+        for (const dependent of node.dependents ?? []) {
+            // A dependent with a `depField` is a workspace project listing this
+            // node in its manifest, which makes this node a direct dependency.
+            if (dependent.depField && node.name) {
+                directDeps.add(node.name);
+            }
+            if (dependent.dependents?.length) {
+                this.collectDirectDependents(dependent, directDeps);
+            }
         }
     }
 
