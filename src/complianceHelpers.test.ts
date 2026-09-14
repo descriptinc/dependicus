@@ -35,8 +35,7 @@ describe('getComplianceStatus', () => {
 
         it('returns compliant when update is within threshold', () => {
             // Published 30 days ago, threshold is 360 days
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
             const versions = [makeVersion('2.0.0', thirtyDaysAgo.toISOString())];
 
             const result = getComplianceStatus('1.0.0', '2.0.0', versions, 360);
@@ -70,8 +69,7 @@ describe('getComplianceStatus', () => {
 
         it('returns non-compliant when minor update is overdue', () => {
             // Published 200 days ago, threshold is 180 days
-            const publishDate = new Date();
-            publishDate.setDate(publishDate.getDate() - 200);
+            const publishDate = new Date(Date.now() - 200 * 24 * 60 * 60 * 1000);
             const versions = [makeVersion('1.1.0', publishDate.toISOString())];
 
             const result = getComplianceStatus('1.0.0', '1.1.0', versions, 180);
