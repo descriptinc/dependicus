@@ -139,7 +139,7 @@ export interface TabulatorConfig {
 export interface TabulatorInstance {
     on(event: 'dataFiltered', callback: (filters: unknown, rows: RowData[]) => void): void;
     on(event: 'tableBuilt', callback: () => void): void;
-    redraw(): void;
+    redraw(force?: boolean): void;
     destroy(): void;
     setHeaderFilterValue(field: string, value: string): void;
 }
