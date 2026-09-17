@@ -339,6 +339,64 @@ describe('HtmlWriter', () => {
             },
         };
 
+        it('files a dependency under every value getValue returns', () => {
+            const multi: GroupingConfig = {
+                key: 'team',
+                label: 'Teams',
+                slugPrefix: 'teams',
+                getValue: () => ['Growth', 'Representation'],
+            };
+            const writer = new HtmlWriter({ groupings: [multi] });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            const { details } = writer.toGroupingPages(
+                [dep],
+                multi,
+                store.scoped(dep.ecosystem),
+                'pnpm/',
+            );
+
+            expect(details.map((d) => d.filename).sort()).toEqual([
+                'pnpm/teams/Growth.html',
+                'pnpm/teams/Representation.html',
+            ]);
+        });
+
+        it('skips a grouping whose ecosystems exclude the provider', () => {
+            const npmOnly: GroupingConfig = {
+                key: 'team',
+                label: 'Teams',
+                slugPrefix: 'teams',
+                ecosystems: ['npm'],
+                getValue: () => 'Growth',
+            };
+            const writer = new HtmlWriter({ groupings: [npmOnly] });
+            const goDep = makeMockDependency({ ecosystem: 'gomod' });
+            const store = makeMockStore([goDep]);
+            const pages = writer.toAllGroupingPages(
+                [makeProvider([goDep], { name: 'go', ecosystem: 'gomod' })],
+                store,
+            );
+
+            expect(pages).toEqual([]);
+        });
+
+        it('keeps a grouping for an ecosystem it lists', () => {
+            const npmOnly: GroupingConfig = {
+                key: 'team',
+                label: 'Teams',
+                slugPrefix: 'teams',
+                ecosystems: ['npm'],
+                getValue: () => 'Growth',
+            };
+            const writer = new HtmlWriter({ groupings: [npmOnly] });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            const pages = writer.toAllGroupingPages([makeProvider([dep])], store);
+
+            expect(pages.map((pg) => pg.filename)).toContain('pnpm/teams/Growth.html');
+        });
+
         it('toAllGroupingPages returns empty array when no groupings configured', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
