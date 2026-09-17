@@ -9,7 +9,22 @@ if [ "$pm" = "pnpm" ]; then
 elif [ "$pm" = "bun" ]; then
     mise exec -- bun install
 elif [ "$pm" = "npm" ]; then
-    npm install
+    # npm rewrites yarn.lock in the old v1 format as a side effect of
+    # installing. Left in place, the next `yarn install` treats that as a
+    # lockfile to import and re-resolves every range against the registry,
+    # so yarn.lock churns whenever anything upstream publishes. Put the
+    # real lockfile back so yarn keeps resolving from its own pins.
+    if [ -f yarn.lock ]; then
+        yarn_lock_backup=$(mktemp)
+        cp yarn.lock "$yarn_lock_backup"
+        trap 'cp "$yarn_lock_backup" yarn.lock; rm -f "$yarn_lock_backup"' EXIT
+        npm install
+        cp "$yarn_lock_backup" yarn.lock
+        rm -f "$yarn_lock_backup"
+        trap - EXIT
+    else
+        npm install
+    fi
 elif [ "$pm" = "yarn" ]; then
     # In CI, yarn auto-enables immutable installs and hardened mode (on
     # public PRs), both of which prevent lockfile changes. Disable both
