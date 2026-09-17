@@ -23,6 +23,11 @@
     - Deprecation warnings are read from pnpm's machine-readable reporter rather than scraped from console text, and `pnpm why` output is understood in both its old and new shapes, so the deprecated flag and the list of deprecated transitive dependencies are correct on every supported pnpm version.
 - The dashboard no longer throws `Cannot read properties of null (reading 'offsetWidth')` on load. Switching to a tab redrew its table before the table had finished building, and the error aborted the rest of the navigation, so the URL hash was never updated either. Tables are now redrawn once they report themselves ready.
 - Fix version numbers without `.` failing to match open tickets, resulting in duplicates
+- Installing Dependicus from git now works on pnpm 12.
+    - pnpm 12 fails any install that skipped a dependency's build script, and esbuild, a transitive dependency of Dependicus, has one. This surfaced as `ERR_PNPM_PREPARE_PACKAGE`, because pnpm builds a git dependency by running `prepare` in a nested install you cannot configure.
+    - Dependicus now allows esbuild's build script itself, which also fixes `pnpm install` in a Dependicus checkout.
+    - That allowlist lives in a `pnpm-workspace.yaml`, which pnpm 12 also reads its config from. The file declares the single package explicitly, because `aube -r list` errors without a `packages` key.
+- The README's pnpm instructions for installing from git were wrong on pnpm 12, which wants an `allowBuilds` entry keyed on the resolved package URL instead of the `onlyBuiltDependencies` name older versions accepted.
 
 ### Removed
 
