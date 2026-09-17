@@ -62,7 +62,16 @@ npm install github:descriptinc/dependicus
 
 Package managers don't run a git dependency's build script until you tell them the package is trusted, so pnpm and yarn need a line of config first.
 
-In `pnpm-workspace.yaml`:
+In `pnpm-workspace.yaml`, on pnpm 12:
+
+```yaml
+allowBuilds:
+    'dependicus@https://codeload.github.com/descriptinc/dependicus/tar.gz/<commit>': true
+```
+
+pnpm 12 keys that allowlist on the resolved package rather than the package name, so the entry carries the commit and changes when you move the pin. A bare `dependicus` is rejected; pnpm's error prints the key it wants.
+
+Older pnpm accepted the name on its own:
 
 ```yaml
 onlyBuiltDependencies:
