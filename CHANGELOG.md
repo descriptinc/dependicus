@@ -28,6 +28,11 @@
 - `dependicus update` no longer reuses a dependency listing from an install that covered only part of a pnpm workspace.
     - The `pnpm -r list` output is cached against the lockfile hash, but the command reports what is in `node_modules`. A run whose install skipped part of the workspace, which is what `pnpm install --filter ...` on a fresh checkout gives you, cached a listing with those packages' dependencies missing. Every later run on the same lockfile was handed it back, and the dashboard silently left out most of the workspace.
     - The listing now invalidates on `node_modules/.modules.yaml` too, which is pnpm's own record of the install, so it is discarded when the installed set changes. `CacheService.isCacheValid` and `writeCache` accept several invalidation paths for this. A single path hashes exactly as before, so existing caches survive the upgrade.
+- Installing Dependicus from git now works on pnpm 12.
+    - pnpm 12 fails any install that skipped a dependency's build script, and esbuild, a transitive dependency of Dependicus, has one. This surfaced as `ERR_PNPM_PREPARE_PACKAGE`, because pnpm builds a git dependency by running `prepare` in a nested install you cannot configure.
+    - Dependicus now allows esbuild's build script itself, which also fixes `pnpm install` in a Dependicus checkout.
+    - That allowlist lives in a `pnpm-workspace.yaml`, which pnpm 12 also reads its config from. The file declares the single package explicitly, because `aube -r list` errors without a `packages` key.
+- The README's pnpm instructions for installing from git were wrong on pnpm 12, which wants an `allowBuilds` entry keyed on the resolved package URL instead of the `onlyBuiltDependencies` name older versions accepted.
 
 ### Removed
 

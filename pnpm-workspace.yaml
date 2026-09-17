@@ -1,0 +1,19 @@
+# Dependicus is a single package, but pnpm 12 and the pnpm-compatible package
+# managers read their config from this file, so it has to exist and has to say
+# what the workspace contains. `aube -r list` errors outright without the
+# `packages` key.
+#
+# pnpm 12 fails any install that skipped a dependency's build script
+# (ERR_PNPM_IGNORED_BUILDS), and esbuild, a transitive dependency, has one, so
+# `pnpm install` stops here without the allowlist below. It stops for anyone
+# installing Dependicus from git too: pnpm runs `prepare` in a nested install
+# they cannot configure, which surfaces on their side as
+# ERR_PNPM_PREPARE_PACKAGE.
+#
+# esbuild isn't on the build path, since tsdown bundles with rolldown. Allowing
+# its postinstall only lets the install finish.
+packages:
+    - '.'
+
+allowBuilds:
+    esbuild: true
