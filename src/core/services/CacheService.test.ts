@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { CacheService } from './CacheService';
@@ -18,6 +18,47 @@ describe('CacheService', () => {
     });
 
     describe('writeCache / readCache / isCacheValid', () => {
+        it('invalidates cache when any of several inputs changes', async () => {
+            const lockfile = join(tempDir, 'lockfile.yaml');
+            const modules = join(tempDir, 'modules.yaml');
+            writeFileSync(lockfile, 'lockfile-content');
+            writeFileSync(modules, 'installed-everything');
+
+            await cacheService.writeCache('multi', 'listing', [lockfile, modules]);
+            expect(await cacheService.isCacheValid('multi', [lockfile, modules])).toBe(true);
+
+            // The lockfile is untouched, but the install behind it is not the one
+            // that produced the cached listing.
+            writeFileSync(modules, 'installed-one-package');
+            expect(await cacheService.isCacheValid('multi', [lockfile, modules])).toBe(false);
+        });
+
+        it('treats an absent input as its own state rather than throwing', async () => {
+            const lockfile = join(tempDir, 'lockfile.yaml');
+            const modules = join(tempDir, 'modules.yaml');
+            writeFileSync(lockfile, 'lockfile-content');
+
+            // Nothing installed yet, so the second input does not exist.
+            await cacheService.writeCache('absent', 'listing', [lockfile, modules]);
+            expect(await cacheService.isCacheValid('absent', [lockfile, modules])).toBe(true);
+
+            writeFileSync(modules, 'installed-everything');
+            expect(await cacheService.isCacheValid('absent', [lockfile, modules])).toBe(false);
+
+            unlinkSync(modules);
+            expect(await cacheService.isCacheValid('absent', [lockfile, modules])).toBe(true);
+        });
+
+        it('hashes a lone path the same as before, so existing caches survive', async () => {
+            const lockfile = join(tempDir, 'lockfile.yaml');
+            writeFileSync(lockfile, 'lockfile-content');
+
+            await cacheService.writeCache('single', 'listing', lockfile);
+            // A one-element list is a different input set, not the same as the bare path.
+            expect(await cacheService.isCacheValid('single', lockfile)).toBe(true);
+            expect(await cacheService.isCacheValid('single', [lockfile])).toBe(false);
+        });
+
         it('writes and reads cache data', async () => {
             const invalidationFile = join(tempDir, 'lockfile.yaml');
             writeFileSync(invalidationFile, 'lockfile-content');

@@ -4,6 +4,9 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { sanitizeCacheKey } from '../utils/formatters';
 
+/** One file, or several, whose contents decide whether a cache entry is still good. */
+export type InvalidationInput = string | readonly string[];
+
 /** Context passed to plugins during initialization. */
 export interface PluginContext {
     cacheService: CacheService;
@@ -33,11 +36,33 @@ export class CacheService {
     }
 
     /**
-     * Check if cached data is valid (exists and matches current hash of the invalidation file).
-     * @param key - Cache key (e.g., 'pnpm-list')
-     * @param invalidationFile - File path whose hash determines cache validity (e.g., lockfile path)
+     * Hash every invalidation input into one value.
+     *
+     * A single path hashes to that file's content hash, unchanged, so caches
+     * written by earlier versions stay valid. A list combines each path with its
+     * content, and a file that doesn't exist contributes a marker rather than
+     * throwing, because absence is a meaningful state for some inputs (there is
+     * no node_modules before the first install).
      */
-    async isCacheValid(key: string, invalidationFile: string): Promise<boolean> {
+    private async getInvalidationHash(invalidation: InvalidationInput): Promise<string> {
+        if (typeof invalidation === 'string') {
+            return await this.getFileHash(invalidation);
+        }
+
+        const combined = createHash('sha256');
+        for (const filePath of invalidation) {
+            const fileHash = existsSync(filePath) ? await this.getFileHash(filePath) : 'absent';
+            combined.update(`${filePath}\u0000${fileHash}\u0000`);
+        }
+        return combined.digest('hex');
+    }
+
+    /**
+     * Check if cached data is valid (exists and matches the current hash of the invalidation inputs).
+     * @param key - Cache key (e.g., 'pnpm-list')
+     * @param invalidation - Path, or paths, whose contents determine cache validity (e.g., a lockfile)
+     */
+    async isCacheValid(key: string, invalidation: InvalidationInput): Promise<boolean> {
         const dataPath = join(this.cacheDir, this.cacheFileName(key));
         const hashPath = join(this.cacheDir, this.cacheHashName(key));
 
@@ -45,7 +70,7 @@ export class CacheService {
             return false;
         }
 
-        const currentHash = await this.getFileHash(invalidationFile);
+        const currentHash = await this.getInvalidationHash(invalidation);
         const cachedHash = (await readFile(hashPath, 'utf-8')).trim();
 
         return currentHash === cachedHash;
@@ -61,12 +86,12 @@ export class CacheService {
     }
 
     /**
-     * Write data to cache along with hash of the invalidation file.
+     * Write data to cache along with the hash of the invalidation inputs.
      * @param key - Cache key
      * @param data - Data to cache
-     * @param invalidationFile - File path whose hash determines cache validity
+     * @param invalidation - Path, or paths, whose contents determine cache validity
      */
-    async writeCache(key: string, data: string, invalidationFile: string): Promise<void> {
+    async writeCache(key: string, data: string, invalidation: InvalidationInput): Promise<void> {
         // Ensure cache directory exists
         if (!existsSync(this.cacheDir)) {
             await mkdir(this.cacheDir, { recursive: true });
@@ -74,7 +99,7 @@ export class CacheService {
 
         const dataPath = join(this.cacheDir, this.cacheFileName(key));
         const hashPath = join(this.cacheDir, this.cacheHashName(key));
-        const currentHash = await this.getFileHash(invalidationFile);
+        const currentHash = await this.getInvalidationHash(invalidation);
 
         await writeFile(dataPath, data, 'utf-8');
         await writeFile(hashPath, currentHash, 'utf-8');

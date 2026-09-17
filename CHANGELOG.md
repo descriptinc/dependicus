@@ -23,6 +23,9 @@
     - Deprecation warnings are read from pnpm's machine-readable reporter rather than scraped from console text, and `pnpm why` output is understood in both its old and new shapes, so the deprecated flag and the list of deprecated transitive dependencies are correct on every supported pnpm version.
 - The dashboard no longer throws `Cannot read properties of null (reading 'offsetWidth')` on load. Switching to a tab redrew its table before the table had finished building, and the error aborted the rest of the navigation, so the URL hash was never updated either. Tables are now redrawn once they report themselves ready.
 - Fix version numbers without `.` failing to match open tickets, resulting in duplicates
+- `dependicus update` no longer reuses a dependency listing from an install that covered only part of a pnpm workspace.
+    - The `pnpm -r list` output is cached against the lockfile hash, but the command reports what is in `node_modules`. A run whose install skipped part of the workspace, which is what `pnpm install --filter ...` on a fresh checkout gives you, cached a listing with those packages' dependencies missing. Every later run on the same lockfile was handed it back, and the dashboard silently left out most of the workspace.
+    - The listing now invalidates on `node_modules/.modules.yaml` too, which is pnpm's own record of the install, so it is discarded when the installed set changes. `CacheService.isCacheValid` and `writeCache` accept several invalidation paths for this. A single path hashes exactly as before, so existing caches survive the upgrade.
 
 ### Removed
 
