@@ -77,8 +77,23 @@ export class PnpmProvider implements DependencyProvider {
         const cacheKey = 'pnpm-list';
         let output: string;
 
-        if (await this.cacheService.isCacheValid(cacheKey, this.lockfilePath)) {
-            process.stderr.write('Using cached pnpm list output (lockfile unchanged)\n');
+        // `pnpm -r list` reports what is in node_modules, so the lockfile alone
+        // is the wrong thing to invalidate on: a run whose install covered only
+        // some of the workspace (`pnpm install --filter ...` on a fresh tree)
+        // writes a list with the uninstalled packages' dependencies missing, and
+        // every later run with the same lockfile is handed that list back. The
+        // dashboard then leaves out most of the workspace and nothing reports an
+        // error. node_modules/.modules.yaml is pnpm's own record of the install,
+        // so it changes when the installed set does.
+        const invalidation = [
+            this.lockfilePath,
+            join(this.rootDir, 'node_modules', '.modules.yaml'),
+        ];
+
+        if (await this.cacheService.isCacheValid(cacheKey, invalidation)) {
+            process.stderr.write(
+                'Using cached pnpm list output (lockfile and install unchanged)\n',
+            );
             output = await this.cacheService.readCache(cacheKey);
         } else {
             // `pnpm -r list` reads state from node_modules/.pnpm/. If another
@@ -115,7 +130,7 @@ export class PnpmProvider implements DependencyProvider {
                 maxBuffer: BUFFER_SIZES.SMALL,
                 cwd: this.rootDir,
             });
-            await this.cacheService.writeCache(cacheKey, output, this.lockfilePath);
+            await this.cacheService.writeCache(cacheKey, output, invalidation);
         }
 
         this.cachedPackages = JSON.parse(output) as PackageInfo[];
