@@ -6,6 +6,11 @@
 
 ### Added
 
+- Dependicus can be installed from a git URL, not just from the registry, which is useful for trying a fix that isn't released yet.
+    - Dependicus now builds itself from the clone, so `npm install github:descriptinc/dependicus` gives you a working `dependicus` command instead of an empty one.
+    - pnpm and yarn refuse to run a git dependency's build script until you list the package as trusted. The README has the line of config each one wants.
+    - Bun and aube can't install Dependicus from git. Bun doesn't install a git dependency's devDependencies, so the build has nothing to run with, and aube doesn't accept git specifiers.
+
 ### Changed
 
 - `searchDependicusIssues` (in `@dependicus/github-issues`) now treats draft pull requests as not yet open for review and excludes them from results, while ready-for-review pull requests are returned alongside regular issues. Each returned entry carries an `isPullRequest` boolean so notification bots can count open Dependicus items accurately — drafts no longer pad the total — and the reconciler can avoid mutating pull requests. Anything explicitly flagged as a draft (PR or otherwise) is still skipped defensively.

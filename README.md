@@ -52,6 +52,32 @@ pnpm dlx dependicus@latest make-github-issues \
 
 Dependicus offers extensive customization through its JavaScript API.
 
+## Installing from git
+
+To try a fix that isn't released yet, install from the repo instead of the registry. Dependicus builds itself from the clone, so you still get a working `dependicus` command.
+
+```sh
+npm install github:descriptinc/dependicus
+```
+
+Package managers don't run a git dependency's build script until you tell them the package is trusted, so pnpm and yarn need a line of config first.
+
+In `pnpm-workspace.yaml`:
+
+```yaml
+onlyBuiltDependencies:
+    - dependicus
+```
+
+In `.yarnrc.yml`:
+
+```yaml
+approvedGitRepositories:
+    - 'https://github.com/descriptinc/dependicus.git'
+```
+
+npm needs no configuration. Bun and aube can't do this at all: bun doesn't install a git dependency's devDependencies, so the build has nothing to run with, and aube doesn't accept git specifiers. Install from the registry with those two.
+
 ## Peer dependency note
 
 The Linear integration (`make-linear-issues`) depends on `@linear/sdk`, which has a transitive peer dependency on `graphql`. If your project uses `strictPeerDependencies`, you may need to add `graphql` to your own dependencies. This is only required for Linear ticket creation.
