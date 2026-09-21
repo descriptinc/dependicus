@@ -1,0 +1,812 @@
+{
+    "data": [
+        {
+            "id": "SNYK-JS-LODASH-608086",
+            "attributes": {
+                "slots": {
+                    "references": [
+                        {
+                            "url": "https://hackerone.com/reports/864701",
+                            "title": "HackerOne Report"
+                        }
+                    ],
+                    "disclosure_time": "2020-08-21T10:34:29Z",
+                    "exploit_details": {
+                        "sources": ["Snyk"],
+                        "maturity_levels": [
+                            {
+                                "type": "primary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv4"
+                            },
+                            {
+                                "type": "secondary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv3"
+                            }
+                        ]
+                    },
+                    "publication_time": "2020-08-21T12:53:03Z"
+                },
+                "title": "Prototype Pollution",
+                "problems": [
+                    {
+                        "id": "CWE-1321",
+                        "source": "CWE"
+                    }
+                ],
+                "severities": [
+                    {
+                        "type": "primary",
+                        "level": "high",
+                        "score": 7.3,
+                        "source": "Snyk",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L/E:P/RL:O/RC:C",
+                        "version": "3.1"
+                    }
+                ],
+                "coordinates": [
+                    {
+                        "remedies": [
+                            {
+                                "type": "indeterminate",
+                                "details": {
+                                    "upgrade_package": "4.17.17"
+                                },
+                                "description": "Upgrade the package version to 4.17.17 to fix this vulnerability"
+                            }
+                        ],
+                        "representations": [
+                            {
+                                "resource_path": "<4.17.17"
+                            },
+                            {
+                                "package": {
+                                    "name": "lodash",
+                                    "type": "npm",
+                                    "url": "pkg:npm/lodash@4.17.15",
+                                    "version": "4.17.15"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "effective_severity_level": "high"
+            }
+        },
+        {
+            "id": "SNYK-JS-LODASH-6139239",
+            "attributes": {
+                "slots": {
+                    "references": [
+                        {
+                            "url": "https://gist.github.com/Sampaguitas/a316bced4fdd501146b07997d1d04eb2",
+                            "title": "GitHub Gist"
+                        },
+                        {
+                            "url": "https://github.com/lodash/lodash/blob/aaa111912cb05e6f0f9f23d1eb8a41ccfcf9c2c2/lodash.zipobjectdeep/index.js%23L738",
+                            "title": "Vulnerable Code"
+                        }
+                    ],
+                    "disclosure_time": "2023-12-23T22:00:00Z",
+                    "exploit_details": {
+                        "sources": ["Snyk"],
+                        "maturity_levels": [
+                            {
+                                "type": "primary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv4"
+                            },
+                            {
+                                "type": "secondary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv3"
+                            }
+                        ]
+                    },
+                    "publication_time": "2024-04-15T13:48:35.040881Z"
+                },
+                "title": "Prototype Pollution",
+                "problems": [
+                    {
+                        "id": "CWE-1321",
+                        "source": "CWE"
+                    }
+                ],
+                "severities": [
+                    {
+                        "type": "primary",
+                        "level": "high",
+                        "score": 7.5,
+                        "source": "Snyk",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:P",
+                        "version": "3.1"
+                    }
+                ],
+                "coordinates": [
+                    {
+                        "remedies": [
+                            {
+                                "type": "indeterminate",
+                                "details": {
+                                    "upgrade_package": "4.17.17"
+                                },
+                                "description": "Upgrade the package version to 4.17.17 to fix this vulnerability"
+                            }
+                        ],
+                        "representations": [
+                            {
+                                "resource_path": "<4.17.17"
+                            },
+                            {
+                                "package": {
+                                    "name": "lodash",
+                                    "type": "npm",
+                                    "url": "pkg:npm/lodash@4.17.15",
+                                    "version": "4.17.15"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "effective_severity_level": "high"
+            }
+        },
+        {
+            "id": "SNYK-JS-LODASH-567746",
+            "attributes": {
+                "slots": {
+                    "references": [
+                        {
+                            "url": "https://github.com/lodash/lodash/commit/c84fe82760fb2d3e03a63379b297a1cc1a2fce12",
+                            "title": "GitHub Commit"
+                        },
+                        {
+                            "url": "https://github.com/lodash/lodash/pull/4759",
+                            "title": "GitHub PR"
+                        }
+                    ],
+                    "disclosure_time": "2020-04-27T22:14:18Z",
+                    "exploit_details": {
+                        "sources": ["Snyk"],
+                        "maturity_levels": [
+                            {
+                                "type": "primary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv4"
+                            },
+                            {
+                                "type": "secondary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv3"
+                            }
+                        ]
+                    },
+                    "publication_time": "2020-04-28T14:59:14Z"
+                },
+                "title": "Prototype Pollution",
+                "problems": [
+                    {
+                        "id": "1523",
+                        "source": "NSP"
+                    },
+                    {
+                        "id": "CVE-2020-8203",
+                        "source": "CVE"
+                    },
+                    {
+                        "id": "CWE-1321",
+                        "source": "CWE"
+                    },
+                    {
+                        "id": "GHSA-p6mc-m468-83gw",
+                        "source": "GHSA"
+                    }
+                ],
+                "severities": [
+                    {
+                        "type": "primary",
+                        "level": "high",
+                        "score": 8.2,
+                        "source": "Snyk",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:H/E:P/RL:U/RC:C",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "high",
+                        "score": 7.4,
+                        "source": "NVD",
+                        "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "high",
+                        "score": 7.4,
+                        "source": "Red Hat",
+                        "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+                        "version": "3.1"
+                    }
+                ],
+                "coordinates": [
+                    {
+                        "remedies": [
+                            {
+                                "type": "indeterminate",
+                                "details": {
+                                    "upgrade_package": "4.17.20"
+                                },
+                                "description": "Upgrade the package version to 4.17.20 to fix this vulnerability"
+                            }
+                        ],
+                        "representations": [
+                            {
+                                "resource_path": ">=4.1.0 <4.17.20"
+                            },
+                            {
+                                "package": {
+                                    "name": "lodash",
+                                    "type": "npm",
+                                    "url": "pkg:npm/lodash@4.17.15",
+                                    "version": "4.17.15"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "effective_severity_level": "high"
+            }
+        },
+        {
+            "id": "SNYK-JS-LODASH-15869625",
+            "attributes": {
+                "slots": {
+                    "references": [
+                        {
+                            "url": "https://github.com/lodash/lodash/security/advisories/GHSA-r5fr-rjxr-66jc",
+                            "title": "GitHub Advisory"
+                        },
+                        {
+                            "url": "https://github.com/lodash/lodash/commit/879aaa93132d78c2f8d20c60279da9f8b21576d6",
+                            "title": "GitHub Commit"
+                        },
+                        {
+                            "url": "https://github.com/lodash/lodash/issues/6167",
+                            "title": "GitHub Issue"
+                        },
+                        {
+                            "url": "https://cna.openjsf.org/security-advisories.html",
+                            "title": "OpenJS Security Advisory"
+                        }
+                    ],
+                    "disclosure_time": "2026-03-31T23:02:03Z",
+                    "exploit_details": {
+                        "sources": [],
+                        "maturity_levels": [
+                            {
+                                "type": "primary",
+                                "level": "Not Defined",
+                                "format": "CVSSv4"
+                            },
+                            {
+                                "type": "secondary",
+                                "level": "Not Defined",
+                                "format": "CVSSv3"
+                            }
+                        ]
+                    },
+                    "publication_time": "2026-04-01T10:32:00.027414Z"
+                },
+                "title": "Arbitrary Code Injection",
+                "problems": [
+                    {
+                        "id": "CVE-2026-4800",
+                        "source": "CVE"
+                    },
+                    {
+                        "id": "CWE-94",
+                        "source": "CWE"
+                    },
+                    {
+                        "id": "GHSA-r5fr-rjxr-66jc",
+                        "source": "GHSA"
+                    }
+                ],
+                "severities": [
+                    {
+                        "type": "primary",
+                        "level": "high",
+                        "score": 8.6,
+                        "source": "Snyk",
+                        "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:H/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N",
+                        "version": "4.0"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "high",
+                        "score": 7.2,
+                        "source": "Snyk",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:H",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "critical",
+                        "score": 9.8,
+                        "source": "NVD",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "high",
+                        "score": 8.1,
+                        "source": "Red Hat",
+                        "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                        "version": "3.1"
+                    }
+                ],
+                "coordinates": [
+                    {
+                        "remedies": [
+                            {
+                                "type": "indeterminate",
+                                "details": {
+                                    "upgrade_package": "4.18.1"
+                                },
+                                "description": "Upgrade the package version to 4.18.1 to fix this vulnerability"
+                            }
+                        ],
+                        "representations": [
+                            {
+                                "resource_path": "<4.18.1"
+                            },
+                            {
+                                "package": {
+                                    "name": "lodash",
+                                    "type": "npm",
+                                    "url": "pkg:npm/lodash@4.17.15",
+                                    "version": "4.17.15"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "effective_severity_level": "high"
+            }
+        },
+        {
+            "id": "SNYK-JS-LODASH-15053838",
+            "attributes": {
+                "slots": {
+                    "references": [
+                        {
+                            "url": "https://github.com/lodash/lodash/commit/edadd452146f7e4bad4ea684e955708931d84d81",
+                            "title": "GitHub Commit"
+                        }
+                    ],
+                    "disclosure_time": "2026-01-21T23:01:22Z",
+                    "exploit_details": {
+                        "sources": [],
+                        "maturity_levels": [
+                            {
+                                "type": "primary",
+                                "level": "Not Defined",
+                                "format": "CVSSv4"
+                            },
+                            {
+                                "type": "secondary",
+                                "level": "Not Defined",
+                                "format": "CVSSv3"
+                            }
+                        ]
+                    },
+                    "publication_time": "2026-01-22T07:08:27.179012Z"
+                },
+                "title": "Prototype Pollution",
+                "problems": [
+                    {
+                        "id": "CVE-2025-13465",
+                        "source": "CVE"
+                    },
+                    {
+                        "id": "CWE-1321",
+                        "source": "CWE"
+                    },
+                    {
+                        "id": "GHSA-xxjr-mmjv-4gpg",
+                        "source": "GHSA"
+                    }
+                ],
+                "severities": [
+                    {
+                        "type": "primary",
+                        "level": "medium",
+                        "score": 6.9,
+                        "source": "Snyk",
+                        "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:L/VA:L/SC:N/SI:N/SA:N",
+                        "version": "4.0"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "medium",
+                        "score": 6.5,
+                        "source": "Snyk",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:L",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "high",
+                        "score": 8.2,
+                        "source": "SUSE",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:H",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "medium",
+                        "score": 5.3,
+                        "source": "NVD",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "high",
+                        "score": 8.2,
+                        "source": "Red Hat",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:H",
+                        "version": "3.1"
+                    }
+                ],
+                "coordinates": [
+                    {
+                        "remedies": [
+                            {
+                                "type": "indeterminate",
+                                "details": {
+                                    "upgrade_package": "4.17.23"
+                                },
+                                "description": "Upgrade the package version to 4.17.23 to fix this vulnerability"
+                            }
+                        ],
+                        "representations": [
+                            {
+                                "resource_path": ">=4.0.0 <4.17.23"
+                            },
+                            {
+                                "package": {
+                                    "name": "lodash",
+                                    "type": "npm",
+                                    "url": "pkg:npm/lodash@4.17.15",
+                                    "version": "4.17.15"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "effective_severity_level": "medium"
+            }
+        },
+        {
+            "id": "SNYK-JS-LODASH-1018905",
+            "attributes": {
+                "slots": {
+                    "references": [
+                        {
+                            "url": "https://github.com/lodash/lodash/commit/c4847ebe7d14540bb28a8b932a9ce1b9ecbfee1a",
+                            "title": "GitHub Commit"
+                        },
+                        {
+                            "url": "https://github.com/lodash/lodash/pull/5065",
+                            "title": "GitHub Fix PR"
+                        }
+                    ],
+                    "disclosure_time": "2020-10-16T16:47:34Z",
+                    "exploit_details": {
+                        "sources": ["Snyk"],
+                        "maturity_levels": [
+                            {
+                                "type": "primary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv4"
+                            },
+                            {
+                                "type": "secondary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv3"
+                            }
+                        ]
+                    },
+                    "publication_time": "2021-02-15T11:50:49Z"
+                },
+                "title": "Regular Expression Denial of Service (ReDoS)",
+                "problems": [
+                    {
+                        "id": "CVE-2020-28500",
+                        "source": "CVE"
+                    },
+                    {
+                        "id": "CWE-400",
+                        "source": "CWE"
+                    }
+                ],
+                "severities": [
+                    {
+                        "type": "primary",
+                        "level": "medium",
+                        "score": 5.3,
+                        "source": "Snyk",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L/E:P",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "medium",
+                        "score": 5.3,
+                        "source": "NVD",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "medium",
+                        "score": 5.3,
+                        "source": "Red Hat",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+                        "version": "3.1"
+                    }
+                ],
+                "coordinates": [
+                    {
+                        "remedies": [
+                            {
+                                "type": "indeterminate",
+                                "details": {
+                                    "upgrade_package": "4.17.21"
+                                },
+                                "description": "Upgrade the package version to 4.17.21 to fix this vulnerability"
+                            }
+                        ],
+                        "representations": [
+                            {
+                                "resource_path": "<4.17.21"
+                            },
+                            {
+                                "package": {
+                                    "name": "lodash",
+                                    "type": "npm",
+                                    "url": "pkg:npm/lodash@4.17.15",
+                                    "version": "4.17.15"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "effective_severity_level": "medium"
+            }
+        },
+        {
+            "id": "SNYK-JS-LODASH-15869619",
+            "attributes": {
+                "slots": {
+                    "references": [
+                        {
+                            "url": "https://github.com/lodash/lodash/security/advisories/GHSA-f23m-r3pf-42rh",
+                            "title": "GitHub Advisory"
+                        },
+                        {
+                            "url": "https://github.com/lodash/lodash/commit/fe8d32eda854377349a4f922ab7655c8e5df9a0b",
+                            "title": "GitHub Commit"
+                        },
+                        {
+                            "url": "https://github.com/lodash/lodash/issues/6167",
+                            "title": "GitHub Issue"
+                        }
+                    ],
+                    "disclosure_time": "2026-03-31T23:02:29Z",
+                    "exploit_details": {
+                        "sources": [],
+                        "maturity_levels": [
+                            {
+                                "type": "primary",
+                                "level": "Not Defined",
+                                "format": "CVSSv4"
+                            },
+                            {
+                                "type": "secondary",
+                                "level": "Not Defined",
+                                "format": "CVSSv3"
+                            }
+                        ]
+                    },
+                    "publication_time": "2026-04-01T10:06:10.804459Z"
+                },
+                "title": "Prototype Pollution",
+                "problems": [
+                    {
+                        "id": "CVE-2026-2950",
+                        "source": "CVE"
+                    },
+                    {
+                        "id": "CWE-1321",
+                        "source": "CWE"
+                    },
+                    {
+                        "id": "GHSA-f23m-r3pf-42rh",
+                        "source": "GHSA"
+                    }
+                ],
+                "severities": [
+                    {
+                        "type": "primary",
+                        "level": "medium",
+                        "score": 6.9,
+                        "source": "Snyk",
+                        "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:L/VA:L/SC:N/SI:N/SA:N",
+                        "version": "4.0"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "medium",
+                        "score": 6.5,
+                        "source": "Snyk",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:L",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "medium",
+                        "score": 5.3,
+                        "source": "NVD",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "medium",
+                        "score": 6.5,
+                        "source": "Red Hat",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:H",
+                        "version": "3.1"
+                    }
+                ],
+                "coordinates": [
+                    {
+                        "remedies": [
+                            {
+                                "type": "indeterminate",
+                                "details": {
+                                    "upgrade_package": "4.18.1"
+                                },
+                                "description": "Upgrade the package version to 4.18.1 to fix this vulnerability"
+                            }
+                        ],
+                        "representations": [
+                            {
+                                "resource_path": ">=4.0.0 <4.18.1"
+                            },
+                            {
+                                "package": {
+                                    "name": "lodash",
+                                    "type": "npm",
+                                    "url": "pkg:npm/lodash@4.17.15",
+                                    "version": "4.17.15"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "effective_severity_level": "medium"
+            }
+        },
+        {
+            "id": "SNYK-JS-LODASH-1040724",
+            "attributes": {
+                "slots": {
+                    "references": [
+                        {
+                            "url": "https://github.com/lodash/lodash/commit/3469357cff396a26c363f8c1b5a91dde28ba4b1c",
+                            "title": "GitHub Commit"
+                        },
+                        {
+                            "url": "https://github.com/lodash/lodash/blob/ddfd9b11a0126db2302cb70ec9973b66baec0975/lodash.js%23L14851",
+                            "title": "Vulnerable Code"
+                        },
+                        {
+                            "url": "https://github.com/projectdiscovery/nuclei-templates/blob/main/http/cves/2021/CVE-2021-23337.yaml",
+                            "title": "Nuclei Templates"
+                        }
+                    ],
+                    "disclosure_time": "2020-11-17T13:02:10Z",
+                    "exploit_details": {
+                        "sources": ["Nuclei Templates", "Snyk"],
+                        "maturity_levels": [
+                            {
+                                "type": "primary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv4"
+                            },
+                            {
+                                "type": "secondary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv3"
+                            }
+                        ]
+                    },
+                    "publication_time": "2021-02-15T11:50:50Z"
+                },
+                "title": "Code Injection",
+                "problems": [
+                    {
+                        "id": "CVE-2021-23337",
+                        "source": "CVE"
+                    },
+                    {
+                        "id": "CWE-94",
+                        "source": "CWE"
+                    },
+                    {
+                        "id": "GHSA-35jh-r3h4-6jhm",
+                        "source": "GHSA"
+                    }
+                ],
+                "severities": [
+                    {
+                        "type": "primary",
+                        "level": "high",
+                        "score": 7.2,
+                        "source": "Snyk",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:H/E:P/RL:U/RC:C",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "high",
+                        "score": 7.2,
+                        "source": "NVD",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:H",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "high",
+                        "score": 7.2,
+                        "source": "Red Hat",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:H",
+                        "version": "3.1"
+                    }
+                ],
+                "coordinates": [
+                    {
+                        "remedies": [
+                            {
+                                "type": "indeterminate",
+                                "details": {
+                                    "upgrade_package": "4.17.21"
+                                },
+                                "description": "Upgrade the package version to 4.17.21 to fix this vulnerability"
+                            }
+                        ],
+                        "representations": [
+                            {
+                                "resource_path": "<4.17.21"
+                            },
+                            {
+                                "package": {
+                                    "name": "lodash",
+                                    "type": "npm",
+                                    "url": "pkg:npm/lodash@4.17.15",
+                                    "version": "4.17.15"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "effective_severity_level": "high"
+            }
+        }
+    ]
+}

@@ -210,9 +210,13 @@ export function dependicusCli(config: DependicusCliConfig): {
                 )
                 .option(
                     '--vuln-source <source>',
-                    'Vulnerability source to enable (repeatable): osv, depsdev, ghsa, github-advisory, all',
+                    'Vulnerability source to enable (repeatable): osv, depsdev, ghsa, github-advisory, snyk, all. `all` covers the free sources; snyk is opt-in and needs an account',
                     collect,
                     [] as string[],
+                )
+                .option(
+                    '--snyk-org <uuid>',
+                    'Snyk organisation UUID for --vuln-source snyk (or SNYK_ORG_ID). The token comes from SNYK_API_TOKEN',
                 )
                 .option(
                     '--dependicus-base-url <url>',
@@ -228,6 +232,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                     repoRoot?: string;
                     provider: string[];
                     vulnSource: string[];
+                    snykOrg?: string;
                     dependicusBaseUrl?: string;
                     outputDir?: string;
                     cacheDir?: string;
@@ -251,6 +256,19 @@ export function dependicusCli(config: DependicusCliConfig): {
                         githubAdvisory:
                             hasAll || vs.includes('ghsa') || vs.includes('github-advisory'),
                     };
+                    // Snyk needs an organisation UUID, so it can't come from
+                    // `all` the way the free sources do. Programmatic callers
+                    // pass SnykConfig directly.
+                    if (vs.includes('snyk')) {
+                        const orgId = globalOpts.snykOrg ?? process.env.SNYK_ORG_ID;
+                        if (orgId) {
+                            secConfig.snyk = { orgId };
+                        } else {
+                            process.stderr.write(
+                                'Snyk: --vuln-source snyk needs --snyk-org or SNYK_ORG_ID, skipping\n',
+                            );
+                        }
+                    }
                     vulnPlugins.push(new SecurityPlugin(secConfig));
                 }
 

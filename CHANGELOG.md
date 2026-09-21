@@ -18,6 +18,11 @@
 - A custom column's `getTooltip` now shows next to its value on a dependency's page. The table shows it on hover, and that page was the one place the extra detail was dropped, so a Severity column read "High" with its CVSS score and fix version nowhere.
 - `getDetailFilename` is exported, like `getGroupingFilename` already was. A plugin section that links a dependency needs it to build the href.
 
+- A Snyk source for `SecurityPlugin`, enabled with `--vuln-source snyk` plus `--snyk-org <uuid>`, or `snyk: { orgId }` programmatically. It reads `SNYK_API_TOKEN` and skips itself when that's unset, so it costs nothing to leave configured. Snyk is paid, so this is deliberately outside `--vuln-source all`.
+    - Snyk carries two things the free sources don't: its own severity grade, which often disagrees with NVD's, and an exploit-maturity verdict saying whether a working exploit is published. Run across one monorepo it found four npm packages that OSV and the GitHub Advisory Database both missed.
+    - Its findings merge with the other sources' and deduplicate against them on GHSA or CVE, so advisory counts don't double up.
+    - Go coverage is partial and the docs say why: Snyk files many Go advisories against an individual package or the standard library, while the Go provider reports module paths.
+
 ### Changed
 
 - `searchDependicusIssues` (in `@dependicus/github-issues`) now treats draft pull requests as not yet open for review and excludes them from results, while ready-for-review pull requests are returned alongside regular issues. Each returned entry carries an `isPullRequest` boolean so notification bots can count open Dependicus items accurately — drafts no longer pad the total — and the reconciler can avoid mutating pull requests. Anything explicitly flagged as a draft (PR or otherwise) is still skipped defensively.
