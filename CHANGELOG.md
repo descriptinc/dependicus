@@ -13,6 +13,10 @@
 - `GroupingConfig.getValue` may return several values, and the dependency is filed under each of them. A grouping used to be a partition, which doesn't fit a dimension whose membership overlaps: a package used by three teams belongs on all three of their pages. Returning a single string still works.
 - `GroupingConfig.ecosystems` limits a grouping to the ecosystems it can actually be computed for, e.g. `['npm']`. Providers for any other ecosystem skip it, and their pages leave it out of the nav, instead of rendering an index with no entries and a nav link to it. Omitting the field keeps today's behavior.
 
+- `DependicusPlugin.getDependencySections` puts sections on a single dependency's page, the same shape as the grouping ones. A plugin holding per-version detail, like the advisories `SecurityPlugin` already assembles for Linear and GitHub issues, can render it where someone is looking at that dependency instead of only as a metadata row.
+- A custom column's `getTooltip` now shows next to its value on a dependency's page. The table shows it on hover, and that page was the one place the extra detail was dropped, so a Severity column read "High" with its CVSS score and fix version nowhere.
+- `getDetailFilename` is exported, like `getGroupingFilename` already was. A plugin section that links a dependency needs it to build the href.
+
 ### Changed
 
 - `searchDependicusIssues` (in `@dependicus/github-issues`) now treats draft pull requests as not yet open for review and excludes them from results, while ready-for-review pull requests are returned alongside regular issues. Each returned entry carries an `isPullRequest` boolean so notification bots can count open Dependicus items accurately — drafts no longer pad the total — and the reconciler can avoid mutating pull requests. Anything explicitly flagged as a draft (PR or otherwise) is still skipped defensively.
@@ -33,6 +37,8 @@
     - Dependicus now allows esbuild's build script itself, which also fixes `pnpm install` in a Dependicus checkout.
     - That allowlist lives in a `pnpm-workspace.yaml`, which pnpm 12 also reads its config from. The file declares the single package explicitly, because `aube -r list` errors without a `packages` key.
 - The README's pnpm instructions for installing from git were wrong on pnpm 12, which wants an `allowBuilds` entry keyed on the resolved package URL instead of the `onlyBuiltDependencies` name older versions accepted.
+
+- A grouping's detail page counted and listed its dependencies three different ways. "Total Dependencies" counted distinct names while "Outdated" and "In Catalog" counted versions, so a group holding a dependency installed at more than one version reported more outdated than it had in total: 41 and 62 on the same card here. The list beside them showed only each dependency's first version, hiding the rest. All three counts and the list are now per dependency@version.
 
 ### Removed
 

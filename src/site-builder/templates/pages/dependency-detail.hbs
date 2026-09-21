@@ -18,7 +18,7 @@
                 {{#if customMeta}}
                 {{#each customMeta}}
                 <dt>{{this.label}}</dt>
-                <dd>{{{this.value}}}</dd>
+                <dd>{{{this.value}}}{{#if this.detail}} <span class="dep-meta-detail">{{this.detail}}</span>{{/if}}</dd>
                 {{/each}}
                 {{/if}}
 
@@ -83,6 +83,32 @@
     </aside>
 
     <div class="dep-detail-main">
+        {{#each sections}}
+        <section>
+            <h2>{{title}}</h2>
+            {{#if stats}}
+            <dl class="dep-metadata-dl">
+                {{#each stats}}
+                <dt>{{label}}</dt><dd>{{#if url}}<a href="{{url}}">{{value}}</a>{{else}}{{value}}{{/if}}</dd>
+                {{/each}}
+            </dl>
+            {{/if}}
+            {{#if flaggedDependencies.length}}
+            <ul>
+                {{#each flaggedDependencies}}
+                <li>
+                    <a href="{{detailLink}}">{{name}}@{{version}}</a>
+                    <span class="dep-meta-detail">{{label}}</span>
+                </li>
+                {{/each}}
+            </ul>
+            {{/if}}
+            {{#if html}}
+            {{{html}}}
+            {{/if}}
+        </section>
+        {{/each}}
+
         {{> upgrade-path upgradePath}}
     </div>
 </div>

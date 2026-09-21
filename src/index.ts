@@ -13,6 +13,9 @@ export type { GroupingConfig } from './core/index';
 export type { GroupingDetailContext } from './core/index';
 
 /** @group Plugins */
+export type { DependencyDetailContext } from './core/index';
+
+/** @group Plugins */
 export type { GroupingSection, GroupingStat, GroupingFlag } from './core/index';
 
 /** @group Plugins */
@@ -20,6 +23,9 @@ export type { CustomColumn, ColumnContext } from './site-builder/index';
 
 /** @group Plugins */
 export { getGroupingFilename } from './core/index';
+
+/** @group Plugins */
+export { getDetailFilename } from './core/index';
 
 /** @group Plugins */
 export type { DependencyVersion } from './core/index';

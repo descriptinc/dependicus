@@ -4,6 +4,7 @@ import type {
     DirectDependency,
     ProviderOutput,
     SerializedFacts,
+    DependencyDetailContext,
     GroupingConfig,
     GroupingDetailContext,
     GroupingSection,
@@ -29,6 +30,7 @@ export interface DependicusConfig {
     columns?: CustomColumn[];
     getUsedByGroupKey?: UsedByGroupKeyFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
+    getDependencySections?: (ctx: DependencyDetailContext) => GroupingSection[];
 }
 
 export interface CollectResult {
@@ -64,6 +66,7 @@ export async function createDependicus(config: DependicusConfig): Promise<Depend
         columns: config.columns,
         getUsedByGroupKey: config.getUsedByGroupKey,
         getSections: config.getSections,
+        getDependencySections: config.getDependencySections,
     });
 
     return {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type {
     DataSource,
+    DependencyDetailContext,
     GroupingConfig,
     GroupingDetailContext,
     GroupingSection,
@@ -109,6 +110,23 @@ describe('resolvePlugins', () => {
 
             const result = resolvePlugins([plugin], baseConfig());
             expect(result.getUsedByGroupKey).toBeUndefined();
+        });
+    });
+
+    describe('getDependencySections', () => {
+        it('concatenates dependency sections from multiple plugins', () => {
+            const a: GroupingSection = { title: 'From P1', stats: [{ label: 'A', value: 1 }] };
+            const b: GroupingSection = { title: 'From P2', stats: [{ label: 'B', value: 2 }] };
+            const p1: DependicusPlugin = { name: 'p1', getDependencySections: () => [a] };
+            const p2: DependicusPlugin = { name: 'p2', getDependencySections: () => [b] };
+
+            const result = resolvePlugins([p1, p2], baseConfig());
+            expect(result.getDependencySections?.({} as DependencyDetailContext)).toEqual([a, b]);
+        });
+
+        it('is undefined when no plugin provides it', () => {
+            const result = resolvePlugins([{ name: 'p1' }], baseConfig());
+            expect(result.getDependencySections).toBeUndefined();
         });
     });
 

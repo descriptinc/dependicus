@@ -9,6 +9,7 @@ import type {
     GitHubRelease,
     GitHubData,
     PackageVersionInfo,
+    DependencyDetailContext,
     GroupingConfig,
     GroupingDetailContext,
     GroupingSection,
@@ -98,6 +99,7 @@ export interface HtmlWriterOptions {
     columns?: CustomColumn[];
     getUsedByGroupKey?: UsedByGroupKeyFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
+    getDependencySections?: (ctx: DependencyDetailContext) => GroupingSection[];
     siteName?: string;
 }
 
@@ -116,6 +118,9 @@ export class HtmlWriter {
     private columns: CustomColumn[];
     private getUsedByGroupKey: UsedByGroupKeyFn | undefined;
     private getSections: ((ctx: GroupingDetailContext) => GroupingSection[]) | undefined;
+    private getDependencySections:
+        | ((ctx: DependencyDetailContext) => GroupingSection[])
+        | undefined;
     private siteName: string;
 
     constructor(options?: HtmlWriterOptions) {
@@ -124,6 +129,7 @@ export class HtmlWriter {
         this.columns = options?.columns ?? [];
         this.getUsedByGroupKey = options?.getUsedByGroupKey;
         this.getSections = options?.getSections;
+        this.getDependencySections = options?.getDependencySections;
         this.siteName = options?.siteName ?? 'Dependicus';
     }
 
@@ -551,17 +557,37 @@ export class HtmlWriter {
         const notes = this.composeNotes(dep.name, versionInfo.version, store);
 
         // Build custom metadata for display on detail page
-        const customMeta: Array<{ label: string; value: string }> = [];
+        const customMeta: Array<{ label: string; value: string; detail?: string }> = [];
         for (const col of this.columns) {
             const value = col.getValue(colCtx);
             if (value) {
-                customMeta.push({ label: col.header, value: DOMPurify.sanitize(value) });
+                // The tooltip is where a column puts the part that doesn't fit
+                // in a cell, e.g. a CVSS score or the version a fix landed in.
+                // The table shows it on hover; without this the detail page is
+                // the one place that loses it.
+                const detail = col.getTooltip?.(colCtx);
+                customMeta.push({
+                    label: col.header,
+                    value: DOMPurify.sanitize(value),
+                    detail: detail ? DOMPurify.sanitize(detail) : undefined,
+                });
             }
         }
 
         // Get deprecated transitive deps
         const deprecatedTransitiveDeps =
             store.getDependencyFact<string[]>(dep.name, FactKeys.DEPRECATED_TRANSITIVE_DEPS) ?? [];
+
+        const dependencySections = (
+            this.getDependencySections?.({
+                name: dep.name,
+                version: versionInfo,
+                ecosystem: dep.ecosystem,
+                store,
+            }) ?? []
+        ).map((section) =>
+            section.html ? { ...section, html: DOMPurify.sanitize(section.html) } : section,
+        );
 
         // Render content using template
         const displayName = shortenModulePath(dep.name, dep.ecosystem);
@@ -570,6 +596,7 @@ export class HtmlWriter {
             version: versionInfo.version,
             description,
             customMeta: customMeta.length > 0 ? customMeta : undefined,
+            sections: dependencySections.length > 0 ? dependencySections : undefined,
             dependencyTypes: versionInfo.dependencyTypes.join(', '),
             formattedPublishDate: formatDate(versionInfo.publishDate) ?? '',
             publishDateAge: formatAgeHuman(versionInfo.publishDate) ?? '',
@@ -681,14 +708,15 @@ export class HtmlWriter {
     private computeGroupStats(deps: DirectDependency[]): GroupStats {
         let outdatedCount = 0;
         let catalogCount = 0;
-        const countedDeps = new Set<string>();
+        let totalCount = 0;
 
+        // Counted per dependency@version, the same unit as the list of
+        // dependencies beside these stats. Counting the total by name while
+        // counting the others by version made "Outdated" exceed "Total" on any
+        // group holding a dependency installed at more than one version.
         for (const dep of deps) {
             for (const version of dep.versions) {
-                if (!countedDeps.has(dep.name)) {
-                    countedDeps.add(dep.name);
-                }
-
+                totalCount++;
                 if (version.version !== version.latestVersion) {
                     outdatedCount++;
                 }
@@ -699,7 +727,7 @@ export class HtmlWriter {
         }
 
         return {
-            totalDependencies: countedDeps.size,
+            totalDependencies: totalCount,
             outdatedCount,
             catalogCount,
         };
@@ -785,17 +813,18 @@ export class HtmlWriter {
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([value, deps]) => {
                 const stats = groupStats.get(value) as GroupStats;
-                const dependencies = deps.map((dep) => {
-                    const version = dep.versions[0];
-                    return {
+                // One entry per dependency@version. Taking versions[0] dropped
+                // every other installed version from the page, so a dependency
+                // pinned at three versions looked like one and the stats
+                // disagreed with the list.
+                const dependencies = deps.flatMap((dep) =>
+                    dep.versions.map((version) => ({
                         name: shortenModulePath(dep.name, dep.ecosystem),
-                        version: version?.version ?? '',
-                        latestVersion: version?.latestVersion ?? '',
-                        detailLink: version
-                            ? `../details/${getDetailFilename(dep.name, version.version)}`
-                            : '',
-                    };
-                });
+                        version: version.version,
+                        latestVersion: version.latestVersion,
+                        detailLink: `../details/${getDetailFilename(dep.name, version.version)}`,
+                    })),
+                );
 
                 const ctx: GroupingDetailContext = {
                     groupValue: value,
@@ -812,7 +841,7 @@ export class HtmlWriter {
                     label: grouping.label,
                     value,
                     dependencies,
-                    count: deps.length,
+                    count: dependencies.length,
                     stats,
                     sections,
                 });
