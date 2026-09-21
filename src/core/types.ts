@@ -292,8 +292,21 @@ export interface GroupingConfig {
     key: string;
     label: string;
     slugPrefix?: string;
-    /** Extract the grouping value for a dependency. Returns undefined to exclude. */
-    getValue: (name: string, store: FactStore) => string | undefined;
+    /**
+     * Extract the grouping value, or values, for a dependency. Returns undefined
+     * to exclude it.
+     *
+     * Returning several values files the dependency under each of them, for a
+     * dimension whose membership overlaps: a package used by three teams belongs
+     * on all three of their pages.
+     */
+    getValue: (name: string, store: FactStore) => string | readonly string[] | undefined;
+    /**
+     * Ecosystems this grouping applies to, e.g. `['npm']`. Providers for any
+     * other ecosystem skip it, and their pages leave it out of the nav.
+     * Omitted means every ecosystem.
+     */
+    ecosystems?: readonly string[];
     /** Return sections to display on this grouping's detail pages. */
     getSections?: (context: GroupingDetailContext) => GroupingSection[];
 }

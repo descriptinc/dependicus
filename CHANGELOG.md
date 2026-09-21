@@ -10,6 +10,8 @@
     - Dependicus now builds itself from the clone, so `npm install github:descriptinc/dependicus` gives you a working `dependicus` command instead of an empty one.
     - pnpm and yarn refuse to run a git dependency's build script until you list the package as trusted. The README has the line of config each one wants.
     - Bun and aube can't install Dependicus from git. Bun doesn't install a git dependency's devDependencies, so the build has nothing to run with, and aube doesn't accept git specifiers.
+- `GroupingConfig.getValue` may return several values, and the dependency is filed under each of them. A grouping used to be a partition, which doesn't fit a dimension whose membership overlaps: a package used by three teams belongs on all three of their pages. Returning a single string still works.
+- `GroupingConfig.ecosystems` limits a grouping to the ecosystems it can actually be computed for, e.g. `['npm']`. Providers for any other ecosystem skip it, and their pages leave it out of the nav, instead of rendering an index with no entries and a nav link to it. Omitting the field keeps today's behavior.
 
 ### Changed
 

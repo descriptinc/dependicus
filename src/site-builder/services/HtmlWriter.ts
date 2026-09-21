@@ -127,6 +127,20 @@ export class HtmlWriter {
         this.siteName = options?.siteName ?? 'Dependicus';
     }
 
+    /** Groupings that apply to an ecosystem. Undefined means don't filter. */
+    private groupingsFor(ecosystem?: string): GroupingConfig[] {
+        if (ecosystem === undefined) return this.groupings;
+        return this.groupings.filter((g) => !g.ecosystems || g.ecosystems.includes(ecosystem));
+    }
+
+    /** Nav entries for the groupings an ecosystem's pages should link to. */
+    private navGroupings(ecosystem?: string): Array<{ label: string; slug: string }> {
+        return this.groupingsFor(ecosystem).map((g) => ({
+            label: g.label,
+            slug: g.slugPrefix ?? g.key,
+        }));
+    }
+
     /**
      * Group dependencies by a key derived from the FactStore.
      */
@@ -390,6 +404,7 @@ export class HtmlWriter {
         // Render full page with layout.
         // Grouping pages are provider-scoped, so default to the first provider for nav links.
         const defaultProviderPrefix = providers.length > 0 ? `${providers[0]!.name}/` : '';
+        const navEcosystem = providers[0]?.ecosystem;
 
         return this.templateService.render('layouts/index', {
             title: 'Dependency Report',
@@ -399,10 +414,7 @@ export class HtmlWriter {
             content,
             providerPrefix: defaultProviderPrefix,
             timestamp: new Date().toLocaleString(),
-            groupings: this.groupings.map((g) => ({
-                label: g.label,
-                slug: g.slugPrefix ?? g.key,
-            })),
+            groupings: this.navGroupings(navEcosystem),
         });
     }
 
@@ -458,6 +470,7 @@ export class HtmlWriter {
         baseHref = '../',
         providerPrefix = '',
     ): string {
+        const navEcosystem = dep.ecosystem;
         const description =
             store.getVersionFact<string>(dep.name, versionInfo.version, FactKeys.DESCRIPTION) ?? '';
         const homepage =
@@ -586,10 +599,7 @@ export class HtmlWriter {
             baseHref,
             providerPrefix,
             timestamp: new Date().toLocaleString(),
-            groupings: this.groupings.map((g) => ({
-                label: g.label,
-                slug: g.slugPrefix ?? g.key,
-            })),
+            groupings: this.navGroupings(navEcosystem),
         });
     }
 
@@ -706,20 +716,27 @@ export class HtmlWriter {
         grouping: GroupingConfig,
         store: FactStore,
         providerPrefix = '',
+        ecosystem?: string,
     ): { index: DetailPage; details: DetailPage[] } {
         const slug = grouping.slugPrefix ?? grouping.key;
         const baseHref = providerPrefix ? '../../' : '../';
+        const navEcosystem = ecosystem;
 
-        // Collect all dependencies for each unique grouping value
+        // Collect all dependencies for each unique grouping value. getValue may
+        // return several, in which case the dependency belongs under each.
         const grouped = new Map<string, DirectDependency[]>();
         for (const dep of dependencies) {
             const value = grouping.getValue(dep.name, store);
             if (!value) continue;
-            const existing = grouped.get(value);
-            if (existing) {
-                existing.push(dep);
-            } else {
-                grouped.set(value, [dep]);
+            const values = typeof value === 'string' ? [value] : value;
+            for (const single of values) {
+                if (!single) continue;
+                const existing = grouped.get(single);
+                if (existing) {
+                    existing.push(dep);
+                } else {
+                    grouped.set(single, [dep]);
+                }
             }
         }
 
@@ -755,10 +772,7 @@ export class HtmlWriter {
             baseHref,
             providerPrefix,
             timestamp: new Date().toLocaleString(),
-            groupings: this.groupings.map((g) => ({
-                label: g.label,
-                slug: g.slugPrefix ?? g.key,
-            })),
+            groupings: this.navGroupings(navEcosystem),
         });
 
         const index: DetailPage = {
@@ -810,10 +824,7 @@ export class HtmlWriter {
                     baseHref,
                     providerPrefix,
                     timestamp: new Date().toLocaleString(),
-                    groupings: this.groupings.map((g) => ({
-                        label: g.label,
-                        slug: g.slugPrefix ?? g.key,
-                    })),
+                    groupings: this.navGroupings(navEcosystem),
                 });
 
                 return {
@@ -838,12 +849,13 @@ export class HtmlWriter {
         for (const provider of providers) {
             const providerPrefix = `${provider.name}/`;
             const scopedStore = store.scoped(provider.ecosystem);
-            for (const grouping of this.groupings) {
+            for (const grouping of this.groupingsFor(provider.ecosystem)) {
                 const { index, details } = this.toGroupingPages(
                     provider.dependencies,
                     grouping,
                     scopedStore,
                     providerPrefix,
+                    provider.ecosystem,
                 );
                 pages.push(index);
                 pages.push(...details);
