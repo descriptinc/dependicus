@@ -10,6 +10,7 @@ export type {
     ProviderOutput,
     GroupingConfig,
     GroupingDetailContext,
+    DependencyDetailContext,
     GroupingSection,
     GroupingStat,
     GroupingFlag,

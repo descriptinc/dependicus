@@ -298,6 +298,13 @@ main tbody tr {
     margin: 0;
 }
 
+/* The part of a custom column that lives in its tooltip, shown inline here
+   because a detail page has room for it and no hover target. */
+.dep-meta-detail {
+    color: var(--text-2);
+    font-size: var(--font-size-0);
+}
+
 .dep-metadata-dl dt {
     font-weight: var(--font-weight-6);
     color: var(--text-2);

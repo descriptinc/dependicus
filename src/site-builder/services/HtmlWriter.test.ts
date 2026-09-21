@@ -223,6 +223,42 @@ describe('HtmlWriter', () => {
             expect(pages[0]!.html).toContain('@scope/test-pkg@1.0.0');
         });
 
+        it('renders plugin sections on a detail page', () => {
+            const writer = new HtmlWriter({
+                getDependencySections: (ctx) => [
+                    {
+                        title: 'Advisories',
+                        html: `<p>two for ${ctx.name}@${ctx.version.version}</p>`,
+                    },
+                ],
+            });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            const pages = writer.toDetailPages([makeProvider([dep])], store);
+
+            expect(pages[0]!.html).toContain('Advisories');
+            expect(pages[0]!.html).toContain('two for @scope/test-pkg@');
+        });
+
+        it('shows a custom column tooltip alongside its value', () => {
+            const writer = new HtmlWriter({
+                columns: [
+                    {
+                        key: 'risk',
+                        header: 'Risk',
+                        getValue: () => 'High',
+                        getTooltip: () => 'CVSS 8.7',
+                    },
+                ],
+            });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            const pages = writer.toDetailPages([makeProvider([dep])], store);
+
+            expect(pages[0]!.html).toContain('High');
+            expect(pages[0]!.html).toContain('CVSS 8.7');
+        });
+
         it('includes package metadata in detail page', () => {
             const writer = new HtmlWriter();
             const dep = makeMockDependency();
@@ -395,6 +431,31 @@ describe('HtmlWriter', () => {
             const pages = writer.toAllGroupingPages([makeProvider([dep])], store);
 
             expect(pages.map((pg) => pg.filename)).toContain('pnpm/teams/Growth.html');
+        });
+
+        it('counts stats in the same unit as the list beside them', () => {
+            // Two versions of one dependency, both behind: the total used to
+            // count names and the outdated count versions, so outdated came
+            // out higher than the total.
+            const dep = makeMockDependency({
+                versions: [
+                    makeMockVersion({ version: '1.0.0', latestVersion: '2.0.0' }),
+                    makeMockVersion({ version: '1.5.0', latestVersion: '2.0.0' }),
+                ],
+            });
+            const writer = new HtmlWriter({ groupings: [teamGrouping] });
+            const store = makeMockStore([dep]);
+            const { details } = writer.toGroupingPages(
+                [dep],
+                teamGrouping,
+                store.scoped(dep.ecosystem),
+                'pnpm/',
+            );
+
+            expect(details[0]!.html).toContain('Dependencies (2)');
+            // Both versions are listed, not just the first.
+            expect(details[0]!.html).toContain('1.0.0');
+            expect(details[0]!.html).toContain('1.5.0');
         });
 
         it('toAllGroupingPages returns empty array when no groupings configured', () => {

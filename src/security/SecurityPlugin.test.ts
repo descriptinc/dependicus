@@ -24,6 +24,90 @@ describe('SecurityPlugin', () => {
         expect(plugin.sources[0]!.name).toBe('osv');
     });
 
+    it('puts its advisories on a dependency page', () => {
+        const plugin = new SecurityPlugin({ osv: true });
+        const store = new RootFactStore();
+        const scoped = store.scoped('npm');
+        const ver = makeVersion();
+        const finding: SecurityFinding = {
+            source: 'osv',
+            sourceLabel: 'OSV',
+            severity: 'high',
+            cvssScore: 7.5,
+            advisoryCount: 1,
+            advisoryIds: ['GHSA-xxxx'],
+            fixAvailable: true,
+            advisories: [
+                {
+                    id: 'GHSA-xxxx',
+                    summary: 'Prototype pollution',
+                    severity: 'high',
+                    cvssScore: 7.5,
+                    fixAvailable: true,
+                    url: 'https://osv.dev/vulnerability/GHSA-xxxx',
+                },
+            ],
+        };
+        scoped.setVersionFact('react', '1.0.0', SECURITY_FINDINGS_KEY, [finding]);
+
+        const sections = plugin.getDependencySections({
+            name: 'react',
+            version: ver,
+            ecosystem: 'npm',
+            store: scoped,
+        });
+
+        expect(sections.map((sec) => sec.title)).toContain('Advisories');
+        const advisories = sections.find((sec) => sec.title === 'Advisories');
+        expect(advisories?.html).toContain('GHSA-xxxx');
+        expect(advisories?.html).toContain('Prototype pollution');
+        expect(advisories?.html).toContain('https://osv.dev/vulnerability/GHSA-xxxx');
+
+        const summary = sections.find((sec) => sec.title === 'Security');
+        expect(summary?.stats).toEqual(
+            expect.arrayContaining([{ label: 'Fix available', value: 'Yes' }]),
+        );
+    });
+
+    it('lists an advisory once when two sources report it', () => {
+        const plugin = new SecurityPlugin({ osv: true });
+        const store = new RootFactStore();
+        const scoped = store.scoped('npm');
+        const advisory = {
+            id: 'GHSA-dupe',
+            severity: 'high' as const,
+            fixAvailable: true,
+            url: 'https://example.test/GHSA-dupe',
+        };
+        scoped.setVersionFact('react', '1.0.0', SECURITY_FINDINGS_KEY, [
+            { source: 'osv', sourceLabel: 'OSV', advisories: [advisory] },
+            { source: 'snyk', sourceLabel: 'Snyk', advisories: [advisory] },
+        ] satisfies SecurityFinding[]);
+
+        const sections = plugin.getDependencySections({
+            name: 'react',
+            version: makeVersion(),
+            ecosystem: 'npm',
+            store: scoped,
+        });
+        const html = sections.find((sec) => sec.title === 'Advisories')?.html ?? '';
+        expect(html.match(/GHSA-dupe/g)).toHaveLength(2); // the link text and its href
+        expect(html.match(/<li>/g)).toHaveLength(1);
+    });
+
+    it('returns no sections for a dependency with no findings', () => {
+        const plugin = new SecurityPlugin({ osv: true });
+        const store = new RootFactStore();
+        expect(
+            plugin.getDependencySections({
+                name: 'react',
+                version: makeVersion(),
+                ecosystem: 'npm',
+                store: store.scoped('npm'),
+            }),
+        ).toEqual([]);
+    });
+
     it('constructs no sources when config is empty', () => {
         const plugin = new SecurityPlugin({});
         expect(plugin.sources).toHaveLength(0);

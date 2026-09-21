@@ -1,5 +1,6 @@
 import type {
     DataSource,
+    DependencyDetailContext,
     GroupingConfig,
     GroupingDetailContext,
     GroupingSection,
@@ -31,6 +32,13 @@ export interface DependicusPlugin {
 
     getUsedByGroupKey?: UsedByGroupKeyFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
+    /**
+     * Sections for a single dependency's own page. Same shape as the grouping
+     * sections, so a plugin holding per-version detail (advisories, sizes,
+     * policy history) can render it where someone is looking at that
+     * dependency, rather than only as a metadata row.
+     */
+    getDependencySections?: (ctx: DependencyDetailContext) => GroupingSection[];
 
     getLinearIssueSpec?: (
         context: VersionContext,
@@ -49,6 +57,7 @@ export interface ResolvedPlugins {
     columns: CustomColumn[];
     getUsedByGroupKey?: UsedByGroupKeyFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
+    getDependencySections?: (ctx: DependencyDetailContext) => GroupingSection[];
     /** Returns unvalidated merged partials — call validateLinearIssueSpec before use. */
     getLinearIssueSpec?: (
         context: VersionContext,
@@ -171,6 +180,18 @@ export function resolvePlugins(
             ? (ctx: GroupingDetailContext): GroupingSection[] => sectionFns.flatMap((fn) => fn(ctx))
             : undefined;
 
+    // getDependencySections: same, for a single dependency's page
+    const dependencySectionFns = plugins
+        .map((p) => p.getDependencySections)
+        .filter(
+            (fn): fn is (ctx: DependencyDetailContext) => GroupingSection[] => fn !== undefined,
+        );
+    const getDependencySections =
+        dependencySectionFns.length > 0
+            ? (ctx: DependencyDetailContext): GroupingSection[] =>
+                  dependencySectionFns.flatMap((fn) => fn(ctx))
+            : undefined;
+
     // Merge Linear issue specs: config spec (if any) + plugin specs
     const linearIssueSpecFns: Array<
         (ctx: VersionContext, store: FactStore) => Partial<LinearIssueSpec> | undefined
@@ -203,6 +224,7 @@ export function resolvePlugins(
         columns,
         getUsedByGroupKey,
         getSections,
+        getDependencySections,
         getLinearIssueSpec,
         getGitHubIssueSpec,
     };

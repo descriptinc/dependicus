@@ -287,6 +287,17 @@ export interface GroupingDetailContext {
     store: FactStore;
 }
 
+/**
+ * What a plugin is told about the dependency whose page is being built.
+ * @group Plugins
+ */
+export interface DependencyDetailContext {
+    name: string;
+    version: DependencyVersion;
+    ecosystem: string;
+    store: FactStore;
+}
+
 /** @group Plugins */
 export interface GroupingConfig {
     key: string;

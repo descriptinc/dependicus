@@ -170,6 +170,7 @@ function createDependicusInstance(
         columns: resolved.columns,
         getUsedByGroupKey: resolved.getUsedByGroupKey,
         getSections: resolved.getSections,
+        getDependencySections: resolved.getDependencySections,
     });
 }
 
