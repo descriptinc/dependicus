@@ -1,8 +1,10 @@
 import type {
     DataSource,
+    DependencyDetailContext,
     FactStore,
     GroupingDetailContext,
     GroupingSection,
+    GroupingStat,
     PluginContext,
     ColumnContext,
 } from '../core/index';
@@ -241,6 +243,84 @@ export class SecurityPlugin {
         return {
             descriptionSections: this.buildDescriptionSections(merged, findings),
         };
+    };
+
+    // ── Dependency detail page ─────────────────────────────────────
+
+    /**
+     * The advisories for this dependency, on its own page.
+     *
+     * The columns can only show a severity word and a line of rationale, and
+     * the per-advisory detail assembled for Linear and GitHub issue bodies had
+     * nowhere to go on the site. This is the same material: each advisory with
+     * its severity, score, whether a fix exists, and a link to it.
+     */
+    getDependencySections = (ctx: DependencyDetailContext): GroupingSection[] => {
+        const findings =
+            ctx.store.getVersionFact<SecurityFinding[]>(
+                ctx.name,
+                ctx.version.version,
+                SECURITY_FINDINGS_KEY,
+            ) ?? [];
+        if (findings.length === 0) return [];
+
+        const merged = mergeFindingsFromArray(findings);
+        const sections: GroupingSection[] = [];
+
+        const stats: GroupingStat[] = [];
+        if (merged.severity) {
+            stats.push({ label: 'Severity', value: SEVERITY_LABELS[merged.severity] ?? '' });
+        }
+        if (typeof merged.cvssScore === 'number') {
+            stats.push({ label: 'CVSS', value: merged.cvssScore.toFixed(1) });
+        }
+        if (merged.advisoryCount > 0) {
+            stats.push({ label: 'Advisories', value: merged.advisoryCount });
+        }
+        stats.push({ label: 'Fix available', value: merged.fixAvailable ? 'Yes' : 'No' });
+        if (merged.sources) {
+            stats.push({ label: 'Reported by', value: merged.sources });
+        }
+        sections.push({ title: 'Security', stats });
+
+        // Deduplicated across sources: two sources reporting one advisory
+        // should not list it twice.
+        const seen = new Set<string>();
+        const rows: string[] = [];
+        for (const advisory of findings.flatMap((f) => f.advisories ?? [])) {
+            if (seen.has(advisory.id)) continue;
+            seen.add(advisory.id);
+            const bits: string[] = [];
+            if (advisory.severity) {
+                const score =
+                    typeof advisory.cvssScore === 'number'
+                        ? ` ${advisory.cvssScore.toFixed(1)}`
+                        : '';
+                bits.push(`${advisory.severity}${score}`);
+            }
+            if (advisory.fixAvailable) bits.push('fix available');
+            const meta = bits.length > 0 ? ` <span>${escapeHtml(bits.join(' · '))}</span>` : '';
+            const summary = advisory.summary ? `: ${escapeHtml(advisory.summary)}` : '';
+            rows.push(
+                `<li><a href="${escapeAttr(advisory.url)}">${escapeHtml(advisory.id)}</a>` +
+                    `${meta}${summary}</li>`,
+            );
+        }
+        if (rows.length > 0) {
+            sections.push({ title: 'Advisories', html: `<ul>${rows.join('')}</ul>` });
+        }
+
+        const whyItMatters = merged.rationale.filter(
+            (r) => !r.match(/^\d+ (?:advisor|GitHub advisor|Snyk advisor)/),
+        );
+        if (whyItMatters.length > 0) {
+            sections.push({
+                title: 'Why this matters',
+                html: `<p>${escapeHtml(whyItMatters.join('. '))}.</p>`,
+            });
+        }
+
+        return sections;
     };
 
     // ── Private helpers ────────────────────────────────────────────
