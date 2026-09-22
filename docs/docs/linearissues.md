@@ -63,11 +63,17 @@ void dependicusCli({
 
 ## Due dates
 
-A `dueDate` policy needs `thresholdDays`, and the due date is `thresholdDays` after the first release of the kind of update needed. For `react` 18.2.0 with 19.0.0 out, that's the day 19.0.0 was published, so a 90-day threshold is due 90 days after that. The spec sets the threshold, so it decides the deadline: to give every issue open when you adopt a policy the same grace period, pass a threshold that lands on that date. With `minimumVersion`, the clock starts at that version's release instead. A `dueDate` spec without `thresholdDays` files no issue, or an FYI one with no due date if it sets `targetVersion`.
+The clock starts when the update you need comes out. If you're on `react` 18.2.0 and the spec says `thresholdDays: 90`, the issue is due 90 days after 19.0.0 was published.
+
+Since your spec picks the threshold, it picks the deadline. That's handy when you roll out a new policy: old updates would all be overdue on day one, so you can pass a bigger threshold that puts them all on the same date instead.
+
+If a `dueDate` spec leaves out `thresholdDays`, there's nothing to track, so no issue gets filed. (Set `targetVersion` too and you get an FYI issue with no due date.)
 
 ## One issue per team
 
-A dependency used by several teams gets one issue, in the one team the spec names. To give each team its own, return an array of specs, each with a different `scope`. Every scope gets a separate issue with the scope in its title, like `[Dependicus] [npm] [Payments] Update react from ...`, and is created, updated and closed on its own. `context.usedBy` lists the packages that use the version, so you can work out which teams those are, and a spec's `usedBy` narrows the issue to the packages that team owns.
+Say `react` is used by packages that belong to three teams. By default, that's one issue, and it goes to whichever team your spec names. The other two teams never hear about it.
+
+To give each team its own issue, return an array of specs with a different `scope` on each one:
 
 ```ts
 getLinearIssueSpec: (context) => {
@@ -86,13 +92,22 @@ getLinearIssueSpec: (context) => {
 },
 ```
 
-A spec without a scope behaves as it always has, so an existing unscoped issue stays matched. Plugins that return a single spec, like `SecurityPlugin`'s description sections, are merged into every scoped one. Scopes can't contain square brackets.
+`context.usedBy` tells you which packages use this version. Setting `usedBy` on a spec narrows that issue to the team's own packages, so nobody gets asked to update code they don't own.
+
+Each scope shows up in its issue's title, like `[Dependicus] [npm] [Payments] Update react from ...`. That's how Dependicus finds the issue again on the next run, so each team's issue gets updated and closed on its own. Scopes can't contain square brackets.
+
+A few other things to know:
+
+- A spec without a scope works exactly like it did before, and so do the issues it already filed.
+- If another plugin returns a single spec, like `SecurityPlugin` adding advisories to the description, it gets merged into every scoped spec.
 
 ## Security fixes
 
-By default an issue asks for the first release of the kind of update needed, like the next major. For a vulnerability that's often the wrong version: the fix may be a patch on the current line, or several majors up. Set `minimumVersion` to ask for a specific release instead. The title asks for at least that version, and the due date counts from when it was published.
+By default, an issue asks you to update to the first release of the kind you need, like the next major. For a vulnerability, that's usually not the release with the fix. The fix might be a patch on the version you're already on, or it might be three majors away.
 
-`SecurityPlugin`'s Snyk source records the lowest version that fixes every advisory against a dependency version, and `getFixVersion` reads it back:
+Set `minimumVersion` to ask for a specific release instead. The title will say "at least" that version, and the due date counts from the day it came out.
+
+If you use `SecurityPlugin` with Snyk, you don't have to work out the version yourself. Snyk says which releases fix each advisory, Dependicus picks the lowest one that fixes all of them, and `getFixVersion` gives it to you:
 
 ```ts
 import { getFixVersion, SECURITY_FINDINGS_KEY, type SecurityFinding } from 'dependicus';
