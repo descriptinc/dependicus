@@ -61,6 +61,10 @@ void dependicusCli({
 }).run(process.argv);
 ```
 
+## Due dates
+
+A `dueDate` policy needs `thresholdDays`, and the due date is `thresholdDays` after the first release of the kind of update needed. For `react` 18.2.0 with 19.0.0 out, that's the day 19.0.0 was published, so a 90-day threshold is due 90 days after that. The spec sets the threshold, so it decides the deadline: to give every issue open when you adopt a policy the same grace period, pass a threshold that lands on that date. With `minimumVersion`, the clock starts at that version's release instead. A `dueDate` spec without `thresholdDays` files no issue, or an FYI one with no due date if it sets `targetVersion`.
+
 ## One issue per team
 
 A dependency used by several teams gets one issue, in the one team the spec names. To give each team its own, return an array of specs, each with a different `scope`. Every scope gets a separate issue with the scope in its title, like `[Dependicus] [npm] [Payments] Update react from ...`, and is created, updated and closed on its own. `context.usedBy` lists the packages that use the version, so you can work out which teams those are, and a spec's `usedBy` narrows the issue to the packages that team owns.
