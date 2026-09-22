@@ -59,6 +59,28 @@ export const linearIssueSpecSchema = z.object({
     descriptionSections: z.array(descriptionSectionSchema).optional(),
     /** Sections to include in lifecycle comments (e.g., reopen). */
     commentSections: z.array(descriptionSectionSchema).optional(),
+    /**
+     * Splits one dependency into several issues. Specs with different scopes
+     * get separate issues, each with the scope in its title, so returning one
+     * spec per owning team from `getLinearIssueSpec` files one issue per team.
+     * Can't contain square brackets.
+     */
+    scope: z
+        .string()
+        .regex(/^[^[\]]+$/, 'scope cannot contain square brackets')
+        .optional(),
+    /**
+     * The packages this issue covers, in place of every package that uses the
+     * version. Pair it with `scope` so each scoped issue lists only its own.
+     */
+    usedBy: z.array(z.string()).optional(),
+    /**
+     * The lowest version that resolves the issue, like the release that fixes
+     * a vulnerability. The title asks for at least this version, and the due
+     * date counts from when it was published. Defaults to the first release of
+     * the update type needed.
+     */
+    minimumVersion: z.string().optional(),
 });
 
 // ── Derived types ────────────────────────────────────────────────────
@@ -90,6 +112,8 @@ export interface VersionContext {
     currentVersion: string;
     /** Latest version available on the registry. */
     latestVersion: string;
+    /** The packages that use this version. */
+    usedBy?: readonly string[];
 }
 
 // ── Internal types (not plugin-facing) ───────────────────────────────
@@ -129,6 +153,10 @@ export interface OutdatedDependency {
     descriptionSections?: DescriptionSection[];
     /** Consumer-provided sections to include in lifecycle comments (e.g., reopen). */
     commentSections?: DescriptionSection[];
+    /** Splits this dependency's issue from its other scopes'. */
+    scope?: string;
+    /** Lowest version that resolves the issue, if the spec named one. */
+    minimumVersion?: string;
 }
 
 /**
@@ -136,6 +164,8 @@ export interface OutdatedDependency {
  */
 export interface OutdatedGroup {
     groupName: string;
+    /** Splits this group's issue from its other scopes'. */
+    scope?: string;
     dependencies: OutdatedDependency[];
     teamId: string;
     policy: LinearPolicy;

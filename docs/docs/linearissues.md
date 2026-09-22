@@ -61,6 +61,72 @@ void dependicusCli({
 }).run(process.argv);
 ```
 
+## Due dates
+
+An issue is due `thresholdDays` after the release it asks for was published. If you're on `react` 18.2.0 and your spec sets `thresholdDays: 90`, the issue is due 90 days after the release of 19.0.0.
+
+Your spec sets the threshold, so your spec sets the due date. This helps when you adopt a new policy. Updates that came out long ago would be overdue on the first run, so you can give them a larger threshold that makes them all due on the same day.
+
+A `dueDate` spec without `thresholdDays` files no issue. If it also sets `targetVersion`, Dependicus files an FYI issue with no due date.
+
+## One issue per team
+
+Suppose packages owned by three teams use `react`. Dependicus files one issue for it, in the team your spec names, and the other two teams never see it.
+
+To file an issue for each team, return an array of specs, each with its own `scope`:
+
+```ts
+getLinearIssueSpec: (context) => {
+    const byTeam = new Map<string, string[]>();
+    for (const pkg of context.usedBy ?? []) {
+        const team = teamForPackage(pkg);
+        byTeam.set(team, [...(byTeam.get(team) ?? []), pkg]);
+    }
+    return [...byTeam].map(([team, usedBy]) => ({
+        teamId: linearTeamIds[team],
+        scope: team,
+        usedBy,
+        policy: { type: 'dueDate' },
+        thresholdDays: 90,
+    }));
+},
+```
+
+`context.usedBy` lists the packages that use the version. A spec's `usedBy` limits its issue to the packages that team owns.
+
+Dependicus puts the scope in the title, like `[Dependicus] [npm] [Payments] Update react from ...`, and uses it to find the issue on later runs. Each team's issue is updated and closed separately. A scope can't contain square brackets.
+
+A spec without a scope works as it did before, and so do the issues it filed. A plugin that returns a single spec, like `SecurityPlugin` with its advisory sections, is merged into every scoped spec.
+
+## Security fixes
+
+By default, an issue asks for the first release of the update type needed, such as the next major. For a vulnerability, that release often lacks the fix. The fix may be a patch on your current line, or several majors ahead.
+
+Set `minimumVersion` to ask for a specific release. The title asks for at least that version, and the issue is due `thresholdDays` after its release.
+
+With `SecurityPlugin` and Snyk, you don't need to find the version yourself. Snyk lists the releases that fix each advisory. Dependicus picks the lowest release that fixes all of them, and `getFixVersion` returns it:
+
+```ts
+import { getFixVersion, SECURITY_FINDINGS_KEY, type SecurityFinding } from 'dependicus';
+
+getLinearIssueSpec: (context, store) => {
+    const findings = store.getVersionFact<SecurityFinding[]>(
+        context.name,
+        context.currentVersion,
+        SECURITY_FINDINGS_KEY,
+    );
+    if (!findings?.some((f) => f.severity === 'high' || f.severity === 'critical')) {
+        return undefined;
+    }
+    return {
+        teamId: 'your-team-uuid',
+        policy: { type: 'dueDate' },
+        thresholdDays: 28,
+        minimumVersion: getFixVersion(store, context.name, context.currentVersion),
+    };
+},
+```
+
 ## CLI flags
 
 The `make-linear-issues` command accepts these flags in addition to `--dry-run`, `--json-file`, and `--linear-team-id`:

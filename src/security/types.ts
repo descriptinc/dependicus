@@ -20,6 +20,8 @@ export interface AdvisoryDetail {
     severity?: Severity;
     cvssScore?: number;
     fixAvailable?: boolean;
+    /** Versions that fix this advisory, one per release line that got a fix. */
+    fixVersions?: string[];
     url: string;
 }
 
@@ -35,6 +37,12 @@ export interface SecurityFinding {
     advisoryIds?: string[];
     advisoryCount?: number;
     fixAvailable?: boolean;
+    /**
+     * The lowest version above the one this finding is for that fixes every
+     * advisory in it with a known fix. Undefined when the source doesn't say,
+     * or no single version fixes them all.
+     */
+    fixVersion?: string;
     maintenance?: Maintenance;
     rationale?: string[];
     sourceLinks?: { label: string; url: string }[];

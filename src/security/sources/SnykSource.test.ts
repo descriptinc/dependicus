@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildPurl, ECOSYSTEM_MAP, SnykSource, toFinding } from './SnykSource';
+import { buildPurl, ECOSYSTEM_MAP, lowestFixVersion, SnykSource, toFinding } from './SnykSource';
 import type { SnykIssue } from './SnykSource';
 import { RootFactStore } from '../../core/index';
 import type { DirectDependency } from '../../core/index';
@@ -221,5 +221,46 @@ describe('SnykSource.fetch', () => {
         await source.fetch([dependency], store);
 
         expect(findings(store)).toEqual([]);
+    });
+});
+
+describe('lowestFixVersion', () => {
+    it('takes the fix on the current release line', () => {
+        // body-parser 1.20.1: patched on 1.x, and again on 2.x.
+        expect(lowestFixVersion('1.20.1', [['1.20.6', '2.3.0']])).toBe('1.20.6');
+    });
+
+    it('moves up a line when one advisory is only fixed there', () => {
+        expect(lowestFixVersion('1.20.1', [['1.20.6', '2.3.0'], ['2.0.0']])).toBe('2.3.0');
+    });
+
+    it('needs every advisory fixed, not just the latest fix', () => {
+        expect(lowestFixVersion('4.17.15', [['4.17.17'], ['4.17.21'], ['4.18.1']])).toBe('4.18.1');
+    });
+
+    it('treats minors as release lines below 1.0', () => {
+        expect(lowestFixVersion('0.32.5', [['0.32.6', '0.33.5']])).toBe('0.32.6');
+    });
+
+    it('ignores advisories with no fix', () => {
+        expect(lowestFixVersion('1.0.0', [[], ['1.0.3']])).toBe('1.0.3');
+        expect(lowestFixVersion('1.0.0', [[]])).toBeUndefined();
+    });
+
+    it('ignores fixes at or below the current version', () => {
+        expect(lowestFixVersion('2.0.0', [['1.9.0', '2.0.0']])).toBeUndefined();
+    });
+});
+
+describe('toFinding fix versions', () => {
+    it("lists each advisory's fixes and the lowest version fixing them all", () => {
+        const finding = toFinding(lodash, '4.17.15');
+        expect(finding?.fixVersion).toBe('4.18.1');
+        expect(finding?.advisories?.every((a) => a.fixVersions?.length)).toBe(true);
+        expect(toFinding(gin, '1.6.0')?.fixVersion).toBe('1.9.1');
+    });
+
+    it('leaves the fix version out without the current version', () => {
+        expect(toFinding(lodash)?.fixVersion).toBeUndefined();
     });
 });
