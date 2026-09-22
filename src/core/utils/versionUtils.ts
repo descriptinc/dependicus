@@ -149,6 +149,28 @@ export function extractScopeFromTitle(title: string): string | undefined {
 }
 
 /**
+ * The key an issue is tracked under: the dependency or group key, plus the
+ * scope when there is one. Unscoped keys are unchanged, so issues filed before
+ * scopes existed still match. Also used as the name in log lines.
+ */
+export function scopedIssueKey(key: string, scope: string | undefined): string {
+    return scope === undefined ? key : `${key} [${scope}]`;
+}
+
+/** The specs for one version, whether a spec function returned one or several. */
+export function toSpecList<T>(result: T | T[] | undefined): T[] {
+    if (result === undefined) return [];
+    return Array.isArray(result) ? result : [result];
+}
+
+/** The higher of two versions, either of which may be missing. */
+export function higherVersion(a: string | undefined, b: string | undefined): string | undefined {
+    if (a === undefined) return b;
+    if (b === undefined) return a;
+    return (compareVersions(b, a) ?? 0) > 0 ? b : a;
+}
+
+/**
  * Extract dependency name from a Dependicus ticket title.
  * Expected formats:
  * - "[Dependicus] Update <dependency> from X to Y"
@@ -349,7 +371,12 @@ export function calculateDueDate(
     minimumVersion?: string,
 ): Date {
     const minimum = minimumVersion
-        ? versionsBetween.find((v) => v.version === minimumVersion && v.publishDate)
+        ? versionsBetween.find(
+              (v) =>
+                  v.publishDate &&
+                  (v.version === minimumVersion ||
+                      compareVersions(v.version, minimumVersion) === 0),
+          )
         : undefined;
     const firstVersion =
         minimum ?? findFirstVersionOfType(currentVersion, versionsBetween, updateType);

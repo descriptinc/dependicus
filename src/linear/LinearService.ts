@@ -294,7 +294,7 @@ export class LinearService {
                 },
                 title: { contains: dependencyName },
             },
-            first: 10,
+            first: 50,
         });
 
         for (const issue of issues.nodes) {
