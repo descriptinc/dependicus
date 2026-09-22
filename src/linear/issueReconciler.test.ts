@@ -1589,6 +1589,82 @@ describe('reconcileIssues with scoped specs', () => {
         expect(mockClient.updateIssue).toHaveBeenCalledWith('issue-1', { stateId: 'done-state' });
     });
 
+    it("asks for the highest minimum version across the issue's versions", async () => {
+        const v1 = makeVersion({ version: '1.2.0', latestVersion: '3.0.0' });
+        const v2 = makeVersion({ version: '2.0.0', latestVersion: '3.0.0' });
+        populateFacts(store, 'test-pkg', v1, { versionsBetween: [] });
+        populateFacts(store, 'test-pkg', v2, { versionsBetween: [] });
+        const fixes: Record<string, string> = { '1.2.0': '1.2.5', '2.0.0': '2.0.3' };
+
+        await reconcileIssues([makeDep('test-pkg', [v1, v2])], store, liveConfig, (ctx) => ({
+            teamId: 'team-web',
+            policy: { type: 'dueDate' },
+            thresholdDays: 28,
+            minimumVersion: fixes[ctx.currentVersion],
+        }));
+
+        const [input] = mockClient.createIssue.mock.calls[0] as [{ title: string }];
+        expect(input.title).toContain('to at least 2.0.3');
+    });
+
+    it('says an unscoped issue was split up when scoped ones replace it', async () => {
+        existingIssues(['[Dependicus] [npm] Update test-pkg from 1.0.0 to 2.0.0']);
+        const v = makeVersion({ usedBy: ['@app/web', '@app/admin'] });
+        populateFacts(store, 'test-pkg', v);
+
+        const result = await reconcileIssues(
+            [makeDep('test-pkg', [v])],
+            store,
+            liveConfig,
+            perTeamSpec,
+        );
+
+        expect(result).toMatchObject({ created: 2, closed: 1 });
+        const comments = mockClient.createComment.mock.calls.map(
+            (call) => (call[0] as { body: string }).body,
+        );
+        expect(comments.some((b) => b.includes('separate issue for each scope'))).toBe(true);
+    });
+
+    it('closes a scoped group issue when that scope is on the latest version', async () => {
+        existingIssues(['[Dependicus] [team-admin] Update admin-tools group (1 dependency)']);
+        const outdated = makeVersion({ usedBy: ['@app/web'] });
+        const current = makeVersion({
+            version: '2.0.0',
+            latestVersion: '2.0.0',
+            usedBy: ['@app/admin'],
+        });
+        populateFacts(store, 'test-pkg', outdated);
+
+        const result = await reconcileIssues(
+            [makeDep('test-pkg', [outdated, current])],
+            store,
+            liveConfig,
+            (ctx) =>
+                perTeamSpec(ctx).map((spec) => ({
+                    ...spec,
+                    group: `${spec.scope}-tools`.replace('team-', ''),
+                })),
+        );
+
+        expect(result).toMatchObject({ created: 1, closed: 1 });
+    });
+
+    it('keeps every consumer when a spec returns an empty usedBy', async () => {
+        const v = makeVersion({ usedBy: ['@app/web', '@app/admin'] });
+        populateFacts(store, 'test-pkg', v);
+
+        await reconcileIssues([makeDep('test-pkg', [v])], store, liveConfig, () => ({
+            teamId: 'team-web',
+            policy: { type: 'dueDate' },
+            thresholdDays: 28,
+            usedBy: [],
+        }));
+
+        const [input] = mockClient.createIssue.mock.calls[0] as [{ description: string }];
+        expect(input.description).toContain('@app/admin');
+    });
+
     it('asks for minimumVersion and counts the due date from its release', async () => {
         const v = makeVersion({ version: '1.0.0', latestVersion: '2.0.0' });
         populateFacts(store, 'test-pkg', v, {

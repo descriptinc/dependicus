@@ -170,7 +170,7 @@ export class GitHubIssueService {
     ): Promise<DependicusIssue | undefined> {
         const response = await this.octokit.search.issuesAndPullRequests({
             q: `repo:${owner}/${repo} label:${DEPENDICUS_LABEL_NAME} is:closed "${dependencyName}" in:title`,
-            per_page: 10,
+            per_page: 50,
             sort: 'updated',
             order: 'desc',
         });

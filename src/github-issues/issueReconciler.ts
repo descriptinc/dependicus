@@ -19,6 +19,9 @@ import {
     isWithinCooldown,
     isWithinNotificationRateLimit,
     hasMajorVersionSinceLastUpdate,
+    scopedIssueKey,
+    toSpecList,
+    higherVersion,
 } from '../core/index';
 import { GitHubIssueService, DependicusIssue } from './GitHubIssueService';
 import type {
@@ -200,26 +203,6 @@ function findExistingIssue(
     return undefined;
 }
 
-/**
- * The key an issue is tracked under: the dependency or group key, plus the
- * scope when there is one. Unscoped keys are unchanged, so issues filed before
- * scopes existed still match.
- */
-function issueKey(key: string, scope: string | undefined): string {
-    return scope === undefined ? key : `${key} [${scope}]`;
-}
-
-/** A dependency or group name for log lines, with its scope. */
-function displayName(name: string, scope: string | undefined): string {
-    return scope === undefined ? name : `${name} [${scope}]`;
-}
-
-/** Specs for one version, whether the spec function returned one or several. */
-function specList(result: GitHubIssueSpec | GitHubIssueSpec[] | undefined): GitHubIssueSpec[] {
-    if (result === undefined) return [];
-    return Array.isArray(result) ? result : [result];
-}
-
 /** Default policy when the issue spec doesn't specify one. */
 const DEFAULT_POLICY: GitHubIssuePolicy = { type: 'fyi' };
 
@@ -280,8 +263,10 @@ export async function reconcileGitHubIssues(
     // merging packages that share a name across different registries, and by
     // scope so one dependency can have an issue per scope)
     const outdatedDeps = new Map<string, OutdatedDependency>();
-    // ecosystem::name of every dependency with at least one issue this run
-    const classifiedDeps = new Set<string>();
+    // ecosystem::name@version of every version the spec was asked about
+    const specCalled = new Set<string>();
+    // ecosystem::name of every dependency with a scoped issue this run
+    const scopedDeps = new Set<string>();
 
     for (const dep of dependencies) {
         const depKey = `${dep.ecosystem}::${dep.name}`;
@@ -305,7 +290,8 @@ export async function reconcileGitHubIssues(
             };
 
             const scopedStore = store.scoped(dep.ecosystem);
-            for (const ctx of specList(getGitHubIssueSpec?.(versionContext, scopedStore))) {
+            specCalled.add(`${depKey}@${version.version}`);
+            for (const ctx of toSpecList(getGitHubIssueSpec?.(versionContext, scopedStore))) {
                 const policy = ctx.policy ?? DEFAULT_POLICY;
                 const assignment = ctx.assignment ?? DEFAULT_ASSIGNMENT;
 
@@ -338,9 +324,11 @@ export async function reconcileGitHubIssues(
 
                 // A spec can narrow the packages it covers, so each scoped issue
                 // lists its own consumers rather than every one.
-                const entryVersion = ctx.usedBy ? { ...version, usedBy: ctx.usedBy } : version;
-                const key = issueKey(depKey, ctx.scope);
-                classifiedDeps.add(depKey);
+                const entryVersion = ctx.usedBy?.length
+                    ? { ...version, usedBy: ctx.usedBy }
+                    : version;
+                const key = scopedIssueKey(depKey, ctx.scope);
+                if (ctx.scope !== undefined) scopedDeps.add(depKey);
 
                 const existing = outdatedDeps.get(key);
 
@@ -387,10 +375,16 @@ export async function reconcileGitHubIssues(
                         };
                         existing.policy = aggregatePolicy(existing.policy, effectivePolicy);
                         existing.targetVersion = targetVersion;
-                        existing.minimumVersion = ctx.minimumVersion;
                     } else {
                         existing.policy = aggregatePolicy(existing.policy, effectivePolicy);
                     }
+
+                    // Ask for the highest minimum any version needs, so the
+                    // title's version gets its fix too.
+                    existing.minimumVersion = higherVersion(
+                        existing.minimumVersion,
+                        ctx.minimumVersion,
+                    );
 
                     if (availableMajorVersion && !existing.availableMajorVersion) {
                         existing.availableMajorVersion = availableMajorVersion;
@@ -408,7 +402,7 @@ export async function reconcileGitHubIssues(
 
     for (const [key, dep] of outdatedDeps) {
         if (dep.group) {
-            const groupKey = issueKey(dep.group, dep.scope);
+            const groupKey = scopedIssueKey(dep.group, dep.scope);
             const groupDeps = dependenciesByGroup.get(groupKey) ?? [];
             groupDeps.push(dep);
             dependenciesByGroup.set(groupKey, groupDeps);
@@ -471,25 +465,27 @@ export async function reconcileGitHubIssues(
     if (getGitHubIssueSpec) {
         for (const dep of dependencies) {
             const depKey = `${dep.ecosystem}::${dep.name}`;
-            if (classifiedDeps.has(depKey)) continue; // already classified
-            const version = dep.versions[0];
-            if (!version) continue;
-            const specs = specList(
-                getGitHubIssueSpec(
-                    {
-                        name: dep.name,
-                        ecosystem: dep.ecosystem,
-                        currentVersion: version.version,
-                        latestVersion: version.latestVersion,
-                        usedBy: version.usedBy,
-                    },
-                    store.scoped(dep.ecosystem),
-                ),
-            );
-            for (const ctx of specs) {
-                if (ctx.group) {
-                    reportedGroups.add(issueKey(ctx.group, ctx.scope));
-                    reportedGroupNames.add(ctx.group);
+            // Versions the main pass skipped, like ones already on latest, still
+            // say which groups they belong to.
+            for (const version of dep.versions) {
+                if (specCalled.has(`${depKey}@${version.version}`)) continue;
+                const specs = toSpecList(
+                    getGitHubIssueSpec(
+                        {
+                            name: dep.name,
+                            ecosystem: dep.ecosystem,
+                            currentVersion: version.version,
+                            latestVersion: version.latestVersion,
+                            usedBy: version.usedBy,
+                        },
+                        store.scoped(dep.ecosystem),
+                    ),
+                );
+                for (const ctx of specs) {
+                    if (ctx.group) {
+                        reportedGroups.add(scopedIssueKey(ctx.group, ctx.scope));
+                        reportedGroupNames.add(ctx.group);
+                    }
                 }
             }
         }
@@ -538,7 +534,7 @@ export async function reconcileGitHubIssues(
     for (const issue of existingIssues) {
         existingIssuesByTitle.add(issue.title);
         if (issue.isPullRequest) continue;
-        const key = issueKey(issue.dependencyName, issue.scope);
+        const key = scopedIssueKey(issue.dependencyName, issue.scope);
         if (!existingIssuesByDependency.has(key)) {
             existingIssuesByDependency.set(key, issue);
         } else {
@@ -578,10 +574,10 @@ export async function reconcileGitHubIssues(
         const depKey = `${dep.ecosystem}::${dep.name}`;
         const match = findExistingIssue(
             existingIssuesByDependency,
-            issueKey(depKey, dep.scope),
-            issueKey(dep.name, dep.scope),
+            scopedIssueKey(depKey, dep.scope),
+            scopedIssueKey(dep.name, dep.scope),
         );
-        const label = displayName(dep.name, dep.scope);
+        const label = scopedIssueKey(dep.name, dep.scope);
         const existingIssue = match?.issue;
         const version = dep.versions[0];
         if (!version) {
@@ -820,8 +816,8 @@ export async function reconcileGitHubIssues(
 
     // Process grouped dependencies
     for (const group of outdatedGroups.values()) {
-        const groupKey = issueKey(group.groupName, group.scope);
-        const groupLabel = displayName(group.groupName, group.scope);
+        const groupKey = scopedIssueKey(group.groupName, group.scope);
+        const groupLabel = scopedIssueKey(group.groupName, group.scope);
         const existingIssue = existingIssuesByDependency.get(groupKey);
         const groupNotificationsOnly = isFyiPolicy(group.policy);
 
@@ -1027,7 +1023,7 @@ export async function reconcileGitHubIssues(
             continue;
         }
         const groupReported =
-            reportedGroups.has(issueKey(issue.dependencyName, issue.scope)) ||
+            reportedGroups.has(scopedIssueKey(issue.dependencyName, issue.scope)) ||
             (issue.scope !== undefined && reportedGroupNames.has(issue.dependencyName));
         if (issue.isGroup && !groupReported) {
             process.stderr.write(
@@ -1042,18 +1038,24 @@ export async function reconcileGitHubIssues(
         const [depEcosystem, depName] = issue.dependencyName.includes('::')
             ? issue.dependencyName.split('::')
             : [undefined, issue.dependencyName];
-        const closeComment = buildIssueClosedComment({
-            name: depName!,
-            ecosystem: depEcosystem,
-            isGroup: issue.isGroup,
-            currentVersion: firstVersion?.version,
-            latestVersion: firstVersion?.latestVersion,
-        });
+        // An unscoped issue for a dependency that now has scoped ones was
+        // split up, not fixed.
+        const superseded =
+            !issue.isGroup && issue.scope === undefined && scopedDeps.has(issue.dependencyName);
+        const closeComment = superseded
+            ? `Dependicus now files a separate issue for each scope of ${depName}, so this one is closed in favor of those.`
+            : buildIssueClosedComment({
+                  name: depName!,
+                  ecosystem: depEcosystem,
+                  isGroup: issue.isGroup,
+                  currentVersion: firstVersion?.version,
+                  latestVersion: firstVersion?.latestVersion,
+              });
         await githubService.createComment(owner, repo, issue.number, closeComment);
         await githubService.closeIssue(owner, repo, issue.number);
         if (!dryRun) {
             process.stderr.write(
-                `Closed issue for ${issue.dependencyName} (#${issue.number}) - now compliant\n`,
+                `Closed issue for ${issue.dependencyName} (#${issue.number}) - ${superseded ? 'split into scoped issues' : 'now compliant'}\n`,
             );
         }
         closed++;
