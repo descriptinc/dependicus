@@ -13,6 +13,7 @@ import type { VersionContext, LinearIssueSpec } from '../linear/index';
 import type { GitHubIssueSpec } from '../github-issues/index';
 import type { SecurityPluginConfig, SecurityFinding, Severity, Maintenance } from './types';
 import { SECURITY_FINDINGS_KEY, SEVERITY_ORDER } from './types';
+import { compareVersions } from '../core/utils/versionUtils';
 import { OsvSource } from './sources/OsvSource';
 import { DepsDevSource } from './sources/DepsDevSource';
 import { GitHubAdvisorySource } from './sources/GitHubAdvisorySource';
@@ -282,6 +283,9 @@ export class SecurityPlugin {
             stats.push({ label: 'Advisories', value: merged.advisoryCount });
         }
         stats.push({ label: 'Fix available', value: merged.fixAvailable ? 'Yes' : 'No' });
+        if (merged.fixVersion) {
+            stats.push({ label: 'Fixed in', value: merged.fixVersion });
+        }
         if (merged.sources) {
             stats.push({ label: 'Reported by', value: merged.sources });
         }
@@ -302,7 +306,11 @@ export class SecurityPlugin {
                         : '';
                 bits.push(`${advisory.severity}${score}`);
             }
-            if (advisory.fixAvailable) bits.push('fix available');
+            if (advisory.fixVersions?.length) {
+                bits.push(`fixed in ${advisory.fixVersions.join(', ')}`);
+            } else if (advisory.fixAvailable) {
+                bits.push('fix available');
+            }
             const meta = bits.length > 0 ? ` <span>${escapeHtml(bits.join(' · '))}</span>` : '';
             const summary = advisory.summary ? `: ${escapeHtml(advisory.summary)}` : '';
             rows.push(
@@ -353,6 +361,9 @@ export class SecurityPlugin {
             summaryLines.push(`- Advisories: ${merged.advisoryCount}`);
         }
         summaryLines.push(`- Fix available: ${merged.fixAvailable ? 'yes' : 'no'}`);
+        if (merged.fixVersion) {
+            summaryLines.push(`- Fixed in: ${merged.fixVersion}`);
+        }
         if (merged.maintenance) {
             summaryLines.push(`- Maintenance posture: ${merged.maintenance}`);
         }
@@ -372,7 +383,11 @@ export class SecurityPlugin {
                         typeof a.cvssScore === 'number' ? ` ${a.cvssScore.toFixed(1)}` : '';
                     parts.push(`${a.severity}${score}`);
                 }
-                if (a.fixAvailable) parts.push('fix available');
+                if (a.fixVersions?.length) {
+                    parts.push(`fixed in ${a.fixVersions.join(', ')}`);
+                } else if (a.fixAvailable) {
+                    parts.push('fix available');
+                }
                 const line = parts.join(' · ');
                 const summary = a.summary ? `: ${a.summary}` : '';
                 lines.push(`- ${line}${summary}`);
@@ -416,6 +431,8 @@ interface MergedFindings {
     cvssScore: number | undefined;
     advisoryCount: number;
     fixAvailable: boolean;
+    /** Lowest version that fixes every source's findings, when a source named one. */
+    fixVersion: string | undefined;
     maintenance: Maintenance | undefined;
     rationale: string[];
     /** Comma-separated source labels (e.g. "OSV, deps.dev"). */
@@ -439,6 +456,7 @@ function mergeFindingsFromArray(findings: SecurityFinding[]): MergedFindings {
             cvssScore: undefined,
             advisoryCount: 0,
             fixAvailable: false,
+            fixVersion: undefined,
             maintenance: undefined,
             rationale: [],
             sources: '',
@@ -474,6 +492,7 @@ function mergeFindingsFromArray(findings: SecurityFinding[]): MergedFindings {
             : findings.reduce((sum, f) => sum + (f.advisoryCount ?? 0), 0);
 
     const anyFix = findings.some((f) => f.fixAvailable);
+    const fixVersion = highestFixVersion(findings);
 
     // Worst maintenance posture (stale > unknown > active)
     const maintenanceOrder: Maintenance[] = ['active', 'unknown', 'stale'];
@@ -498,10 +517,42 @@ function mergeFindingsFromArray(findings: SecurityFinding[]): MergedFindings {
         cvssScore: worstScore,
         advisoryCount,
         fixAvailable: anyFix,
+        fixVersion,
         maintenance,
         rationale: allRationale,
         sources,
     };
+}
+
+/**
+ * The highest of the findings' fix versions. Each source names the lowest
+ * version that fixes what it reported, so the highest of those fixes them all.
+ */
+function highestFixVersion(findings: readonly SecurityFinding[]): string | undefined {
+    let highest: string | undefined;
+    for (const { fixVersion } of findings) {
+        if (!fixVersion) continue;
+        if (!highest || (compareVersions(fixVersion, highest) ?? 0) > 0) highest = fixVersion;
+    }
+    return highest;
+}
+
+/**
+ * The lowest version that fixes the known vulnerabilities in a dependency
+ * version, for issue specs to pass as `minimumVersion`. Undefined when no
+ * source says, or there's nothing to fix.
+ *
+ * @example
+ * getLinearIssueSpec: (ctx, store) => ({
+ *     teamId,
+ *     minimumVersion: getFixVersion(store, ctx.name, ctx.currentVersion),
+ * })
+ * @group Security
+ */
+export function getFixVersion(store: FactStore, name: string, version: string): string | undefined {
+    return highestFixVersion(
+        store.getVersionFact<SecurityFinding[]>(name, version, SECURITY_FINDINGS_KEY) ?? [],
+    );
 }
 
 function escapeAttr(s: string): string {

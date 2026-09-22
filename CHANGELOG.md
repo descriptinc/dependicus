@@ -23,6 +23,13 @@
     - Its findings merge with the other sources' and deduplicate against them on GHSA or CVE, so advisory counts don't double up.
     - Go coverage is partial and the docs say why: Snyk files many Go advisories against an individual package or the standard library, while the Go provider reports module paths.
 
+- Issue specs can file one issue per team for a dependency several teams use.
+    - `getLinearIssueSpec` and `getGitHubIssueSpec` may return an array of specs. Each spec with its own `scope` gets its own issue, with the scope in the title, created, updated and closed independently of the others. A single spec works as before, and unscoped issues keep matching.
+    - `VersionContext.usedBy` lists the packages that use the version, and a spec's `usedBy` narrows its issue to the packages it covers, so each team's issue names only its own.
+    - Plugin specs merge per scope. A plugin returning a single spec, like `SecurityPlugin`'s description sections, reaches every scoped issue.
+- Issue specs can set `minimumVersion`, the lowest release that resolves the issue. The title asks for at least that version, and the due date counts from when it was published. Without it, issues still ask for the first release of the update type needed, which for a vulnerability is often not the release that fixes it.
+- The Snyk source records which versions fix each advisory, and the lowest version that fixes them all. Tickets and dependency pages show them, and `getFixVersion(store, name, version)` returns it for use as `minimumVersion`.
+
 ### Changed
 
 - `searchDependicusIssues` (in `@dependicus/github-issues`) now treats draft pull requests as not yet open for review and excludes them from results, while ready-for-review pull requests are returned alongside regular issues. Each returned entry carries an `isPullRequest` boolean so notification bots can count open Dependicus items accurately — drafts no longer pad the total — and the reconciler can avoid mutating pull requests. Anything explicitly flagged as a draft (PR or otherwise) is still skipped defensively.

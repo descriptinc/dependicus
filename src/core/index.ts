@@ -46,6 +46,7 @@ export {
     extractLatestVersionFromTitle,
     extractDependencyNameFromTitle,
     extractGroupNameFromTitle,
+    extractScopeFromTitle,
     buildTicketTitle,
     buildGroupTicketTitle,
     findFirstVersionOfType,

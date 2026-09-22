@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { RootFactStore } from '../core/index';
 import type { DependencyVersion } from '../core/index';
-import { SecurityPlugin } from './SecurityPlugin';
+import { SecurityPlugin, getFixVersion } from './SecurityPlugin';
 import type { SecurityFinding } from './types';
 import { SECURITY_FINDINGS_KEY } from './types';
 
@@ -289,5 +289,54 @@ describe('SecurityPlugin', () => {
         );
 
         expect(spec).toBeUndefined();
+    });
+});
+
+describe('fix versions', () => {
+    const findings: SecurityFinding[] = [
+        {
+            source: 'snyk',
+            sourceLabel: 'Snyk',
+            severity: 'high',
+            fixAvailable: true,
+            fixVersion: '1.20.6',
+            advisories: [
+                {
+                    id: 'SNYK-1',
+                    severity: 'high',
+                    fixAvailable: true,
+                    fixVersions: ['1.20.6', '2.3.0'],
+                    url: 'https://security.snyk.io/vuln/SNYK-1',
+                },
+            ],
+        },
+        { source: 'osv', sourceLabel: 'OSV', severity: 'high', fixVersion: '1.20.7' },
+    ];
+
+    function storeWith(f: SecurityFinding[]) {
+        const store = new RootFactStore();
+        store.scoped('npm').setVersionFact('body-parser', '1.20.1', SECURITY_FINDINGS_KEY, f);
+        return store.scoped('npm');
+    }
+
+    it('getFixVersion takes the highest across sources', () => {
+        expect(getFixVersion(storeWith(findings), 'body-parser', '1.20.1')).toBe('1.20.7');
+        expect(getFixVersion(storeWith([]), 'body-parser', '1.20.1')).toBeUndefined();
+    });
+
+    it('puts the fix versions in ticket descriptions', () => {
+        const plugin = new SecurityPlugin({});
+        const spec = plugin.getLinearIssueSpec(
+            {
+                name: 'body-parser',
+                ecosystem: 'npm',
+                currentVersion: '1.20.1',
+                latestVersion: '2.3.0',
+            },
+            storeWith(findings),
+        );
+        const body = spec?.descriptionSections?.map((s) => s.body).join('\n') ?? '';
+        expect(body).toContain('- Fixed in: 1.20.7');
+        expect(body).toContain('fixed in 1.20.6, 2.3.0');
     });
 });

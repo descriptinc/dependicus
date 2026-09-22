@@ -123,12 +123,44 @@ export function extractLatestVersionFromTitle(title: string): string | undefined
 }
 
 /**
+ * A single-dependency title carrying a scope after its ecosystem tag:
+ * "[Dependicus] [npm] [Growth] Update X from ..." or "[Dependicus] [npm] [Growth] FYI: X 2.0.0 is available".
+ * Groups 1-2 are the ecosystem and scope; 3 or 4 is the dependency name.
+ */
+const SCOPED_TICKET_TITLE =
+    /^\[Dependicus\]\s+\[(\w+)\]\s+\[([^\]]+)\]\s+(?:Update\s+(.+?)\s+from\s+|FYI:\s+(.+?)\s+\S+\s+is available)/;
+
+/**
+ * A group title carrying a scope: "[Dependicus] [Growth] Update X group (...)" or
+ * "[Dependicus] [Growth] FYI: X group updates available (...)".
+ * Group 1 is the scope; 2 or 3 is the group name.
+ */
+const SCOPED_GROUP_TITLE =
+    /^\[Dependicus\]\s+\[([^\]]+)\]\s+(?:Update\s+(.+?)\s+group\s+\(|FYI:\s+(.+?)\s+group\s+updates)/;
+
+/**
+ * Extract the scope from a Dependicus ticket title, if it has one.
+ *
+ * A scope splits one dependency (or group) into several tickets, e.g. one per
+ * owning team. Titles written without a scope return undefined.
+ */
+export function extractScopeFromTitle(title: string): string | undefined {
+    return title.match(SCOPED_TICKET_TITLE)?.[2] ?? title.match(SCOPED_GROUP_TITLE)?.[1];
+}
+
+/**
  * Extract dependency name from a Dependicus ticket title.
  * Expected formats:
  * - "[Dependicus] Update <dependency> from X to Y"
  * - "[Dependicus] FYI: <dependency> X.Y.Z is available"
  */
 export function extractDependencyNameFromTitle(title: string): string | undefined {
+    // Scoped format: "[Dependicus] [npm] [Growth] Update X from..." or "... FYI: X <v> is available"
+    const scopedMatch = title.match(SCOPED_TICKET_TITLE);
+    if (scopedMatch) {
+        return `${scopedMatch[1]}::${scopedMatch[3] ?? scopedMatch[4]}`;
+    }
+
     // Try new format with ecosystem tag: "[Dependicus] [npm] Update X from..."
     const ecoUpdateMatch = title.match(/^\[Dependicus\]\s+\[(\w+)\]\s+Update\s+(.+?)\s+from\s+/);
     if (ecoUpdateMatch) {
@@ -176,6 +208,11 @@ export function extractDependencyNameFromTitle(title: string): string | undefine
  * - "[Dependicus] FYI: <group> group updates available (N dependencies)"
  */
 export function extractGroupNameFromTitle(title: string): string | undefined {
+    const scopedMatch = title.match(SCOPED_GROUP_TITLE);
+    if (scopedMatch) {
+        return scopedMatch[2] ?? scopedMatch[3];
+    }
+
     // Try standard group update format
     const updateMatch = title.match(/^\[Dependicus\]\s+Update\s+(.+?)\s+group\s+\(/);
     if (updateMatch) {
@@ -193,20 +230,22 @@ export function extractGroupNameFromTitle(title: string): string | undefined {
 
 /**
  * Build the title for a grouped ticket.
- * Format: "Update <group> group (N dependencies)" or "FYI: <group> group updates available (N dependencies)"
+ * Format: "Update <group> group (N dependencies)" or "FYI: <group> group updates available (N dependencies)",
+ * prefixed with "[<scope>] " when the ticket is scoped.
  */
 export function buildGroupTicketTitle(
     groupName: string,
     count: number,
-    options?: { notificationsOnly?: boolean },
+    options?: { notificationsOnly?: boolean; scope?: string },
 ): string {
     const countLabel = count === 1 ? '1 dependency' : `${count} dependencies`;
+    const prefix = options?.scope ? `[${options.scope}] ` : '';
 
     if (options?.notificationsOnly) {
-        return `FYI: ${groupName} group updates available (${countLabel})`;
+        return `${prefix}FYI: ${groupName} group updates available (${countLabel})`;
     }
 
-    return `Update ${groupName} group (${countLabel})`;
+    return `${prefix}Update ${groupName} group (${countLabel})`;
 }
 
 /**
@@ -220,9 +259,12 @@ export function buildTicketTitle(
     currentVersion: string,
     minVersion: string,
     latestVersion: string,
-    options?: { notificationsOnly?: boolean; ecosystem?: string },
+    options?: { notificationsOnly?: boolean; ecosystem?: string; scope?: string },
 ): string {
-    const prefix = options?.ecosystem ? `[${options.ecosystem}] ` : '';
+    const ecosystemTag = options?.ecosystem ? `[${options.ecosystem}] ` : '';
+    // A scope is only recoverable from the title when it follows an ecosystem tag.
+    const scopeTag = options?.ecosystem && options.scope ? `[${options.scope}] ` : '';
+    const prefix = `${ecosystemTag}${scopeTag}`;
 
     // Notifications-only dependencies get FYI-style titles since no update is mandatory
     if (options?.notificationsOnly) {
@@ -291,6 +333,10 @@ export function findFirstVersionOfType(
  * Calculate the due date for a dependency update.
  * Due date = first available update publish date + thresholdDays
  *
+ * With a `minimumVersion`, the clock starts when that version was published
+ * instead, since it's the release the ticket asks for. If it isn't in
+ * versionsBetween, this falls back to the first update of the type.
+ *
  * If no versions are found between current and latest, falls back to
  * the provided fallbackPublishDate.
  */
@@ -300,8 +346,13 @@ export function calculateDueDate(
     updateType: 'major' | 'minor' | 'patch',
     thresholdDays: number,
     fallbackPublishDate: string | undefined,
+    minimumVersion?: string,
 ): Date {
-    const firstVersion = findFirstVersionOfType(currentVersion, versionsBetween, updateType);
+    const minimum = minimumVersion
+        ? versionsBetween.find((v) => v.version === minimumVersion && v.publishDate)
+        : undefined;
+    const firstVersion =
+        minimum ?? findFirstVersionOfType(currentVersion, versionsBetween, updateType);
 
     const availableDate = firstVersion?.publishDate
         ? new Date(firstVersion.publishDate)
