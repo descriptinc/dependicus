@@ -1573,6 +1573,22 @@ describe('reconcileIssues with scoped specs', () => {
         ]);
     });
 
+    it('closes a scoped group issue once its scope stops using the group', async () => {
+        existingIssues([
+            '[Dependicus] [team-web] Update tooling group (1 dependency)',
+            '[Dependicus] [team-admin] Update tooling group (1 dependency)',
+        ]);
+        const v = makeVersion({ usedBy: ['@app/web'] });
+        populateFacts(store, 'test-pkg', v);
+
+        const result = await reconcileIssues([makeDep('test-pkg', [v])], store, liveConfig, (ctx) =>
+            perTeamSpec(ctx).map((spec) => ({ ...spec, group: 'tooling' })),
+        );
+
+        expect(result).toMatchObject({ created: 0, updated: 1, closed: 1 });
+        expect(mockClient.updateIssue).toHaveBeenCalledWith('issue-1', { stateId: 'done-state' });
+    });
+
     it('asks for minimumVersion and counts the due date from its release', async () => {
         const v = makeVersion({ version: '1.0.0', latestVersion: '2.0.0' });
         populateFacts(store, 'test-pkg', v, {
