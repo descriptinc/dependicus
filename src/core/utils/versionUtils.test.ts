@@ -8,6 +8,7 @@ import {
     extractLatestVersionFromTitle,
     extractDependencyNameFromTitle,
     extractGroupNameFromTitle,
+    extractScopeFromTitle,
     buildTicketTitle,
     buildGroupTicketTitle,
     findFirstVersionOfType,
@@ -674,5 +675,71 @@ describe('hasMajorVersionSinceLastUpdate', () => {
     it('handles multiple major version jumps', () => {
         expect(hasMajorVersionSinceLastUpdate('1.0.0', '3.0.0')).toBe(true);
         expect(hasMajorVersionSinceLastUpdate('10.0.0', '15.0.0')).toBe(true);
+    });
+});
+
+describe('scoped ticket titles', () => {
+    it('round-trips a scoped update title', () => {
+        const title = `[Dependicus] ${buildTicketTitle('next', '13.5.11', '13.5.12', '16.3.6', {
+            ecosystem: 'npm',
+            scope: 'Rep Lab AI',
+        })}`;
+        expect(title).toBe(
+            '[Dependicus] [npm] [Rep Lab AI] Update next from 13.5.11 to at least 13.5.12 (latest: 16.3.6)',
+        );
+        expect(extractDependencyNameFromTitle(title)).toBe('npm::next');
+        expect(extractScopeFromTitle(title)).toBe('Rep Lab AI');
+        expect(extractLatestVersionFromTitle(title)).toBe('16.3.6');
+    });
+
+    it('round-trips a scoped FYI title', () => {
+        const title = `[Dependicus] ${buildTicketTitle('@scope/pkg', '1.0.0', '2.0.0', '2.0.0', {
+            ecosystem: 'npm',
+            scope: 'Growth',
+            notificationsOnly: true,
+        })}`;
+        expect(extractDependencyNameFromTitle(title)).toBe('npm::@scope/pkg');
+        expect(extractScopeFromTitle(title)).toBe('Growth');
+    });
+
+    it('leaves the scope out of a title with no ecosystem tag', () => {
+        expect(buildTicketTitle('react', '18.0.0', '19.0.0', '19.0.0', { scope: 'Growth' })).toBe(
+            'Update react from 18.0.0 to 19.0.0',
+        );
+    });
+
+    it('round-trips a scoped group title', () => {
+        const title = `[Dependicus] ${buildGroupTicketTitle('sentry', 2, { scope: 'Growth' })}`;
+        expect(title).toBe('[Dependicus] [Growth] Update sentry group (2 dependencies)');
+        expect(extractGroupNameFromTitle(title)).toBe('sentry');
+        expect(extractScopeFromTitle(title)).toBe('Growth');
+    });
+
+    it('finds no scope in unscoped titles', () => {
+        for (const title of [
+            '[Dependicus] [npm] Update react from 18.0.0 to 19.0.0',
+            '[Dependicus] Update react from 18.0.0 to 19.0.0',
+            '[Dependicus] [npm] FYI: react 19.0.0 is available (currently on 18.0.0)',
+            '[Dependicus] Update sentry group (2 dependencies)',
+        ]) {
+            expect(extractScopeFromTitle(title)).toBeUndefined();
+        }
+    });
+});
+
+describe('calculateDueDate with a minimum version', () => {
+    const between: PackageVersionInfo[] = [
+        { version: '1.0.1', publishDate: '2024-02-01', isPrerelease: false },
+        { version: '1.0.2', publishDate: '2024-05-01', isPrerelease: false },
+    ];
+
+    it('counts from the minimum version', () => {
+        const due = calculateDueDate('1.0.0', between, 'patch', 10, undefined, '1.0.2');
+        expect(due.toISOString().slice(0, 10)).toBe('2024-05-11');
+    });
+
+    it('falls back to the first update when the minimum version is unknown', () => {
+        const due = calculateDueDate('1.0.0', between, 'patch', 10, undefined, '9.9.9');
+        expect(due.toISOString().slice(0, 10)).toBe('2024-02-11');
     });
 });

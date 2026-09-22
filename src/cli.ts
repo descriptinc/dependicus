@@ -51,11 +51,15 @@ export interface DependicusCliConfig {
     siteName?: string;
     /** Linear issue integration configuration. */
     linear?: {
-        /** Given information about a dependency and specific version, return the issue spec (policy, assignment, etc.) or undefined to skip. */
+        /**
+         * Given information about a dependency and specific version, return the issue spec
+         * (policy, assignment, etc.) or undefined to skip. Return an array of specs with
+         * distinct `scope`s to file several issues for one dependency, e.g. one per team.
+         */
         getLinearIssueSpec?: (
             context: VersionContext,
             store: FactStore,
-        ) => LinearIssueSpec | undefined;
+        ) => LinearIssueSpec | LinearIssueSpec[] | undefined;
         /** Number of days to wait before creating a new issue for a newly-published version. */
         cooldownDays?: number;
         /** Whether to allow new issue creation. Defaults to `true`. */
@@ -67,11 +71,15 @@ export interface DependicusCliConfig {
     };
     /** GitHub Issues integration configuration. */
     github?: {
-        /** Given information about a dependency and specific version, return the issue spec or undefined to skip. */
+        /**
+         * Given information about a dependency and specific version, return the issue spec or
+         * undefined to skip. Return an array of specs with distinct `scope`s to file several
+         * issues for one dependency, e.g. one per team.
+         */
         getGitHubIssueSpec?: (
             context: GitHubVersionContext,
             store: FactStore,
-        ) => GitHubIssueSpec | undefined;
+        ) => GitHubIssueSpec | GitHubIssueSpec[] | undefined;
         /** Number of days to wait before creating a new issue for a newly-published version. */
         cooldownDays?: number;
         /** Whether to allow new issue creation. Defaults to `true`. */
@@ -378,12 +386,19 @@ export function dependicusCli(config: DependicusCliConfig): {
                         const linearDiag: SpecDiagnostics = { skipped: [], summarized: false };
                         const effectiveGetLinearIssueSpec = baseMerge
                             ? (ctx: VersionContext, s: FactStore) => {
-                                  const partial = baseMerge(ctx, s);
-                                  if (!partial) return undefined;
-                                  const patched = teamIdOverride
-                                      ? { ...partial, teamId: teamIdOverride }
-                                      : partial;
-                                  return validateLinearIssueSpec(patched, ctx.name, linearDiag);
+                                  const result = baseMerge(ctx, s);
+                                  if (!result) return undefined;
+                                  const finish = (partial: Partial<LinearIssueSpec>) =>
+                                      validateLinearIssueSpec(
+                                          teamIdOverride
+                                              ? { ...partial, teamId: teamIdOverride }
+                                              : partial,
+                                          ctx.name,
+                                          linearDiag,
+                                      );
+                                  return Array.isArray(result)
+                                      ? result.map(finish).filter((spec) => spec !== undefined)
+                                      : finish(result);
                               }
                             : teamIdOverride
                               ? (ctx: VersionContext) =>
@@ -481,14 +496,21 @@ export function dependicusCli(config: DependicusCliConfig): {
                         const githubDiag: SpecDiagnostics = { skipped: [], summarized: false };
                         const effectiveGetGitHubIssueSpec = githubMerge
                             ? (ctx: GitHubVersionContext, s: FactStore) => {
-                                  const partial = githubMerge(ctx, s);
-                                  if (!partial) return undefined;
-                                  const patched = {
-                                      ...partial,
-                                      ...(ownerOverride ? { owner: ownerOverride } : {}),
-                                      ...(repoOverride ? { repo: repoOverride } : {}),
-                                  };
-                                  return validateGitHubIssueSpec(patched, ctx.name, githubDiag);
+                                  const result = githubMerge(ctx, s);
+                                  if (!result) return undefined;
+                                  const finish = (partial: Partial<GitHubIssueSpec>) =>
+                                      validateGitHubIssueSpec(
+                                          {
+                                              ...partial,
+                                              ...(ownerOverride ? { owner: ownerOverride } : {}),
+                                              ...(repoOverride ? { repo: repoOverride } : {}),
+                                          },
+                                          ctx.name,
+                                          githubDiag,
+                                      );
+                                  return Array.isArray(result)
+                                      ? result.map(finish).filter((spec) => spec !== undefined)
+                                      : finish(result);
                               }
                             : ownerOverride || repoOverride
                               ? (ctx: GitHubVersionContext) =>

@@ -7,7 +7,7 @@ import type {
     GroupingSection,
 } from './core/index';
 import { RootFactStore } from './core/index';
-import type { VersionContext } from './linear/index';
+import type { VersionContext, LinearIssueSpec } from './linear/index';
 import type { CustomColumn } from './site-builder/index';
 import { resolvePlugins, validateLinearIssueSpec } from './plugin';
 import type { DependicusPlugin, SpecDiagnostics } from './plugin';
@@ -242,7 +242,9 @@ describe('resolvePlugins', () => {
             const p2: DependicusPlugin = { name: 'p2', getLinearIssueSpec: fn2 };
 
             const result = resolvePlugins([p1, p2], baseConfig());
-            const spec = result.getLinearIssueSpec?.({} as VersionContext, mockStore);
+            const spec = result.getLinearIssueSpec?.({} as VersionContext, mockStore) as
+                | Partial<LinearIssueSpec>
+                | undefined;
             expect(spec?.descriptionSections).toEqual([
                 { title: 'Policy', body: 'Tier 1' },
                 { title: 'Notes', body: 'Extra info' },
@@ -262,7 +264,9 @@ describe('resolvePlugins', () => {
             const p2: DependicusPlugin = { name: 'p2', getLinearIssueSpec: fn2 };
 
             const result = resolvePlugins([p1, p2], baseConfig());
-            const spec = result.getLinearIssueSpec?.({} as VersionContext, mockStore);
+            const spec = result.getLinearIssueSpec?.({} as VersionContext, mockStore) as
+                | Partial<LinearIssueSpec>
+                | undefined;
             expect(spec?.commentSections).toEqual([
                 { title: 'Security', body: 'CVE found' },
                 { title: 'Compliance', body: 'SLA breach' },
@@ -340,5 +344,79 @@ describe('validateLinearIssueSpec', () => {
         const result = validateLinearIssueSpec(undefined, 'react', diag);
         expect(result).toBeUndefined();
         expect(diag.skipped).toEqual([]);
+    });
+
+    describe('scoped issue specs', () => {
+        const ctx = {} as VersionContext;
+
+        it('returns one spec per scope, with single specs merged into each', () => {
+            const scoped: DependicusPlugin = {
+                name: 'teams',
+                getLinearIssueSpec: () => [
+                    { teamId: 'a', scope: 'A' },
+                    { teamId: 'b', scope: 'B' },
+                ],
+            };
+            const sections: DependicusPlugin = {
+                name: 'sections',
+                getLinearIssueSpec: () => ({
+                    descriptionSections: [{ title: 'Security', body: 'CVE' }],
+                }),
+            };
+
+            const result = resolvePlugins([sections, scoped], baseConfig());
+            const specs = result.getLinearIssueSpec?.(ctx, mockStore);
+
+            expect(specs).toEqual([
+                {
+                    teamId: 'a',
+                    scope: 'A',
+                    descriptionSections: [{ title: 'Security', body: 'CVE' }],
+                },
+                {
+                    teamId: 'b',
+                    scope: 'B',
+                    descriptionSections: [{ title: 'Security', body: 'CVE' }],
+                },
+            ]);
+        });
+
+        it('merges array entries that share a scope', () => {
+            const p1: DependicusPlugin = {
+                name: 'p1',
+                getLinearIssueSpec: () => [{ teamId: 'a', scope: 'A' }],
+            };
+            const p2: DependicusPlugin = {
+                name: 'p2',
+                getLinearIssueSpec: () => [{ scope: 'A', ownerLabel: 'Team A' }],
+            };
+
+            const specs = resolvePlugins([p1, p2], baseConfig()).getLinearIssueSpec?.(
+                ctx,
+                mockStore,
+            );
+
+            expect(specs).toEqual([{ teamId: 'a', scope: 'A', ownerLabel: 'Team A' }]);
+        });
+
+        it('files nothing when a plugin returns an empty array', () => {
+            const none: DependicusPlugin = { name: 'none', getLinearIssueSpec: () => [] };
+            const sections: DependicusPlugin = {
+                name: 'sections',
+                getLinearIssueSpec: () => ({ descriptionSections: [{ title: 'x', body: 'y' }] }),
+            };
+
+            expect(
+                resolvePlugins([none, sections], baseConfig()).getLinearIssueSpec?.(ctx, mockStore),
+            ).toBeUndefined();
+        });
+
+        it('rejects a scope with square brackets', () => {
+            const diag: SpecDiagnostics = { skipped: [], summarized: true };
+            expect(validateLinearIssueSpec({ teamId: 'a', scope: '[A]' }, 'pkg', diag)).toBe(
+                undefined,
+            );
+            expect(diag.skipped).toEqual(['pkg']);
+        });
     });
 });

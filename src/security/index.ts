@@ -1,4 +1,4 @@
-export { SecurityPlugin } from './SecurityPlugin';
+export { SecurityPlugin, getFixVersion } from './SecurityPlugin';
 export type {
     SecurityPluginConfig,
     OsvConfig,
