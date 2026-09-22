@@ -462,6 +462,12 @@ export async function reconcileGitHubIssues(
     // (all versions already on latest). This lets the close loop distinguish
     // "group is compliant" from "group's deps were absent due to provider failure."
     const reportedGroups = new Set(dependenciesByGroup.keys());
+    // Group names reported under any scope. A scoped group issue whose scope is
+    // missing while its group was reported under another scope has lost its
+    // last dependency, rather than being absent because a provider failed.
+    const reportedGroupNames = new Set(
+        [...outdatedGroups.values()].map((group) => group.groupName),
+    );
     if (getGitHubIssueSpec) {
         for (const dep of dependencies) {
             const depKey = `${dep.ecosystem}::${dep.name}`;
@@ -483,6 +489,7 @@ export async function reconcileGitHubIssues(
             for (const ctx of specs) {
                 if (ctx.group) {
                     reportedGroups.add(issueKey(ctx.group, ctx.scope));
+                    reportedGroupNames.add(ctx.group);
                 }
             }
         }
@@ -1019,7 +1026,10 @@ export async function reconcileGitHubIssues(
             );
             continue;
         }
-        if (issue.isGroup && !reportedGroups.has(issueKey(issue.dependencyName, issue.scope))) {
+        const groupReported =
+            reportedGroups.has(issueKey(issue.dependencyName, issue.scope)) ||
+            (issue.scope !== undefined && reportedGroupNames.has(issue.dependencyName));
+        if (issue.isGroup && !groupReported) {
             process.stderr.write(
                 `Skipping close for ${issue.dependencyName} group (#${issue.number}) — no dependencies assigned to this group this run\n`,
             );
