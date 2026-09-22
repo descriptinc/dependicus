@@ -57,7 +57,7 @@ void dependicusCli({
 
 ## One issue per team, and security fixes
 
-`getGitHubIssueSpec` takes the same `scope`, `usedBy` and `minimumVersion` fields as its Linear counterpart. Return an array of scoped specs to file one issue per team, and set `minimumVersion` to ask for the release that fixes a vulnerability. See [Creating and Updating Linear Issues](linearissues.md#one-issue-per-team) for how they work.
+GitHub issue specs take the same `scope`, `usedBy` and `minimumVersion` fields as Linear ones. Return one scoped spec per team to split an issue up, and set `minimumVersion` to ask for the release that fixes a vulnerability. [The Linear docs](linearissues.md#one-issue-per-team) walk through both.
 
 ## CLI flags
 
