@@ -35,7 +35,7 @@ const teams: DependicusPlugin = {
 };
 ```
 
-Returning several values files the dependency under each of them, so a module shared by three services shows up on all three team pages.
+Returning several values files the dependency under each of them, so a module reached by binaries from more than one team appears on each of their pages.
 
 Reading imports needs the module's sources, not only the `go.mod` files that `go list -m all` fetches. When they aren't present Dependicus says so and skips these two facts; everything else is unaffected.
 
