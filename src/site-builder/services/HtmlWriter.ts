@@ -876,12 +876,37 @@ export class HtmlWriter {
                     count: deps.length,
                     slug: getGroupingFilename(value),
                     outdatedCount: stats.outdatedCount,
+                    ecosystems: [...new Set(deps.map((d) => d.ecosystem))],
                 };
             });
+
+        // When a grouping's values are apps and services, the index is where
+        // ecosystems mix even though no single value does, so an app and a Go
+        // service sit next to each other with nothing to tell them apart.
+        // Split it the way a detail page splits its dependency list.
+        const indexEcosystems = new Set(summaries.flatMap((entry) => entry.ecosystems));
+        const indexGroups =
+            !ecosystem && indexEcosystems.size > 1
+                ? [...indexEcosystems]
+                      .sort((a, b) => ecosystemLabel(a).localeCompare(ecosystemLabel(b)))
+                      .map((eco) => {
+                          // A value whose dependencies span ecosystems is rare,
+                          // and listing it under each is more use than hiding
+                          // it under whichever came first.
+                          const items = summaries.filter((entry) => entry.ecosystems.includes(eco));
+                          return {
+                              ecosystem: eco,
+                              label: ecosystemLabel(eco),
+                              count: items.length,
+                              items,
+                          };
+                      })
+                : undefined;
 
         const indexContent = this.templateService.render('pages/grouping-index', {
             label: grouping.label,
             items: summaries,
+            ecosystemGroups: indexGroups,
         });
 
         const indexHtml = this.templateService.render('layouts/base', {

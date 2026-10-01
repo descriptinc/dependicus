@@ -475,6 +475,49 @@ describe('HtmlWriter', () => {
             expect(detail!.html).not.toContain('dep-ecosystem-heading');
         });
 
+        it('splits the index by ecosystem when values span more than one', () => {
+            // The realistic shape: each value is one app or one service, so no
+            // single value mixes ecosystems but the index does.
+            const perPackage: GroupingConfig = {
+                key: 'team',
+                label: 'Teams',
+                slugPrefix: 'teams',
+                getValue: (name) =>
+                    name.startsWith('github.com/') ? 'wal-streamer' : 'lawyer-portal',
+            };
+            const writer = new HtmlWriter({ groupings: [perPackage] });
+            const npmDep = makeMockDependency();
+            const goDep = makeMockDependency({ name: 'github.com/a/b', ecosystem: 'gomod' });
+            const store = makeMockStore([npmDep, goDep]);
+            const pages = writer.toAllGroupingPages(
+                [makeProvider([npmDep]), makeProvider([goDep], { name: 'go', ecosystem: 'gomod' })],
+                store,
+            );
+
+            const index = pages.find((p) => p.filename === 'teams/index.html')!;
+            expect(index.html).toContain('Go (1)');
+            expect(index.html).toContain('npm (1)');
+            // The total stays the total, whatever the headings say.
+            expect(index.html).toContain('2 entries');
+
+            // Each value under the heading for its own ecosystem.
+            const goHeading = index.html.indexOf('Go (1)');
+            const npmHeading = index.html.indexOf('npm (1)');
+            expect(index.html.indexOf('wal-streamer')).toBeGreaterThan(goHeading);
+            expect(index.html.indexOf('wal-streamer')).toBeLessThan(npmHeading);
+            expect(index.html.indexOf('lawyer-portal')).toBeGreaterThan(npmHeading);
+        });
+
+        it('leaves a single-ecosystem index as one list', () => {
+            const writer = new HtmlWriter({ groupings: [teamGrouping] });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            const pages = writer.toAllGroupingPages([makeProvider([dep])], store);
+
+            const index = pages.find((p) => p.filename.endsWith('index.html'))!;
+            expect(index.html).not.toContain('dep-ecosystem-heading');
+        });
+
         it('files a dependency under every value getValue returns', () => {
             const multi: GroupingConfig = {
                 key: 'team',
