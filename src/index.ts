@@ -130,3 +130,40 @@ export { GitHubAdvisorySource } from './security/sources/GitHubAdvisorySource';
 
 /** @group Security */
 export { SnykSource } from './security/sources/SnykSource';
+
+// ============================================================================
+// Providers
+// ============================================================================
+// Exported so a repo can build its own provider list, swapping one for a
+// configured instance while keeping the stock ones. Construct them in a
+// `providers` factory, which is handed the CacheService they need.
+
+/** @group Providers */
+export {
+    PnpmProvider,
+    BunProvider,
+    YarnProvider,
+    NpmProvider,
+    AubeProvider,
+} from './providers-node/index';
+
+/** @group Providers */
+export { MiseProvider } from './provider-mise/index';
+
+/** @group Providers */
+export { UvProvider } from './providers-python/index';
+
+/** @group Providers */
+export { GoProvider } from './provider-go/index';
+
+/** @group Providers */
+export type { GoProviderOptions } from './provider-go/index';
+
+/** @group Providers */
+export { CargoProvider } from './provider-rust/index';
+
+/** @group Core Types */
+export type { ProviderFactory, ProviderFactoryContext } from './cli';
+
+/** @group Core Types */
+export type { GroupingContext } from './core/index';

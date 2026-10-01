@@ -6,6 +6,10 @@
 
 ### Added
 
+- `GoProvider` can attribute dependencies to the services inside a module instead of to the module as a whole. A Go module is one unit to `go list -m`, so a backend with many binaries under `cmd/` previously read as a single consumer and groupings had no per-team view of it. Pass `consumerOf` to name the consumer each package directory belongs to, and Dependicus reads each package's imports, resolves them to the module providing them, and groups the result the way the Node providers attribute to workspace packages. Test-only imports become dev dependencies, and a module nothing imports stays on the module. Opt-in, because reading imports needs the module sources rather than only its `go.mod` files.
+- `providers` in the CLI config accepts a factory, `({ cacheService, repoRoot, cacheDir }) => DependencyProvider[]`. Pre-built providers need a `CacheService`, which the CLI only creates once it has read `--repo-root` and `--cache-dir`, so building them up front meant re-parsing argv. An array is still accepted.
+- The provider classes (`PnpmProvider`, `GoProvider`, `MiseProvider` and the rest) are exported, so a repo can swap one for a configured instance and keep the stock ones without reaching into `dist/`.
+
 - Dependicus can be installed from a git URL, not just from the registry, which is useful for trying a fix that isn't released yet.
     - Dependicus now builds itself from the clone, so `npm install github:descriptinc/dependicus` gives you a working `dependicus` command instead of an empty one.
     - pnpm and yarn refuse to run a git dependency's build script until you list the package as trusted. The README has the line of config each one wants.
@@ -32,6 +36,7 @@
 
 ### Changed
 
+- **Breaking:** `GroupingConfig.getValue` now takes a single `GroupingContext` (`{ name, store, ecosystem }`) instead of `(name, store)`, matching `CustomColumn.getValue`. The scoped store doesn't say which ecosystem it belongs to, so a plugin holding ownership per ecosystem couldn't tell a Go service from an npm app of the same name.
 - `searchDependicusIssues` (in `@dependicus/github-issues`) now treats draft pull requests as not yet open for review and excludes them from results, while ready-for-review pull requests are returned alongside regular issues. Each returned entry carries an `isPullRequest` boolean so notification bots can count open Dependicus items accurately — drafts no longer pad the total — and the reconciler can avoid mutating pull requests. Anything explicitly flagged as a draft (PR or otherwise) is still skipped defensively.
 
 ### Fixed

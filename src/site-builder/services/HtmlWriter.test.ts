@@ -369,11 +369,30 @@ describe('HtmlWriter', () => {
             key: 'team',
             label: 'Teams',
             slugPrefix: 'teams',
-            getValue: (name: string, store: FactStore) => {
+            getValue: ({ name, store }) => {
                 const meta = store.getDependencyFact<{ teamName: string }>(name, 'testMeta');
                 return meta?.teamName ?? 'Unknown';
             },
         };
+
+        it('tells getValue which ecosystem it is placing', () => {
+            const seen: Array<{ name: string; ecosystem: string }> = [];
+            const recording: GroupingConfig = {
+                key: 'team',
+                label: 'Teams',
+                slugPrefix: 'teams',
+                getValue: ({ name, ecosystem }) => {
+                    seen.push({ name, ecosystem });
+                    return 'Growth';
+                },
+            };
+            const writer = new HtmlWriter({ groupings: [recording] });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            writer.toGroupingPages([dep], recording, store.scoped('gomod'), 'go/', 'gomod');
+
+            expect(seen).toEqual([{ name: dep.name, ecosystem: 'gomod' }]);
+        });
 
         it('files a dependency under every value getValue returns', () => {
             const multi: GroupingConfig = {
@@ -390,6 +409,7 @@ describe('HtmlWriter', () => {
                 multi,
                 store.scoped(dep.ecosystem),
                 'pnpm/',
+                'npm',
             );
 
             expect(details.map((d) => d.filename).sort()).toEqual([
@@ -450,6 +470,7 @@ describe('HtmlWriter', () => {
                 teamGrouping,
                 store.scoped(dep.ecosystem),
                 'pnpm/',
+                'npm',
             );
 
             expect(details[0]!.html).toContain('Dependencies (2)');
@@ -478,6 +499,7 @@ describe('HtmlWriter', () => {
                 teamGrouping,
                 store.scoped(dep.ecosystem),
                 'pnpm/',
+                'npm',
             );
 
             expect(index.filename).toBe('pnpm/teams/index.html');
@@ -495,7 +517,7 @@ describe('HtmlWriter', () => {
                 key: 'surface',
                 label: 'Surfaces',
                 slugPrefix: 'surfaces',
-                getValue: (name: string, factStore: FactStore) => {
+                getValue: ({ name, store: factStore }) => {
                     const meta = factStore.getDependencyFact<{ surfaceId: string }>(
                         name,
                         'testMeta',
@@ -535,6 +557,7 @@ describe('HtmlWriter', () => {
                 teamGrouping,
                 store.scoped('npm'),
                 'pnpm/',
+                'npm',
             );
 
             expect(details).toHaveLength(1);
@@ -547,7 +570,7 @@ describe('HtmlWriter', () => {
                 key: 'team',
                 label: 'Teams',
                 slugPrefix: 'teams',
-                getValue: (name: string) => {
+                getValue: ({ name }) => {
                     return name === 'with-team' ? 'TeamA' : undefined;
                 },
             };
@@ -564,6 +587,7 @@ describe('HtmlWriter', () => {
                 partialGrouping,
                 store.scoped('npm'),
                 'pnpm/',
+                'npm',
             );
 
             expect(details).toHaveLength(1);
@@ -652,6 +676,7 @@ describe('HtmlWriter', () => {
                 teamGrouping,
                 store.scoped(dep.ecosystem),
                 'pnpm/',
+                'npm',
             );
 
             expect(details[0]!.html).toContain('Compliance');
@@ -669,6 +694,7 @@ describe('HtmlWriter', () => {
                 teamGrouping,
                 store.scoped(dep.ecosystem),
                 'pnpm/',
+                'npm',
             );
 
             // The dep is outdated (1.0.0 vs 2.0.0)

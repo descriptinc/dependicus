@@ -115,7 +115,7 @@ const animalPlugin: DependicusPlugin = {
             key: 'animal',
             header: 'Animal',
             width: 80,
-            getValue: (name) => animalForDependency(name),
+            getValue: ({ name }) => animalForDependency(name),
         },
     ],
 };
@@ -163,7 +163,7 @@ class CvePlugin implements DependicusPlugin {
                 key: 'cves',
                 header: 'CVEs',
                 width: 80,
-                getValue: (name, version, store) => {
+                getValue: ({ name, version, store }) => {
                     const counts = store.getDependencyFact<Record<string, number>>(name, CVE_FACT);
                     return String(counts?.[version.version] ?? 0);
                 },
@@ -195,7 +195,7 @@ A source can declare `dependsOn: ['npm-registry']` to run after another source. 
 
 ## Grouping pages
 
-Groupings create rollup pages that aggregate dependencies by a shared key (e.g. team, policy tier). Each `GroupingConfig` provides `getValue` to extract the key from the store. The detail page for each group value shows that group's dependencies and any sections returned by `getSections`.
+Groupings create rollup pages that aggregate dependencies by a shared key (e.g. team, policy tier). Each `GroupingConfig` provides `getValue` to extract the key. It is given a `GroupingContext` of `{ name, store, ecosystem }`: the store is already scoped to that ecosystem, and `ecosystem` tells you which one you are placing, so a plugin that keeps ownership per ecosystem can resolve it directly rather than filing facts per group ahead of time. The detail page for each group value shows that group's dependencies and any sections returned by `getSections`.
 
 `BasicCompliancePlugin` creates a grouping page per compliance policy automatically. For a working example of `getValue` and `getSections` on a grouping, see `buildGroupings` in [`compliance.ts`](../api/classes/BasicCompliancePlugin.html).
 

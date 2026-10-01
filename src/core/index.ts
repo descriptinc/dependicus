@@ -9,6 +9,7 @@ export type {
     ProviderInfo,
     ProviderOutput,
     GroupingConfig,
+    GroupingContext,
     GroupingDetailContext,
     DependencyDetailContext,
     GroupingSection,

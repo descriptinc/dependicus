@@ -417,7 +417,7 @@ export class BasicCompliancePlugin implements DependicusPlugin {
                 key: 'compliance-policy',
                 label: 'Compliance Policies',
                 slugPrefix: 'policies',
-                getValue: (name, store) => {
+                getValue: ({ name, store }) => {
                     const policy = this.resolvePolicy(name, store);
                     return policy?.name;
                 },

@@ -48,6 +48,32 @@ const replacedModuleOutput = [
     }),
 ].join('\n');
 
+// `go list -json=... ./...` output for a module whose cmd/ directories are
+// separate services, plus a nested module path that must win the longest match.
+const packageListOutput = [
+    JSON.stringify({
+        ImportPath: 'github.com/example/myapp/cmd/billing',
+        Dir: '/project/cmd/billing',
+        Imports: ['fmt', 'github.com/gorilla/mux', 'github.com/example/myapp/internal/db'],
+        TestImports: ['testing', 'github.com/sirupsen/logrus'],
+    }),
+    JSON.stringify({
+        ImportPath: 'github.com/example/myapp/cmd/worker',
+        Dir: '/project/cmd/worker',
+        Imports: ['github.com/sirupsen/logrus/hooks/test'],
+    }),
+    JSON.stringify({
+        ImportPath: 'github.com/example/myapp/internal/db',
+        Dir: '/project/internal/db',
+        Imports: ['database/sql'],
+    }),
+].join('\n');
+
+const byCmdDir = (relativeDir: string): string | undefined => {
+    const parts = relativeDir.split('/');
+    return parts[0] === 'cmd' && parts[1] ? parts[1] : undefined;
+};
+
 describe('GoProvider', () => {
     const mockCacheService = {
         isCacheValid: vi.fn().mockResolvedValue(false),
@@ -162,6 +188,104 @@ describe('GoProvider', () => {
 
         const provider = new GoProvider(mockCacheService, rootDir);
         expect(provider.discoverProjectDirs()).toEqual([]);
+    });
+
+    describe('consumerOf attribution', () => {
+        it('attributes dependencies to the consumer that imports them', async () => {
+            vi.mocked(execSync)
+                .mockReturnValueOnce('go.mod\n') // git ls-files
+                .mockReturnValueOnce(singleModuleOutput) // go list -m -json all
+                .mockReturnValueOnce(packageListOutput); // go list ./...
+
+            const provider = new GoProvider(mockCacheService, rootDir, { consumerOf: byCmdDir });
+            const packages = await provider.getPackages();
+
+            const billing = packages.find((p) => p.name === 'billing');
+            expect(Object.keys(billing!.dependencies!)).toEqual(['github.com/gorilla/mux']);
+
+            // Resolved by longest prefix: logrus/hooks/test belongs to logrus.
+            const worker = packages.find((p) => p.name === 'worker');
+            expect(Object.keys(worker!.dependencies!)).toEqual(['github.com/sirupsen/logrus']);
+        });
+
+        it('files test-only imports as dev dependencies', async () => {
+            vi.mocked(execSync)
+                .mockReturnValueOnce('go.mod\n')
+                .mockReturnValueOnce(singleModuleOutput)
+                .mockReturnValueOnce(packageListOutput);
+
+            const provider = new GoProvider(mockCacheService, rootDir, { consumerOf: byCmdDir });
+            const packages = await provider.getPackages();
+
+            const billing = packages.find((p) => p.name === 'billing');
+            expect(Object.keys(billing!.devDependencies!)).toEqual(['github.com/sirupsen/logrus']);
+            expect(billing!.dependencies!['github.com/sirupsen/logrus']).toBeUndefined();
+        });
+
+        it('leaves a module nothing imports attributed to the module', async () => {
+            const unimported = [
+                singleModuleOutput,
+                JSON.stringify({ Path: 'github.com/spf13/cobra', Version: 'v1.8.0' }),
+            ].join('\n');
+            vi.mocked(execSync)
+                .mockReturnValueOnce('go.mod\n')
+                .mockReturnValueOnce(unimported)
+                .mockReturnValueOnce(packageListOutput);
+
+            const provider = new GoProvider(mockCacheService, rootDir, { consumerOf: byCmdDir });
+            const packages = await provider.getPackages();
+
+            const module = packages.find((p) => p.name === 'project');
+            expect(Object.keys(module!.dependencies!)).toContain('github.com/spf13/cobra');
+        });
+
+        it('attributes a directory the callback skips to the module', async () => {
+            vi.mocked(execSync)
+                .mockReturnValueOnce('go.mod\n')
+                .mockReturnValueOnce(singleModuleOutput)
+                .mockReturnValueOnce(packageListOutput);
+
+            // Only billing is a service; worker's imports fall back to the module.
+            const provider = new GoProvider(mockCacheService, rootDir, {
+                consumerOf: (dir) => (dir === 'cmd/billing' ? 'billing' : undefined),
+            });
+            const packages = await provider.getPackages();
+
+            expect(packages.map((p) => p.name).sort()).toEqual(['billing', 'project']);
+            const module = packages.find((p) => p.name === 'project');
+            expect(Object.keys(module!.dependencies!)).toContain('github.com/sirupsen/logrus');
+        });
+
+        it('keeps whole-module attribution when the package list cannot be read', async () => {
+            vi.mocked(execSync)
+                .mockReturnValueOnce('go.mod\n')
+                .mockReturnValueOnce(singleModuleOutput)
+                .mockImplementationOnce(() => {
+                    throw new Error('no sources in module cache');
+                });
+
+            const provider = new GoProvider(mockCacheService, rootDir, { consumerOf: byCmdDir });
+            const packages = await provider.getPackages();
+
+            expect(packages).toHaveLength(1);
+            expect(packages[0]!.name).toBe('project');
+            expect(Object.keys(packages[0]!.dependencies!).sort()).toEqual([
+                'github.com/gorilla/mux',
+                'github.com/sirupsen/logrus',
+            ]);
+        });
+
+        it('does not list packages at all without the option', async () => {
+            vi.mocked(execSync)
+                .mockReturnValueOnce('go.mod\n')
+                .mockReturnValueOnce(singleModuleOutput);
+
+            const provider = new GoProvider(mockCacheService, rootDir);
+            const packages = await provider.getPackages();
+
+            expect(packages).toHaveLength(1);
+            expect(vi.mocked(execSync)).toHaveBeenCalledTimes(2);
+        });
     });
 
     it('resolves version metadata from Go module proxy', async () => {

@@ -29,6 +29,21 @@ import { resolvePlugins, validateLinearIssueSpec, validateGitHubIssueSpec } from
 import { SecurityPlugin } from './security/index';
 import type { SecurityPluginConfig } from './security/index';
 
+/**
+ * What a provider factory is given: the services and paths the CLI resolves
+ * from its flags, so a factory doesn't have to re-read argv to find them.
+ *
+ * @group Core Types
+ */
+export interface ProviderFactoryContext {
+    cacheService: CacheService;
+    repoRoot: string;
+    cacheDir: string;
+}
+
+/** @group Core Types */
+export type ProviderFactory = (context: ProviderFactoryContext) => DependencyProvider[];
+
 /** @group Core Types */
 export interface DependicusCliConfig {
     /** Name of the CLI binary. Defaults to `'dependicus'`. */
@@ -45,8 +60,25 @@ export interface DependicusCliConfig {
     plugins?: DependicusPlugin[];
     /** Provider names to use for dependency analysis (e.g., 'pnpm', 'bun'). Auto-detects if omitted. */
     providerNames?: string[];
-    /** Pre-built provider instances. Takes precedence over `providerNames` and auto-detection. */
-    providers?: DependencyProvider[];
+    /**
+     * Providers to use, instead of `providerNames` and auto-detection.
+     *
+     * Pass a factory to build them against the resolved `--repo-root` and
+     * `--cache-dir`, which is the only way to get the `CacheService` the
+     * provider constructors want: the CLI creates it after reading the flags.
+     * The provider classes are exported, so a repo can swap one for a
+     * configured instance and keep the stock ones:
+     *
+     * ```ts
+     * providers: ({ cacheService, repoRoot }) => [
+     *     new PnpmProvider(cacheService, repoRoot),
+     *     new GoProvider(cacheService, repoRoot, { consumerOf: dirToService }),
+     * ]
+     * ```
+     *
+     * An array is still accepted for providers that need neither.
+     */
+    providers?: DependencyProvider[] | ProviderFactory;
     /** Name shown in the site heading and title tag. Defaults to `'Dependicus for <basename of repoRoot>'`. */
     siteName?: string;
     /** Linear issue integration configuration. */
@@ -154,8 +186,13 @@ function createDependicusInstance(
         plugin.init?.({ cacheService });
     }
 
-    const providers = config.providers?.length
-        ? config.providers
+    const configured =
+        typeof config.providers === 'function'
+            ? config.providers({ cacheService, repoRoot: config.repoRoot, cacheDir })
+            : config.providers;
+
+    const providers = configured?.length
+        ? configured
         : config.providerNames?.length
           ? allProviders(cacheService, config.repoRoot).filter((p) =>
                 config.providerNames!.includes(p.name),

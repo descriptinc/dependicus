@@ -744,7 +744,7 @@ export class HtmlWriter {
         grouping: GroupingConfig,
         store: FactStore,
         providerPrefix = '',
-        ecosystem?: string,
+        ecosystem: string,
     ): { index: DetailPage; details: DetailPage[] } {
         const slug = grouping.slugPrefix ?? grouping.key;
         const baseHref = providerPrefix ? '../../' : '../';
@@ -754,7 +754,7 @@ export class HtmlWriter {
         // return several, in which case the dependency belongs under each.
         const grouped = new Map<string, DirectDependency[]>();
         for (const dep of dependencies) {
-            const value = grouping.getValue(dep.name, store);
+            const value = grouping.getValue({ name: dep.name, store, ecosystem });
             if (!value) continue;
             const values = typeof value === 'string' ? [value] : value;
             for (const single of values) {

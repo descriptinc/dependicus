@@ -299,6 +299,20 @@ export interface DependencyDetailContext {
 }
 
 /** @group Plugins */
+/**
+ * What a grouping is told about the dependency it is placing. `store` is
+ * already scoped to `ecosystem`, but a plugin that keeps ownership per
+ * ecosystem needs the name of the one it is looking at: a Go service and an
+ * npm app can share a name.
+ *
+ * @group Core Types
+ */
+export interface GroupingContext {
+    name: string;
+    store: FactStore;
+    ecosystem: string;
+}
+
 export interface GroupingConfig {
     key: string;
     label: string;
@@ -311,7 +325,7 @@ export interface GroupingConfig {
      * dimension whose membership overlaps: a package used by three teams belongs
      * on all three of their pages.
      */
-    getValue: (name: string, store: FactStore) => string | readonly string[] | undefined;
+    getValue: (context: GroupingContext) => string | readonly string[] | undefined;
     /**
      * Ecosystems this grouping applies to, e.g. `['npm']`. Providers for any
      * other ecosystem skip it, and their pages leave it out of the nav.
