@@ -445,6 +445,36 @@ describe('HtmlWriter', () => {
             expect(detail!.html).toContain('../pnpm/details/');
         });
 
+        it('splits a rollup page by ecosystem when it spans more than one', () => {
+            const writer = new HtmlWriter({ groupings: [teamGrouping] });
+            const npmDep = makeMockDependency();
+            const goDep = makeMockDependency({ name: 'github.com/a/b', ecosystem: 'gomod' });
+            const store = makeMockStore([npmDep, goDep]);
+            const pages = writer.toAllGroupingPages(
+                [makeProvider([npmDep]), makeProvider([goDep], { name: 'go', ecosystem: 'gomod' })],
+                store,
+            );
+
+            const detail = pages.find(
+                (p) => p.filename.startsWith('teams/') && !p.filename.endsWith('index.html'),
+            );
+            // Named as a reader would, not by the raw ecosystem id.
+            expect(detail!.html).toContain('Go (1)');
+            expect(detail!.html).toContain('npm (1)');
+            expect(detail!.html).toContain('dep-ecosystem-heading');
+        });
+
+        it('leaves a single-ecosystem rollup page as one flat list', () => {
+            const npmOnly: GroupingConfig = { ...teamGrouping, ecosystems: ['npm'] };
+            const writer = new HtmlWriter({ groupings: [npmOnly] });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            const pages = writer.toAllGroupingPages([makeProvider([dep])], store);
+
+            const detail = pages.find((p) => !p.filename.endsWith('index.html'));
+            expect(detail!.html).not.toContain('dep-ecosystem-heading');
+        });
+
         it('files a dependency under every value getValue returns', () => {
             const multi: GroupingConfig = {
                 key: 'team',

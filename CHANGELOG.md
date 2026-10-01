@@ -11,6 +11,7 @@
     - `goBinaries` lists the `main` packages that reach it, following imports through your own packages.
     - `go list -m` treats a module as one unit, so every Go dependency belongs to the module and a backend with a hundred binaries under `cmd/` shows up as one consumer. The npm side already attributes each dependency to the workspace packages that use it. These facts let a grouping do the same for Go.
     - Attribution itself doesn't change. The facts are skipped, with a message, if the module's sources aren't there, since reading imports takes more than the `go.mod` files.
+- Rollup pages that cover more than one ecosystem list their dependencies under a heading each, rather than interleaved. A page mixing Go modules and npm packages in one alphabetical run is hard to read. Pages covering one ecosystem are unchanged.
 - Plugins can group the Used By column themselves, with `getUsedByGroups`.
     - It returns a map of label to the packages under it, so one dependency can show up under several owners at once.
     - The older `getUsedByGroupKey` only labels the list, so everything lands under one heading however many teams use it.
