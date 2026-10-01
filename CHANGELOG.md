@@ -7,6 +7,7 @@
 ### Added
 
 - The Go provider records which of your own packages use each dependency, as two dependency facts: `goImportedBy` (the packages importing it, tests included) and `goBinaries` (the `main` packages that reach it through your own packages). `go list -m` sees a module as one unit, so every dependency is attributed to the module and a backend with many binaries under `cmd/` reads as a single consumer, where the Node providers attribute each dependency to the workspace packages that name it. A grouping can use either fact to break that down. Attribution itself is unchanged. The facts are skipped, with a message, when the module's sources aren't present, since reading imports needs more than the `go.mod` files `go list -m all` fetches.
+- Plugins can supply the whole "Used By" grouping with `getUsedByGroups`, not just a label for it. `getUsedByGroupKey` files every consumer under one key, so a dependency used across several teams renders as one lumped label over one pill. The new hook returns a map of label to consumers, which the browser already knew how to render and was never given. The flat Used By column and its count come from that map, so sorting and filtering match what's displayed. Without it nothing changes.
 - `GroupingConfig.getValue` receives the ecosystem as a third argument. The store it gets is already scoped, but doesn't say which ecosystem it belongs to, so a plugin holding ownership per ecosystem couldn't tell a Go service from an npm app of the same name. Existing two-argument groupings are unaffected; only code that calls `getValue` itself needs the extra argument.
 
 - Dependicus can be installed from a git URL, not just from the registry, which is useful for trying a fix that isn't released yet.
@@ -34,6 +35,8 @@
 - The Snyk source records which versions fix each advisory, and the lowest version that fixes them all. Tickets and dependency pages show them, and `getFixVersion(store, name, version)` returns it for use as `minimumVersion`.
 
 ### Changed
+
+- A grouping that names no `ecosystems` now gets one page tree at the site root covering every provider, instead of a separate tree under each one. Only the first provider's trees were ever linked from the nav, so a grouping's Go pages existed but nothing pointed at them. Groupings that do name ecosystems still get a tree per matching provider. Pages for unrestricted groupings move from `<provider>/<grouping>/` to `<grouping>/`.
 
 - `searchDependicusIssues` (in `@dependicus/github-issues`) now treats draft pull requests as not yet open for review and excludes them from results, while ready-for-review pull requests are returned alongside regular issues. Each returned entry carries an `isPullRequest` boolean so notification bots can count open Dependicus items accurately — drafts no longer pad the total — and the reconciler can avoid mutating pull requests. Anything explicitly flagged as a draft (PR or otherwise) is still skipped defensively.
 

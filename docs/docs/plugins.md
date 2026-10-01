@@ -192,9 +192,30 @@ class CvePlugin implements DependicusPlugin {
 
 A source can declare `dependsOn: ['npm-registry']` to run after another source. It can also provide a `refreshLocal` method for re-populating facts from local data (e.g. re-reading a YAML file) without network access. This runs during `dependicus html` to pick up local changes without a full update.
 
+## Grouping the "Used By" column
+
+By default the Used By cell lists the packages that depend on a version. `getUsedByGroupKey` labels that whole list with one key, which is enough when every consumer belongs to the same owner and not much use otherwise.
+
+`getUsedByGroups` returns the map instead, so one dependency can appear under several owners with the right consumers under each:
+
+```ts
+const plugin: DependicusPlugin = {
+    name: 'ownership',
+    getUsedByGroups: ({ name, store, ecosystem }) => {
+        if (ecosystem !== 'gomod') return {};
+        const binaries = store.getDependencyFact<string[]>(name, 'goBinaries') ?? [];
+        return { Services: binaries.map((path) => path.split('/').pop()!) };
+    },
+};
+```
+
+The flat Used By column and its count are taken from the map's values, so sorting and filtering match the pills on screen. Return an empty object to leave a dependency's own consumer list alone, which is what happens for every dependency when the hook is absent.
+
 ## Grouping pages
 
 Groupings create rollup pages that aggregate dependencies by a shared key (e.g. team, policy tier). Each `GroupingConfig` provides `getValue(name, store, ecosystem)` to extract the key. The store is already scoped to that ecosystem, and `ecosystem` names which one you are placing, so a plugin keeping ownership per ecosystem can resolve it directly rather than filing facts per group ahead of time. Returning several values files the dependency under each of them, for a dimension whose membership overlaps: a dependency belonging to more than one group appears on each of their pages. The detail page for each group value shows that group's dependencies and any sections returned by `getSections`.
+
+A grouping that sets no `ecosystems` covers them all, and gets one page tree at the site root listing dependencies from every provider. One that names ecosystems gets a tree under each matching provider instead.
 
 `BasicCompliancePlugin` creates a grouping page per compliance policy automatically. For a working example of `getValue` and `getSections` on a grouping, see `buildGroupings` in [`compliance.ts`](../api/classes/BasicCompliancePlugin.html).
 

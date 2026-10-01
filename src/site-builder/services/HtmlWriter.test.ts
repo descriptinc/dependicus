@@ -387,11 +387,62 @@ describe('HtmlWriter', () => {
                 },
             };
             const writer = new HtmlWriter({ groupings: [recording] });
-            const dep = makeMockDependency();
+            const dep = makeMockDependency({ ecosystem: 'gomod' });
             const store = makeMockStore([dep]);
-            writer.toGroupingPages([dep], recording, store.scoped('gomod'), 'go/', 'gomod');
+            writer.toGroupingPages([dep], recording, store, 'go/', 'gomod');
 
             expect(seen).toEqual([{ name: dep.name, ecosystem: 'gomod' }]);
+        });
+
+        it('puts a grouping that names no ecosystems in one tree at the site root', () => {
+            const writer = new HtmlWriter({ groupings: [teamGrouping] });
+            const npmDep = makeMockDependency();
+            const goDep = makeMockDependency({ name: 'github.com/a/b', ecosystem: 'gomod' });
+            const store = makeMockStore([npmDep, goDep]);
+            const pages = writer.toAllGroupingPages(
+                [makeProvider([npmDep]), makeProvider([goDep], { name: 'go', ecosystem: 'gomod' })],
+                store,
+            );
+
+            const filenames = pages.map((p) => p.filename);
+            expect(filenames).toContain('teams/index.html');
+            // Not once per provider, which is what stranded the Go pages.
+            expect(filenames).not.toContain('pnpm/teams/index.html');
+            expect(filenames).not.toContain('go/teams/index.html');
+        });
+
+        it('keeps a grouping restricted to an ecosystem under its provider', () => {
+            const npmOnly: GroupingConfig = { ...teamGrouping, ecosystems: ['npm'] };
+            const writer = new HtmlWriter({ groupings: [npmOnly] });
+            const npmDep = makeMockDependency();
+            const goDep = makeMockDependency({ name: 'github.com/a/b', ecosystem: 'gomod' });
+            const store = makeMockStore([npmDep, goDep]);
+            const pages = writer.toAllGroupingPages(
+                [makeProvider([npmDep]), makeProvider([goDep], { name: 'go', ecosystem: 'gomod' })],
+                store,
+            );
+
+            const filenames = pages.map((p) => p.filename);
+            expect(filenames).toContain('pnpm/teams/index.html');
+            expect(filenames).not.toContain('teams/index.html');
+            expect(filenames).not.toContain('go/teams/index.html');
+        });
+
+        it('points a merged page at the provider directory holding each detail page', () => {
+            const writer = new HtmlWriter({ groupings: [teamGrouping] });
+            const npmDep = makeMockDependency();
+            const goDep = makeMockDependency({ name: 'github.com/a/b', ecosystem: 'gomod' });
+            const store = makeMockStore([npmDep, goDep]);
+            const pages = writer.toAllGroupingPages(
+                [makeProvider([npmDep]), makeProvider([goDep], { name: 'go', ecosystem: 'gomod' })],
+                store,
+            );
+
+            const detail = pages.find(
+                (p) => p.filename.startsWith('teams/') && !p.filename.endsWith('index.html'),
+            );
+            expect(detail!.html).toContain('../go/details/');
+            expect(detail!.html).toContain('../pnpm/details/');
         });
 
         it('files a dependency under every value getValue returns', () => {
@@ -538,10 +589,10 @@ describe('HtmlWriter', () => {
             expect(pages).toHaveLength(4);
 
             const filenames = pages.map((p) => p.filename);
-            expect(filenames).toContain('pnpm/teams/index.html');
-            expect(filenames).toContain('pnpm/teams/TestTeam.html');
-            expect(filenames).toContain('pnpm/surfaces/index.html');
-            expect(filenames).toContain('pnpm/surfaces/test-surface.html');
+            expect(filenames).toContain('teams/index.html');
+            expect(filenames).toContain('teams/TestTeam.html');
+            expect(filenames).toContain('surfaces/index.html');
+            expect(filenames).toContain('surfaces/test-surface.html');
         });
 
         it('groups multiple deps under the same grouping value', () => {
@@ -611,8 +662,8 @@ describe('HtmlWriter', () => {
             const pages = writer.toAllGroupingPages(providers, store);
 
             const filenames = pages.map((p) => p.filename);
-            expect(filenames).toContain('pnpm/env/index.html');
-            expect(filenames).toContain('pnpm/env/production.html');
+            expect(filenames).toContain('env/index.html');
+            expect(filenames).toContain('env/production.html');
         });
 
         it('includes nav links for configured groupings', async () => {
@@ -638,7 +689,7 @@ describe('HtmlWriter', () => {
             const html = await writer.toHtml(providers, store);
 
             // Nav links must include the provider prefix so they resolve to real files
-            expect(html).toContain('href="pnpm/teams/index.html"');
+            expect(html).toContain('href="teams/index.html"');
             // Must not contain "undefined" in any href
             expect(html).not.toMatch(/href="[^"]*undefined[^"]*"/);
         });
@@ -652,7 +703,7 @@ describe('HtmlWriter', () => {
             const providers: ProviderOutput[] = [makeProvider([dep])];
             const pages = writer.toDetailPages(providers, store);
 
-            expect(pages[0]!.html).toContain('pnpm/teams/index.html');
+            expect(pages[0]!.html).toContain('teams/index.html');
             expect(pages[0]!.html).toContain('Teams');
         });
 
