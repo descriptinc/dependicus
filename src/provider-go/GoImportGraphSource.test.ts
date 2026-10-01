@@ -27,6 +27,7 @@ const packageList = [
         Name: 'db',
         Imports: ['database/sql', 'github.com/gorilla/mux'],
         TestImports: ['testing', 'github.com/sirupsen/logrus'],
+        XTestImports: ['github.com/spf13/cobra'],
     }),
 ].join('\n');
 
@@ -97,7 +98,7 @@ describe('GoImportGraphSource', () => {
         ).toEqual(['github.com/example/myapp/cmd/billing', 'github.com/example/myapp/cmd/worker']);
     });
 
-    it('resolves an import to the longest matching module', async () => {
+    it('does not credit a binary that only reaches a dependency through tests', async () => {
         const store = await run(packageList);
 
         // logrus/hooks/test belongs to logrus, and only worker imports it for
@@ -107,14 +108,78 @@ describe('GoImportGraphSource', () => {
         ).toEqual(['github.com/example/myapp/cmd/worker']);
     });
 
-    it('leaves a dependency nothing imports without facts', async () => {
+    it('resolves an import to the longest matching module', async () => {
+        // example.com/a is a prefix of example.com/a/b, so the shorter module
+        // would win if resolution did not prefer the longest match.
+        const nested = JSON.stringify({
+            ImportPath: 'example.com/app/cmd/api',
+            Name: 'main',
+            Imports: ['example.com/a/b/c'],
+        });
+        vi.mocked(execSync).mockReturnValueOnce(nested);
+
+        const store = new RootFactStore();
+        await new GoImportGraphSource(['/project']).fetch(
+            [makeDep('example.com/a'), makeDep('example.com/a/b')],
+            store,
+        );
+
+        expect(store.getDependencyFact<string[]>('example.com/a/b', FactKeys.GO_BINARIES)).toEqual([
+            'example.com/app/cmd/api',
+        ]);
+        expect(store.getDependencyFact('example.com/a', FactKeys.GO_BINARIES)).toBeUndefined();
+    });
+
+    it('counts an external test import as an importer', async () => {
         const store = await run(packageList, ['github.com/spf13/cobra']);
 
         expect(
-            store.getDependencyFact('github.com/spf13/cobra', FactKeys.GO_IMPORTED_BY),
+            store.getDependencyFact<string[]>('github.com/spf13/cobra', FactKeys.GO_IMPORTED_BY),
+        ).toEqual(['github.com/example/myapp/internal/db']);
+    });
+
+    it("never records the module's own packages as dependencies", async () => {
+        // internal/db is first-party, so importing it must not look like a
+        // dependency even when a module path would otherwise match.
+        const store = await run(packageList, ['github.com/example/myapp/internal/db']);
+
+        expect(
+            store.getDependencyFact(
+                'github.com/example/myapp/internal/db',
+                FactKeys.GO_IMPORTED_BY,
+            ),
+        ).toBeUndefined();
+    });
+
+    it('uses the packages go list did read when it exits non-zero', async () => {
+        // One unresolvable import anywhere makes `go list ./...` exit 1, but it
+        // still writes valid JSON for everything it could read.
+        vi.mocked(execSync).mockImplementationOnce(() => {
+            const error: Error & { stdout?: string } = new Error('exit status 1');
+            error.stdout = packageList;
+            throw error;
+        });
+
+        const store = new RootFactStore();
+        await new GoImportGraphSource(['/project']).fetch(
+            [makeDep('github.com/gorilla/mux')],
+            store,
+        );
+
+        expect(
+            store.getDependencyFact<string[]>('github.com/gorilla/mux', FactKeys.GO_BINARIES),
+        ).toEqual(['github.com/example/myapp/cmd/billing', 'github.com/example/myapp/cmd/worker']);
+    });
+
+    it('leaves a dependency nothing imports without facts', async () => {
+        // Kept alive by a tools.go behind a build tag, say.
+        const store = await run(packageList, ['github.com/unreferenced/tool']);
+
+        expect(
+            store.getDependencyFact('github.com/unreferenced/tool', FactKeys.GO_IMPORTED_BY),
         ).toBeUndefined();
         expect(
-            store.getDependencyFact('github.com/spf13/cobra', FactKeys.GO_BINARIES),
+            store.getDependencyFact('github.com/unreferenced/tool', FactKeys.GO_BINARIES),
         ).toBeUndefined();
     });
 

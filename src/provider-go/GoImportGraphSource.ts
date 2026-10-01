@@ -36,6 +36,10 @@ interface ModuleUsage {
  * Both facts are import paths, because that is what Go actually knows. What
  * counts as a service, and who owns it, is a question for the repo.
  *
+ * `goImportedBy` counts an import from a test file, since the package does
+ * depend on it. `goBinaries` doesn't follow test imports onward, because a
+ * package's tests aren't part of what its binary ships.
+ *
  * Reading imports needs the module's sources, not only the `go.mod` files
  * `go list -m all` fetches. When they aren't there the facts are skipped and
  * everything else carries on.
@@ -96,12 +100,23 @@ export class GoImportGraphSource implements DataSource {
                     stdio: ['pipe', 'pipe', 'pipe'],
                 },
             );
-        } catch {
+        } catch (error) {
+            // `go list ./...` exits non-zero if any one package has an import
+            // it can't resolve, which is routine in a repo mid-change, but it
+            // still writes valid JSON for every package it did read. Use that
+            // rather than dropping the module's whole graph over one package.
+            const partial = (error as { stdout?: Buffer | string }).stdout?.toString() ?? '';
+            if (!partial.trim()) {
+                const reason = (error as Error).message.split('\n')[0] ?? 'go list failed';
+                process.stderr.write(
+                    `Could not list Go packages in ${projectPath}, so skipping import-graph facts: ${reason}\n`,
+                );
+                return undefined;
+            }
             process.stderr.write(
-                `Could not list Go packages in ${projectPath}, so skipping import-graph facts. ` +
-                    'Reading imports needs the module sources, not only its go.mod files.\n',
+                `Some Go packages in ${projectPath} could not be read; import-graph facts cover the rest.\n`,
             );
-            return undefined;
+            output = partial;
         }
 
         const entries = parsePackageStream(output);

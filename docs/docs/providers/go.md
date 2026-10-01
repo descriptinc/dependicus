@@ -14,7 +14,7 @@ The Go provider tracks dependencies in projects managed by [Go modules](https://
 Dependicus can't fix that by guessing what a service is in your layout, so it publishes what Go does know and lets you decide. For each dependency it records two facts:
 
 - `goImportedBy`: the import paths of your own packages that import it, including from tests.
-- `goBinaries`: the import paths of the `main` packages that reach it, following imports through your own packages. A thin `cmd/` binary usually reaches its dependencies through the `internal/` packages it imports rather than importing them itself, so this is the fact that answers "which services ship this".
+- `goBinaries`: the import paths of the `main` packages that reach it, following imports through your own packages. Test imports aren't followed, since a package's tests aren't part of what its binary ships. A thin `cmd/` binary usually reaches its dependencies through the `internal/` packages it imports rather than importing them itself, so this is the fact that answers "which services ship this".
 
 A grouping can map either to owners:
 
@@ -26,7 +26,7 @@ const teams: DependicusPlugin = {
             key: 'team',
             label: 'Teams',
             ecosystems: ['gomod'],
-            getValue: ({ name, store }) => {
+            getValue: (name, store) => {
                 const binaries = store.getDependencyFact<string[]>(name, 'goBinaries') ?? [];
                 return [...new Set(binaries.map(teamForBinary))];
             },
@@ -39,6 +39,6 @@ Returning several values files the dependency under each of them, so a module re
 
 Reading imports needs the module's sources, not only the `go.mod` files that `go list -m all` fetches. When they aren't present Dependicus says so and skips these two facts; everything else is unaffected.
 
-Requires Go >= 1.16 (when `go list -m -json all` became stable). The provider strips the `v` prefix from Go semver tags to store plain semver versions.
+Requires Go >= 1.16 (when `go list -m -json all` became stable), and Go >= 1.19 for the import-graph facts above, which ask `go list` for named fields. On an older toolchain the facts are skipped and everything else still works. The provider strips the `v` prefix from Go semver tags to store plain semver versions.
 
 Go is always detected via `go.mod` presence (there is no runtime detection).
