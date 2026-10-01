@@ -83,6 +83,21 @@ describe('resolvePlugins', () => {
         });
     });
 
+    describe('getUsedByGroups', () => {
+        it('uses first plugin with getUsedByGroups', () => {
+            const fn1 = () => ({ Growth: ['a'] });
+            const fn2 = () => ({ Platform: ['b'] });
+            const p1: DependicusPlugin = { name: 'p1', getUsedByGroups: fn1 };
+            const p2: DependicusPlugin = { name: 'p2', getUsedByGroups: fn2 };
+
+            expect(resolvePlugins([p1, p2], baseConfig()).getUsedByGroups).toBe(fn1);
+        });
+
+        it('is undefined when no plugin provides one', () => {
+            expect(resolvePlugins([{ name: 'p1' }], baseConfig()).getUsedByGroups).toBeUndefined();
+        });
+    });
+
     describe('getUsedByGroupKey', () => {
         it('uses first plugin with getUsedByGroupKey', () => {
             const fn1 = () => 'group-a';

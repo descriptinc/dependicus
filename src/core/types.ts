@@ -253,6 +253,18 @@ export interface ColumnContext {
 
 export type UsedByGroupKeyFn = (ctx: ColumnContext) => string;
 
+/**
+ * Group the consumers of a dependency for the "Used By" cell.
+ *
+ * Keys are the labels to show, values the consumers filed under each. Unlike
+ * {@link UsedByGroupKeyFn}, which only labels the whole set, this decides the
+ * membership too, so one dependency can appear under several owners with the
+ * right consumers beneath each.
+ *
+ * Returning an empty object leaves the dependency's own consumer list alone.
+ */
+export type UsedByGroupsFn = (ctx: ColumnContext) => Record<string, readonly string[]>;
+
 // ============================================================================
 // Grouping types
 // ============================================================================

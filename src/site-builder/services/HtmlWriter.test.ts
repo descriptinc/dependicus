@@ -957,6 +957,58 @@ describe('HtmlWriter', () => {
             expect(html).toContain('"Used By Grouped":null');
         });
 
+        it('getUsedByGroups supplies the whole grouped map, not just a label', async () => {
+            const writer = new HtmlWriter({
+                getUsedByGroups: () => ({
+                    Growth: ['@app/web'],
+                    Platform: ['@app/api'],
+                }),
+            });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            const html = await writer.toHtml([makeProvider([dep])], store);
+
+            expect(html).toContain(
+                '"Used By Grouped":{"Growth":["@app/web"],"Platform":["@app/api"]}',
+            );
+        });
+
+        it('lists the consumers the groups name, so the flat column matches the pills', async () => {
+            const writer = new HtmlWriter({
+                // Deliberately not the dependency's own usedBy.
+                getUsedByGroups: () => ({ Platform: ['svc-b', 'svc-a'], Growth: ['svc-a'] }),
+            });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            const html = await writer.toHtml([makeProvider([dep])], store);
+
+            // Deduplicated and sorted across groups.
+            expect(html).toContain('"Used By":"svc-a; svc-b"');
+            expect(html).toContain('"Used By Count":2');
+        });
+
+        it("falls back to the dependency's own consumers when the map is empty", async () => {
+            const writer = new HtmlWriter({ getUsedByGroups: () => ({}) });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            const html = await writer.toHtml([makeProvider([dep])], store);
+
+            expect(html).toContain('"Used By":"@app/web; @app/api"');
+            expect(html).toContain('"Used By Grouped":null');
+        });
+
+        it('leaves getUsedByGroupKey behaviour alone when both are absent from a writer', async () => {
+            const writer = new HtmlWriter({
+                getUsedByGroupKey: () => 'OneLabel',
+            });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            const html = await writer.toHtml([makeProvider([dep])], store);
+
+            expect(html).toContain('"Used By Grouped":{"OneLabel":["@app/api","@app/web"]}');
+            expect(html).toContain('"Used By":"@app/web; @app/api"');
+        });
+
         it('groupDependenciesByMeta uses custom group key', async () => {
             const writer = new HtmlWriter({
                 getUsedByGroupKey: ({ name: pkg, store: s }) => {

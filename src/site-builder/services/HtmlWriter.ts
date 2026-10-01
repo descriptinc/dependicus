@@ -15,6 +15,7 @@ import type {
     GroupingSection,
     ProviderOutput,
     UsedByGroupKeyFn,
+    UsedByGroupsFn,
     FactStore,
 } from '../../core/index';
 import {
@@ -98,6 +99,7 @@ export interface HtmlWriterOptions {
     groupings?: GroupingConfig[];
     columns?: CustomColumn[];
     getUsedByGroupKey?: UsedByGroupKeyFn;
+    getUsedByGroups?: UsedByGroupsFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
     getDependencySections?: (ctx: DependencyDetailContext) => GroupingSection[];
     siteName?: string;
@@ -117,6 +119,7 @@ export class HtmlWriter {
     private groupings: GroupingConfig[];
     private columns: CustomColumn[];
     private getUsedByGroupKey: UsedByGroupKeyFn | undefined;
+    private getUsedByGroups: UsedByGroupsFn | undefined;
     private getSections: ((ctx: GroupingDetailContext) => GroupingSection[]) | undefined;
     private getDependencySections:
         | ((ctx: DependencyDetailContext) => GroupingSection[])
@@ -128,6 +131,7 @@ export class HtmlWriter {
         this.groupings = options?.groupings ?? [];
         this.columns = options?.columns ?? [];
         this.getUsedByGroupKey = options?.getUsedByGroupKey;
+        this.getUsedByGroups = options?.getUsedByGroups;
         this.getSections = options?.getSections;
         this.getDependencySections = options?.getDependencySections;
         this.siteName = options?.siteName ?? 'Dependicus';
@@ -145,6 +149,31 @@ export class HtmlWriter {
             label: g.label,
             slug: g.slugPrefix ?? g.key,
         }));
+    }
+
+    /**
+     * Work out the "Used By" cell: who to list, and how to group them.
+     *
+     * `getUsedByGroups` decides both, so the listed consumers come from the
+     * groups rather than the dependency's own list. That keeps sorting and
+     * filtering on the flat column consistent with the pills on screen.
+     * `getUsedByGroupKey` only labels the set, so the consumers are unchanged.
+     */
+    private usedByCells(
+        packages: string[],
+        ctx: ColumnContext,
+    ): { usedBy: string[]; grouped: Record<string, string[]> | null } {
+        if (this.getUsedByGroups) {
+            const grouped: Record<string, string[]> = {};
+            for (const [label, members] of Object.entries(this.getUsedByGroups(ctx))) {
+                if (members.length > 0) grouped[label] = [...members].sort();
+            }
+            if (Object.keys(grouped).length > 0) {
+                const listed = [...new Set(Object.values(grouped).flat())].sort();
+                return { usedBy: listed, grouped };
+            }
+        }
+        return { usedBy: packages, grouped: this.groupDependenciesByMeta(packages, ctx) };
     }
 
     /**
@@ -238,6 +267,12 @@ export class HtmlWriter {
                 const rowUrlPatterns =
                     scoped.getDependencyFact<Record<string, string>>(dep.name, FactKeys.URLS) ?? {};
                 const registryPattern = rowUrlPatterns['Registry'];
+                const usedByCells = this.usedByCells(versionInfo.usedBy, {
+                    name: dep.name,
+                    version: versionInfo,
+                    store: scoped,
+                    ecosystem: dep.ecosystem,
+                });
                 rows.push({
                     Dependency: shortenModulePath(dep.name, dep.ecosystem),
                     Ecosystem: dep.ecosystem,
@@ -272,14 +307,9 @@ export class HtmlWriter {
                             version: dep_.substring(lastAt + 1),
                         });
                     }),
-                    'Used By Count': versionInfo.usedBy.length,
-                    'Used By': versionInfo.usedBy.join('; '),
-                    'Used By Grouped': this.groupDependenciesByMeta(versionInfo.usedBy, {
-                        name: dep.name,
-                        version: versionInfo,
-                        store: scoped,
-                        ecosystem: dep.ecosystem,
-                    }),
+                    'Used By Count': usedByCells.usedBy.length,
+                    'Used By': usedByCells.usedBy.join('; '),
+                    'Used By Grouped': usedByCells.grouped,
                     'Deprecated Transitive Dependencies': deprecatedTransitiveDeps.join('; '),
                     'Detail Link': `${detailPrefix}details/${detailFilename}`,
                 });
@@ -536,7 +566,7 @@ export class HtmlWriter {
         };
 
         // Group usedBy dependencies
-        const usedByGrouped = this.groupDependenciesByMeta(versionInfo.usedBy, colCtx);
+        const usedByGrouped = this.usedByCells(versionInfo.usedBy, colCtx).grouped;
         const usedByGroupedArray = usedByGrouped
             ? Object.keys(usedByGrouped)
                   .sort()
