@@ -7,7 +7,6 @@
 ### Added
 
 - The Go provider records which of your own packages use each dependency, as two dependency facts: `goImportedBy` (the packages importing it, tests included) and `goBinaries` (the `main` packages that reach it through your own packages). `go list -m` sees a module as one unit, so a backend with many binaries under `cmd/` is attributed to the module and has no per-team view the way a pnpm workspace does. A grouping can now map either fact to owning teams. Attribution itself is unchanged. The facts are skipped, with a message, when the module's sources aren't present, since reading imports needs more than the `go.mod` files `go list -m all` fetches.
-- The provider classes (`PnpmProvider`, `GoProvider`, `MiseProvider` and the rest) are exported, so a repo can swap one for a configured instance and keep the stock ones without reaching into `dist/`.
 - `GroupingConfig.getValue` receives the ecosystem as a third argument. The store it gets is already scoped, but doesn't say which ecosystem it belongs to, so a plugin holding ownership per ecosystem couldn't tell a Go service from an npm app of the same name. Existing two-argument groupings are unaffected.
 
 - Dependicus can be installed from a git URL, not just from the registry, which is useful for trying a fix that isn't released yet.

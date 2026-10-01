@@ -14,7 +14,7 @@ Explicitly select which dependency providers to use. Supported values: `'pnpm'`,
 
 ### `providers` (optional): `DependencyProvider[]`
 
-For advanced use cases, pass fully-constructed provider instances. This takes precedence over `providerNames` and auto-detection. The provider classes are exported, so you can swap one for a configured instance and keep the stock ones. See [Package Managers](./package-managers.md) for details.
+For advanced use cases, pass fully-constructed provider instances. This takes precedence over `providerNames` and auto-detection. See [Package Managers](./package-managers.md) for details.
 
 ## Output
 
