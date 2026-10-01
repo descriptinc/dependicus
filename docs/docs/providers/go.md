@@ -9,7 +9,7 @@ The Go provider tracks dependencies in projects managed by [Go modules](https://
 
 ## Knowing which packages use a dependency
 
-`go list -m` sees a module as one unit, so every dependency is attributed to the module: a backend with a hundred binaries under `cmd/` reads as a single consumer, and there is no per-team view of it the way there is for a pnpm workspace.
+`go list -m` sees a module as one unit, so every dependency is attributed to the module: a backend with a hundred binaries under `cmd/` reads as a single consumer, where a pnpm workspace attributes each dependency to the packages that name it.
 
 Dependicus can't fix that by guessing what a service is in your layout, so it publishes what Go does know and lets you decide. For each dependency it records two facts:
 
@@ -35,7 +35,7 @@ const teams: DependicusPlugin = {
 };
 ```
 
-Returning several values files the dependency under each of them, so a module reached by binaries from more than one team appears on each of their pages.
+Returning several values files the dependency under each of them, so a module reached from more than one of those groups appears on each of their pages.
 
 Reading imports needs the module's sources, not only the `go.mod` files that `go list -m all` fetches. When they aren't present Dependicus says so and skips these two facts; everything else is unaffected.
 

@@ -33,7 +33,7 @@ interface ModuleUsage {
  * under `cmd/` attributes every dependency to the module and reads as a
  * single consumer. This doesn't change that attribution. It publishes the
  * import graph as facts instead, so a grouping or column can map a dependency
- * to the teams that own the packages using it, the way the Node providers'
+ * to whatever owns the packages using it, the way the Node providers'
  * per-workspace-package attribution already allows.
  *
  * Both facts are import paths, because that is what Go actually knows. What
