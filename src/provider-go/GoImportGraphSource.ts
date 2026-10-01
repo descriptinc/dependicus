@@ -1,6 +1,9 @@
-import { execSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import type { DataSource, DirectDependency, FactStore } from '../core/index';
 import { FactKeys } from '../core/index';
+
+const execFileAsync = promisify(execFile);
 
 /**
  * A package from `go list -json=... ./...`, which emits a concatenated JSON
@@ -58,7 +61,7 @@ export class GoImportGraphSource implements DataSource {
         const binaries = new Map<string, Set<string>>();
 
         for (const projectPath of this.projectPaths) {
-            const usage = this.readModuleUsage(projectPath, moduleNames);
+            const usage = await this.readModuleUsage(projectPath, moduleNames);
             if (!usage) continue;
             mergeInto(importedBy, usage.importedBy);
             mergeInto(binaries, usage.binaries);
@@ -85,21 +88,21 @@ export class GoImportGraphSource implements DataSource {
     }
 
     /** Read one module's package graph. Returns undefined if it can't be read. */
-    private readModuleUsage(
+    private async readModuleUsage(
         projectPath: string,
         moduleNames: ReadonlySet<string>,
-    ): ModuleUsage | undefined {
+    ): Promise<ModuleUsage | undefined> {
         let output: string;
         try {
-            output = execSync(
-                'go list -json=ImportPath,Name,Imports,TestImports,XTestImports ./...',
-                {
-                    encoding: 'utf-8',
-                    cwd: projectPath,
-                    maxBuffer: 64 * 1024 * 1024,
-                    stdio: ['pipe', 'pipe', 'pipe'],
-                },
+            // Not execSync: sources run together under Promise.all, and a
+            // blocking `go list` on a large module would stall the network
+            // ones alongside it.
+            const result = await execFileAsync(
+                'go',
+                ['list', '-json=ImportPath,Name,Imports,TestImports,XTestImports', './...'],
+                { encoding: 'utf-8', cwd: projectPath, maxBuffer: 64 * 1024 * 1024 },
             );
+            output = result.stdout;
         } catch (error) {
             // `go list ./...` exits non-zero if any one package has an import
             // it can't resolve, which is routine in a repo mid-change, but it

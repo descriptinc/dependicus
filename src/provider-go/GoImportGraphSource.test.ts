@@ -3,11 +3,28 @@ import type { DirectDependency } from '../core/index';
 import { RootFactStore, FactKeys } from '../core/index';
 
 vi.mock('node:child_process', () => ({
-    execSync: vi.fn(),
+    execFile: vi.fn(),
 }));
 
-import { execSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { GoImportGraphSource } from './GoImportGraphSource';
+
+/**
+ * Queue one `go list` result. The real execFile carries a promisify.custom
+ * that resolves to `{ stdout, stderr }`; a bare mock doesn't, so hand the
+ * callback the same shape the source reads.
+ */
+function mockGoList(result: string | Error): void {
+    vi.mocked(execFile).mockImplementationOnce(((
+        _file: string,
+        _args: readonly string[],
+        _options: unknown,
+        callback: (error: unknown, result?: unknown) => void,
+    ) => {
+        if (result instanceof Error) callback(result);
+        else callback(null, { stdout: result, stderr: '' });
+    }) as never);
+}
 
 // The shape Go backends usually take: thin main packages under cmd/, with the
 // third-party imports living in the internal/ packages they pull in.
@@ -57,18 +74,23 @@ describe('GoImportGraphSource', () => {
         output: string | Error,
         deps = ['github.com/gorilla/mux', 'github.com/sirupsen/logrus'],
     ) {
-        if (output instanceof Error) {
-            vi.mocked(execSync).mockImplementationOnce(() => {
-                throw output;
-            });
-        } else {
-            vi.mocked(execSync).mockReturnValueOnce(output);
-        }
+        mockGoList(output);
         const store = new RootFactStore();
         const dependencies = deps.map(makeDep);
         await new GoImportGraphSource(['/project']).fetch(dependencies, store);
         return store;
     }
+
+    it('asks go list for the fields it parses, in the module directory', async () => {
+        await run(packageList);
+
+        expect(vi.mocked(execFile)).toHaveBeenCalledWith(
+            'go',
+            ['list', '-json=ImportPath,Name,Imports,TestImports,XTestImports', './...'],
+            expect.objectContaining({ cwd: '/project' }),
+            expect.any(Function),
+        );
+    });
 
     it('records the first-party packages that import a dependency', async () => {
         const store = await run(packageList);
@@ -116,7 +138,7 @@ describe('GoImportGraphSource', () => {
             Name: 'main',
             Imports: ['example.com/a/b/c'],
         });
-        vi.mocked(execSync).mockReturnValueOnce(nested);
+        mockGoList(nested);
 
         const store = new RootFactStore();
         await new GoImportGraphSource(['/project']).fetch(
@@ -154,11 +176,9 @@ describe('GoImportGraphSource', () => {
     it('uses the packages go list did read when it exits non-zero', async () => {
         // One unresolvable import anywhere makes `go list ./...` exit 1, but it
         // still writes valid JSON for everything it could read.
-        vi.mocked(execSync).mockImplementationOnce(() => {
-            const error: Error & { stdout?: string } = new Error('exit status 1');
-            error.stdout = packageList;
-            throw error;
-        });
+        const failed: Error & { stdout?: string } = new Error('exit status 1');
+        failed.stdout = packageList;
+        mockGoList(failed);
 
         const store = new RootFactStore();
         await new GoImportGraphSource(['/project']).fetch(
@@ -195,7 +215,7 @@ describe('GoImportGraphSource', () => {
         const store = new RootFactStore();
         await new GoImportGraphSource(['/project']).fetch([], store);
 
-        expect(vi.mocked(execSync)).not.toHaveBeenCalled();
+        expect(vi.mocked(execFile)).not.toHaveBeenCalled();
     });
 
     it('merges the graphs of several modules', async () => {
@@ -204,7 +224,8 @@ describe('GoImportGraphSource', () => {
             Name: 'main',
             Imports: ['github.com/gorilla/mux'],
         });
-        vi.mocked(execSync).mockReturnValueOnce(packageList).mockReturnValueOnce(second);
+        mockGoList(packageList);
+        mockGoList(second);
 
         const store = new RootFactStore();
         await new GoImportGraphSource(['/project', '/other']).fetch(
