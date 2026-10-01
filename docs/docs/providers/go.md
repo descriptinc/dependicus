@@ -7,29 +7,37 @@ The Go provider tracks dependencies in projects managed by [Go modules](https://
 - **Direct dependencies only.** The `go list` output distinguishes direct and indirect dependencies. Only direct dependencies (those not marked `Indirect`) are tracked.
 - **Replace directives are honored.** If a dependency has a `replace` directive pointing to a different version, the replacement version is used. Replace directives pointing to local directories are skipped.
 
-## Attributing dependencies to services
+## Knowing which packages use a dependency
 
-By default every dependency in a module is attributed to the module itself, so a backend with a hundred binaries under `cmd/` reads as one consumer. Pass `consumerOf` to split that up:
+`go list -m` sees a module as one unit, so every dependency is attributed to the module: a backend with a hundred binaries under `cmd/` reads as a single consumer, and there is no per-team view of it the way there is for a pnpm workspace.
+
+Dependicus can't fix that by guessing what a service is in your layout, so it publishes what Go does know and lets you decide. For each dependency it records two facts:
+
+- `goImportedBy`: the import paths of your own packages that import it, including from tests.
+- `goBinaries`: the import paths of the `main` packages that reach it, following imports through your own packages. A thin `cmd/` binary usually reaches its dependencies through the `internal/` packages it imports rather than importing them itself, so this is the fact that answers "which services ship this".
+
+A grouping can map either to owners:
 
 ```ts
-import { GoProvider, PnpmProvider } from 'dependicus';
-
-export default dependicusCli({
-    dependicusBaseUrl: 'https://example.com/dependicus/',
-    providers: ({ cacheService, repoRoot }) => [
-        new PnpmProvider(cacheService, repoRoot),
-        new GoProvider(cacheService, repoRoot, {
-            consumerOf: (dir) => (dir.split('/')[0] === 'cmd' ? dir.split('/')[1] : undefined),
-        }),
+const teams: DependicusPlugin = {
+    name: 'go-teams',
+    groupings: [
+        {
+            key: 'team',
+            label: 'Teams',
+            ecosystems: ['gomod'],
+            getValue: ({ name, store }) => {
+                const binaries = store.getDependencyFact<string[]>(name, 'goBinaries') ?? [];
+                return [...new Set(binaries.map(teamForBinary))];
+            },
+        },
     ],
-});
+};
 ```
 
-`consumerOf` is given each package directory relative to the module root and returns the name to attribute it to, or undefined to leave it on the module. Dependicus then runs `go list -json=ImportPath,Dir,Imports,TestImports,XTestImports ./...`, resolves each import to the module providing it by longest prefix, and groups the result by consumer. That gives the same per-package "Used By" the Node providers produce, so a grouping can map Go dependencies to owning teams.
+Returning several values files the dependency under each of them, so a module shared by three services shows up on all three team pages.
 
-Imports that only appear in tests become dev dependencies of that consumer. A module nothing imports, such as one kept alive by a `tools.go` behind a build tag, stays attributed to the module so it isn't dropped.
-
-Reading imports needs the module's sources in `GOMODCACHE`, not only the `go.mod` files that `go list -m all` fetches, which is why this is opt-in. If the package list can't be read, Dependicus logs it and falls back to attributing everything to the module.
+Reading imports needs the module's sources, not only the `go.mod` files that `go list -m all` fetches. When they aren't present Dependicus says so and skips these two facts; everything else is unaffected.
 
 Requires Go >= 1.16 (when `go list -m -json all` became stable). The provider strips the `v` prefix from Go semver tags to store plain semver versions.
 

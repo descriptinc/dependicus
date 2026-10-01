@@ -157,9 +157,6 @@ export { UvProvider } from './providers-python/index';
 export { GoProvider } from './provider-go/index';
 
 /** @group Providers */
-export type { GoProviderOptions } from './provider-go/index';
-
-/** @group Providers */
 export { CargoProvider } from './provider-rust/index';
 
 /** @group Core Types */

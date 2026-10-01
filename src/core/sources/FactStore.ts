@@ -41,6 +41,10 @@ export const FactKeys = {
     DEPRECATED_TRANSITIVE_DEPS: 'deprecatedTransitiveDeps',
     /** URL patterns/links for this dependency. `Record<string, string>` (label -> URL or template with {{name}}/{{version}}) */
     URLS: 'urls',
+    /** Import paths of the module's own packages that import this dependency. `string[]` */
+    GO_IMPORTED_BY: 'goImportedBy',
+    /** Import paths of the module's `main` packages that reach this dependency. `string[]` */
+    GO_BINARIES: 'goBinaries',
 } as const;
 
 export interface SerializedFacts {
