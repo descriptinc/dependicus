@@ -885,8 +885,15 @@ export class HtmlWriter {
         // service sit next to each other with nothing to tell them apart.
         // Split it the way a detail page splits its dependency list.
         const indexEcosystems = new Set(summaries.flatMap((entry) => entry.ecosystems));
+        // Splitting only helps if it separates something. When every value
+        // spans the same ecosystems, as a team-per-value rollup does, each
+        // heading would repeat the whole list. Each value's set is a subset of
+        // the union, so a strict subset is just a smaller one.
+        const splitPartitions = summaries.some(
+            (entry) => entry.ecosystems.length < indexEcosystems.size,
+        );
         const indexGroups =
-            !ecosystem && indexEcosystems.size > 1
+            !ecosystem && indexEcosystems.size > 1 && splitPartitions
                 ? [...indexEcosystems]
                       .sort((a, b) => ecosystemLabel(a).localeCompare(ecosystemLabel(b)))
                       .map((eco) => {

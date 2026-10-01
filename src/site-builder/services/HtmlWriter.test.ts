@@ -508,6 +508,55 @@ describe('HtmlWriter', () => {
             expect(index.html.indexOf('lawyer-portal')).toBeGreaterThan(npmHeading);
         });
 
+        it('leaves the index alone when every value spans the same ecosystems', () => {
+            // A team-per-value rollup: every team owns both Go and npm, so a
+            // split would list all of them under each heading.
+            const perTeam: GroupingConfig = {
+                key: 'team',
+                label: 'Teams',
+                slugPrefix: 'teams',
+                getValue: () => ['Growth', 'Infrastructure'],
+            };
+            const writer = new HtmlWriter({ groupings: [perTeam] });
+            const npmDep = makeMockDependency();
+            const goDep = makeMockDependency({ name: 'github.com/a/b', ecosystem: 'gomod' });
+            const store = makeMockStore([npmDep, goDep]);
+            const pages = writer.toAllGroupingPages(
+                [makeProvider([npmDep]), makeProvider([goDep], { name: 'go', ecosystem: 'gomod' })],
+                store,
+            );
+
+            const index = pages.find((p) => p.filename === 'teams/index.html')!;
+            expect(index.html).not.toContain('dep-ecosystem-heading');
+            // Each team still listed once.
+            expect(index.html.split('>Growth</a>').length - 1).toBe(1);
+        });
+
+        it('still splits when only some values span both ecosystems', () => {
+            const mixed: GroupingConfig = {
+                key: 'team',
+                label: 'Teams',
+                slugPrefix: 'teams',
+                // Shared owns both; Backend owns only the Go module.
+                getValue: (name) =>
+                    name.startsWith('github.com/') ? ['Shared', 'Backend'] : ['Shared'],
+            };
+            const writer = new HtmlWriter({ groupings: [mixed] });
+            const npmDep = makeMockDependency();
+            const goDep = makeMockDependency({ name: 'github.com/a/b', ecosystem: 'gomod' });
+            const store = makeMockStore([npmDep, goDep]);
+            const pages = writer.toAllGroupingPages(
+                [makeProvider([npmDep]), makeProvider([goDep], { name: 'go', ecosystem: 'gomod' })],
+                store,
+            );
+
+            const index = pages.find((p) => p.filename === 'teams/index.html')!;
+            expect(index.html).toContain('dep-ecosystem-heading');
+            // Backend is Go only, so it appears once; Shared spans both.
+            expect(index.html.split('>Backend</a>').length - 1).toBe(1);
+            expect(index.html.split('>Shared</a>').length - 1).toBe(2);
+        });
+
         it('leaves a single-ecosystem index as one list', () => {
             const writer = new HtmlWriter({ groupings: [teamGrouping] });
             const dep = makeMockDependency();

@@ -12,7 +12,7 @@
     - `go list -m` treats a module as one unit, so every Go dependency belongs to the module and a backend with a hundred binaries under `cmd/` shows up as one consumer. The npm side already attributes each dependency to the workspace packages that use it. These facts let a grouping do the same for Go.
     - Attribution itself doesn't change. The facts are skipped, with a message, if the module's sources aren't there, since reading imports takes more than the `go.mod` files.
 - Rollup pages that cover more than one ecosystem split by ecosystem, rather than interleaving them.
-    - A grouping's index lists its values under a heading each, so apps and Go services aren't mixed into one alphabetical run.
+    - A grouping's index lists its values under a heading each, so apps and Go services aren't mixed into one alphabetical run. It only splits when that separates something: if every value spans the same ecosystems, the headings would each repeat the whole list, so the index stays flat.
     - A value's own page does the same with its dependencies.
     - Each heading carries its own count; the total at the top is still the total. Pages covering one ecosystem are unchanged.
 - Plugins can group the Used By column themselves, with `getUsedByGroups`.
