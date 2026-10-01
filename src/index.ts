@@ -158,9 +158,3 @@ export { GoProvider } from './provider-go/index';
 
 /** @group Providers */
 export { CargoProvider } from './provider-rust/index';
-
-/** @group Core Types */
-export type { ProviderFactory, ProviderFactoryContext } from './cli';
-
-/** @group Core Types */
-export type { GroupingContext } from './core/index';

@@ -195,7 +195,7 @@ A source can declare `dependsOn: ['npm-registry']` to run after another source. 
 
 ## Grouping pages
 
-Groupings create rollup pages that aggregate dependencies by a shared key (e.g. team, policy tier). Each `GroupingConfig` provides `getValue` to extract the key. It is given a `GroupingContext` of `{ name, store, ecosystem }`: the store is already scoped to that ecosystem, and `ecosystem` tells you which one you are placing, so a plugin that keeps ownership per ecosystem can resolve it directly rather than filing facts per group ahead of time. The detail page for each group value shows that group's dependencies and any sections returned by `getSections`.
+Groupings create rollup pages that aggregate dependencies by a shared key (e.g. team, policy tier). Each `GroupingConfig` provides `getValue(name, store, ecosystem)` to extract the key. The store is already scoped to that ecosystem, and `ecosystem` names which one you are placing, so a plugin keeping ownership per ecosystem can resolve it directly rather than filing facts per group ahead of time. The detail page for each group value shows that group's dependencies and any sections returned by `getSections`.
 
 `BasicCompliancePlugin` creates a grouping page per compliance policy automatically. For a working example of `getValue` and `getSections` on a grouping, see `buildGroupings` in [`compliance.ts`](../api/classes/BasicCompliancePlugin.html).
 

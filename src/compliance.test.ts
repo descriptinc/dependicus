@@ -457,14 +457,14 @@ describe('groupings', () => {
         const plugin = new BasicCompliancePlugin(makeConfig());
         const store = makeStore('test-pkg', 'tier1');
         const grouping = plugin.groupings[0]!;
-        expect(grouping.getValue({ name: 'test-pkg', store, ecosystem: 'npm' })).toBe('Tier 1');
+        expect(grouping.getValue('test-pkg', store, 'npm')).toBe('Tier 1');
     });
 
     it('getValue returns undefined for a dependency with no policy', () => {
         const plugin = new BasicCompliancePlugin(makeConfig());
         const store = makeStore('test-pkg', undefined);
         const grouping = plugin.groupings[0]!;
-        expect(grouping.getValue({ name: 'test-pkg', store, ecosystem: 'npm' })).toBeUndefined();
+        expect(grouping.getValue('test-pkg', store, 'npm')).toBeUndefined();
     });
 
     it('getSections returns compliance stats for the grouped dependencies', () => {

@@ -12,22 +12,9 @@ Root of your workspace. Defaults to the working directory.
 
 Explicitly select which dependency providers to use. Supported values: `'pnpm'`, `'bun'`, `'yarn'`, `'npm'`, `'aube'`, `'mise'`, `'uv'`, `'go'`, `'rust'`. When omitted, Dependicus [auto-detects](./package-managers.md) the active providers.
 
-### `providers` (optional): `DependencyProvider[] | ProviderFactory`
+### `providers` (optional): `DependencyProvider[]`
 
-Pass your own providers instead of `providerNames` and auto-detection. The provider classes are exported, so you can swap one for a configured instance and keep the stock ones.
-
-Use the factory form to build them against the resolved `--repo-root` and `--cache-dir`. It is handed the `CacheService` the constructors need, which the CLI only creates after reading the flags:
-
-```ts
-import { GoProvider, PnpmProvider } from 'dependicus';
-
-providers: ({ cacheService, repoRoot }) => [
-    new PnpmProvider(cacheService, repoRoot),
-    new GoProvider(cacheService, repoRoot, { consumerOf: serviceForDir }),
-],
-```
-
-An array is still accepted for providers that need neither. See [Package Managers](./package-managers.md) for details.
+For advanced use cases, pass fully-constructed provider instances. This takes precedence over `providerNames` and auto-detection. The provider classes are exported, so you can swap one for a configured instance and keep the stock ones. See [Package Managers](./package-managers.md) for details.
 
 ## Output
 

@@ -369,7 +369,7 @@ describe('HtmlWriter', () => {
             key: 'team',
             label: 'Teams',
             slugPrefix: 'teams',
-            getValue: ({ name, store }) => {
+            getValue: (name, store) => {
                 const meta = store.getDependencyFact<{ teamName: string }>(name, 'testMeta');
                 return meta?.teamName ?? 'Unknown';
             },
@@ -381,7 +381,7 @@ describe('HtmlWriter', () => {
                 key: 'team',
                 label: 'Teams',
                 slugPrefix: 'teams',
-                getValue: ({ name, ecosystem }) => {
+                getValue: (name, _store, ecosystem) => {
                     seen.push({ name, ecosystem });
                     return 'Growth';
                 },
@@ -517,7 +517,7 @@ describe('HtmlWriter', () => {
                 key: 'surface',
                 label: 'Surfaces',
                 slugPrefix: 'surfaces',
-                getValue: ({ name, store: factStore }) => {
+                getValue: (name, factStore) => {
                     const meta = factStore.getDependencyFact<{ surfaceId: string }>(
                         name,
                         'testMeta',
@@ -570,7 +570,7 @@ describe('HtmlWriter', () => {
                 key: 'team',
                 label: 'Teams',
                 slugPrefix: 'teams',
-                getValue: ({ name }) => {
+                getValue: (name) => {
                     return name === 'with-team' ? 'TeamA' : undefined;
                 },
             };
