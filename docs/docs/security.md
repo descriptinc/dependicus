@@ -71,11 +71,13 @@ All columns support filtering. Severity and Fix Available use dropdown filters; 
 
 `SecurityPlugin` contributes `descriptionSections` to both Linear and GitHub issue specs. When findings exist for a dependency version, the ticket description includes:
 
-- **Security summary** -- severity, CVSS score, advisory count, fix availability, maintenance posture
-- **Advisories** -- deduplicated list of advisory IDs with summaries, severity, CVSS scores, and fix status, linked to their source URLs
+- **Security summary** -- severity, CVSS score, advisory count, fix availability, the lowest fixed version when a source names one, maintenance posture
+- **Advisories** -- deduplicated list of advisory IDs with summaries, severity, CVSS scores, and fix status (with the fixed versions, from Snyk), linked to their source URLs
 - **Why this matters** -- non-advisory rationale (deprecation, transitive dependency counts)
 
 These sections are appended to any sections from other plugins (like `BasicCompliancePlugin`).
+
+The sections don't change what version an issue asks for. To file an issue for the release that fixes a vulnerability, pass `getFixVersion(store, name, version)` as the spec's `minimumVersion`; see [Security fixes](linearissues.md#security-fixes).
 
 ## Grouping detail pages
 

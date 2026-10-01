@@ -1,5 +1,9 @@
 import { Octokit } from '@octokit/rest';
-import { extractDependencyNameFromTitle, extractGroupNameFromTitle } from '../core/index';
+import {
+    extractDependencyNameFromTitle,
+    extractGroupNameFromTitle,
+    extractScopeFromTitle,
+} from '../core/index';
 
 const DEPENDICUS_LABEL_NAME = 'dependicus';
 const TITLE_PREFIX = '[Dependicus]';
@@ -19,6 +23,8 @@ export interface DependicusIssue {
      * True if this issue is for a group of dependencies rather than a single dependency.
      */
     isGroup: boolean;
+    /** The scope from the title, when the issue is one of several for its dependency or group. */
+    scope?: string;
     /** ISO date string when the issue was last updated */
     updatedAt: string;
     /**
@@ -132,6 +138,7 @@ export class GitHubIssueService {
                     body: issue.body ?? '',
                     dependencyName,
                     isGroup: groupName !== undefined,
+                    scope: extractScopeFromTitle(issue.title),
                     updatedAt: issue.updated_at,
                     isPullRequest: Boolean(issue.pull_request),
                 });
@@ -163,7 +170,7 @@ export class GitHubIssueService {
     ): Promise<DependicusIssue | undefined> {
         const response = await this.octokit.search.issuesAndPullRequests({
             q: `repo:${owner}/${repo} label:${DEPENDICUS_LABEL_NAME} is:closed "${dependencyName}" in:title`,
-            per_page: 10,
+            per_page: 50,
             sort: 'updated',
             order: 'desc',
         });
@@ -182,6 +189,7 @@ export class GitHubIssueService {
                 body: item.body ?? '',
                 dependencyName: extractedName,
                 isGroup: groupName !== undefined,
+                scope: extractScopeFromTitle(item.title),
                 updatedAt: item.updated_at,
                 isPullRequest: false,
             };

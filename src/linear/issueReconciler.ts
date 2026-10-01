@@ -19,6 +19,9 @@ import {
     isWithinCooldown,
     isWithinNotificationRateLimit,
     hasMajorVersionSinceLastUpdate,
+    scopedIssueKey,
+    toSpecList,
+    higherVersion,
 } from '../core/index';
 import { LinearService, DependicusIssue } from './LinearService';
 import type {
@@ -249,7 +252,10 @@ export async function reconcileIssues(
     dependencies: DirectDependency[],
     store: FactStore,
     config: IssueReconcilerConfig,
-    getLinearIssueSpec?: (context: VersionContext, store: FactStore) => LinearIssueSpec | undefined,
+    getLinearIssueSpec?: (
+        context: VersionContext,
+        store: FactStore,
+    ) => LinearIssueSpec | LinearIssueSpec[] | undefined,
 ): Promise<ReconciliationResult> {
     const dryRun = config.dryRun ?? false;
     const allowNewIssues = config.allowNewIssues ?? true;
@@ -261,8 +267,13 @@ export async function reconcileIssues(
     const linearService = new LinearService(config.linearApiKey, { dryRun });
 
     // Find out-of-date dependencies (group by ecosystem::name to avoid
-    // merging packages that share a name across different registries)
+    // merging packages that share a name across different registries, and by
+    // scope so one dependency can have an issue per scope)
     const outdatedDeps = new Map<string, OutdatedDependency>();
+    // ecosystem::name@version of every version the spec was asked about
+    const specCalled = new Set<string>();
+    // ecosystem::name of every dependency with a scoped issue this run
+    const scopedDeps = new Set<string>();
 
     for (const dep of dependencies) {
         const depKey = `${dep.ecosystem}::${dep.name}`;
@@ -285,92 +296,114 @@ export async function reconcileIssues(
                 ecosystem: dep.ecosystem,
                 currentVersion: version.version,
                 latestVersion: version.latestVersion,
+                usedBy: version.usedBy,
             };
 
             const scopedStore = store.scoped(dep.ecosystem);
-            const ctx = getLinearIssueSpec?.(versionContext, scopedStore);
-            if (!ctx) continue;
+            specCalled.add(`${depKey}@${version.version}`);
+            for (const ctx of toSpecList(getLinearIssueSpec?.(versionContext, scopedStore))) {
+                const policy = ctx.policy ?? DEFAULT_POLICY;
+                const assignment = ctx.assignment ?? DEFAULT_ASSIGNMENT;
 
-            const policy = ctx.policy ?? DEFAULT_POLICY;
-            const assignment = ctx.assignment ?? DEFAULT_ASSIGNMENT;
+                // skip policy — skip entirely
+                if (policy.type === 'skip') continue;
 
-            // skip policy — skip entirely
-            if (policy.type === 'skip') continue;
+                const isNotificationsOnly = isFyiPolicy(policy);
 
-            const isNotificationsOnly = isFyiPolicy(policy);
+                const targetVersion = ctx.targetVersion;
+                const availableMajorVersion = ctx.availableMajorVersion;
 
-            const targetVersion = ctx.targetVersion;
-            const availableMajorVersion = ctx.availableMajorVersion;
+                // Derive effective update type from target version
+                const effectiveUpdateType = targetVersion
+                    ? (getUpdateType(version.version, targetVersion) ?? updateType)
+                    : updateType;
 
-            // Derive effective update type from target version
-            const effectiveUpdateType = targetVersion
-                ? (getUpdateType(version.version, targetVersion) ?? updateType)
-                : updateType;
+                const daysOverdue = ctx.daysOverdue ?? 0;
+                const thresholdDays = ctx.thresholdDays;
 
-            const daysOverdue = ctx.daysOverdue ?? 0;
-            const thresholdDays = ctx.thresholdDays;
+                // Skip if no threshold and not notifications-only (nothing to track)
+                if (
+                    thresholdDays === undefined &&
+                    !isNotificationsOnly &&
+                    targetVersion === undefined
+                )
+                    continue;
 
-            // Skip if no threshold and not notifications-only (nothing to track)
-            if (thresholdDays === undefined && !isNotificationsOnly && targetVersion === undefined)
-                continue;
+                // Determine the effective policy for this version entry
+                const effectivePolicy: LinearPolicy = isNotificationsOnly
+                    ? { type: 'fyi' as const, rateLimitDays: policyRateLimitDays(policy) }
+                    : thresholdDays !== undefined
+                      ? policy
+                      : { type: 'fyi' as const, rateLimitDays: policyRateLimitDays(policy) };
 
-            // Determine the effective policy for this version entry
-            const effectivePolicy: LinearPolicy = isNotificationsOnly
-                ? { type: 'fyi' as const, rateLimitDays: policyRateLimitDays(policy) }
-                : thresholdDays !== undefined
-                  ? policy
-                  : { type: 'fyi' as const, rateLimitDays: policyRateLimitDays(policy) };
+                // A spec can narrow the packages it covers, so each scoped issue
+                // lists its own consumers rather than every one.
+                const entryVersion = ctx.usedBy?.length
+                    ? { ...version, usedBy: ctx.usedBy }
+                    : version;
+                const key = scopedIssueKey(depKey, ctx.scope);
+                if (ctx.scope !== undefined) scopedDeps.add(depKey);
 
-            const existing = outdatedDeps.get(depKey);
+                const existing = outdatedDeps.get(key);
 
-            if (!existing) {
-                outdatedDeps.set(depKey, {
-                    name: dep.name,
-                    ecosystem: dep.ecosystem,
-                    versions: [version],
-                    worstCompliance: {
-                        updateType: effectiveUpdateType,
-                        daysOverdue,
-                        thresholdDays,
-                    },
-                    availableMajorVersion,
-                    targetVersion,
-                    teamId: ctx.teamId,
-                    policy: effectivePolicy,
-                    assignment,
-                    group: ctx.group,
-                    ownerLabel: ctx.ownerLabel,
-                    descriptionSections: ctx.descriptionSections,
-                    commentSections: ctx.commentSections,
-                });
-            } else {
-                existing.versions.push(version);
-
-                // Aggregate assignment across versions
-                existing.assignment = aggregateAssignment(existing.assignment, assignment);
-
-                // Prefer actionable updates over FYI-only, even when both have daysOverdue=0
-                const isCurrentActionable = !isNotificationsOnly && thresholdDays !== undefined;
-                const isExistingFyi = isFyiPolicy(existing.policy);
-                const shouldReplaceCompliance =
-                    daysOverdue > existing.worstCompliance.daysOverdue ||
-                    (isCurrentActionable && isExistingFyi);
-
-                if (shouldReplaceCompliance) {
-                    existing.worstCompliance = {
-                        updateType: effectiveUpdateType,
-                        daysOverdue,
-                        thresholdDays,
-                    };
-                    existing.policy = aggregatePolicy(existing.policy, effectivePolicy);
-                    existing.targetVersion = targetVersion;
+                if (!existing) {
+                    outdatedDeps.set(key, {
+                        name: dep.name,
+                        ecosystem: dep.ecosystem,
+                        versions: [entryVersion],
+                        worstCompliance: {
+                            updateType: effectiveUpdateType,
+                            daysOverdue,
+                            thresholdDays,
+                        },
+                        availableMajorVersion,
+                        targetVersion,
+                        teamId: ctx.teamId,
+                        policy: effectivePolicy,
+                        assignment,
+                        group: ctx.group,
+                        ownerLabel: ctx.ownerLabel,
+                        descriptionSections: ctx.descriptionSections,
+                        commentSections: ctx.commentSections,
+                        scope: ctx.scope,
+                        minimumVersion: ctx.minimumVersion,
+                    });
                 } else {
-                    existing.policy = aggregatePolicy(existing.policy, effectivePolicy);
-                }
+                    existing.versions.push(entryVersion);
 
-                // Keep track of major version if available
-                if (availableMajorVersion && !existing.availableMajorVersion) {
-                    existing.availableMajorVersion = availableMajorVersion;
+                    // Aggregate assignment across versions
+                    existing.assignment = aggregateAssignment(existing.assignment, assignment);
+
+                    // Prefer actionable updates over FYI-only, even when both have daysOverdue=0
+                    const isCurrentActionable = !isNotificationsOnly && thresholdDays !== undefined;
+                    const isExistingFyi = isFyiPolicy(existing.policy);
+                    const shouldReplaceCompliance =
+                        daysOverdue > existing.worstCompliance.daysOverdue ||
+                        (isCurrentActionable && isExistingFyi);
+
+                    if (shouldReplaceCompliance) {
+                        existing.worstCompliance = {
+                            updateType: effectiveUpdateType,
+                            daysOverdue,
+                            thresholdDays,
+                        };
+                        existing.policy = aggregatePolicy(existing.policy, effectivePolicy);
+                        existing.targetVersion = targetVersion;
+                    } else {
+                        existing.policy = aggregatePolicy(existing.policy, effectivePolicy);
+                    }
+
+                    // Keep track of major version if available
+                    // Ask for the highest minimum any version needs, so the
+                    // title's version gets its fix too.
+                    existing.minimumVersion = higherVersion(
+                        existing.minimumVersion,
+                        ctx.minimumVersion,
+                    );
+
+                    if (availableMajorVersion && !existing.availableMajorVersion) {
+                        existing.availableMajorVersion = availableMajorVersion;
+                    }
                 }
             }
         }
@@ -384,9 +417,10 @@ export async function reconcileIssues(
 
     for (const [key, dep] of outdatedDeps) {
         if (dep.group) {
-            const groupDeps = dependenciesByGroup.get(dep.group) ?? [];
+            const groupKey = scopedIssueKey(dep.group, dep.scope);
+            const groupDeps = dependenciesByGroup.get(groupKey) ?? [];
             groupDeps.push(dep);
-            dependenciesByGroup.set(dep.group, groupDeps);
+            dependenciesByGroup.set(groupKey, groupDeps);
         } else {
             ungroupedDeps.set(key, dep);
         }
@@ -394,10 +428,10 @@ export async function reconcileIssues(
 
     // Build OutdatedGroup objects from grouped dependencies
     const outdatedGroups = new Map<string, OutdatedGroup>();
-    for (const [groupName, deps] of dependenciesByGroup) {
+    for (const [groupKey, deps] of dependenciesByGroup) {
         // Use the first dependency's team info (all dependencies in a group should have the same team)
         const firstDep = deps[0];
-        if (!firstDep) continue;
+        if (!firstDep?.group) continue;
 
         // Calculate worst compliance across all dependencies in the group
         // Prefer dependencies with actual SLO thresholds over notifications-only dependencies
@@ -425,8 +459,9 @@ export async function reconcileIssues(
         }
 
         const allCommentSections = deps.flatMap((d) => d.commentSections ?? []);
-        outdatedGroups.set(groupName, {
-            groupName,
+        outdatedGroups.set(groupKey, {
+            groupName: firstDep.group,
+            scope: firstDep.scope,
             dependencies: deps,
             teamId: firstDep.teamId,
             policy: groupPolicy,
@@ -441,25 +476,37 @@ export async function reconcileIssues(
     // (all versions already on latest). This lets the close loop distinguish
     // "group is compliant" from "group's deps were absent due to provider failure."
     const reportedGroups = new Set(dependenciesByGroup.keys());
+    // Group names reported under any scope. A scoped group issue whose scope is
+    // missing while its group was reported under another scope has lost its
+    // last dependency, rather than being absent because a provider failed.
+    const reportedGroupNames = new Set(
+        [...outdatedGroups.values()].map((group) => group.groupName),
+    );
     if (getLinearIssueSpec) {
         for (const dep of dependencies) {
             const depKey = `${dep.ecosystem}::${dep.name}`;
-            if (outdatedDeps.has(depKey)) continue; // already classified
-            // All versions were compliant (or otherwise skipped) — call the spec
-            // with the first version to learn the group assignment.
-            const version = dep.versions[0];
-            if (!version) continue;
-            const ctx = getLinearIssueSpec(
-                {
-                    name: dep.name,
-                    ecosystem: dep.ecosystem,
-                    currentVersion: version.version,
-                    latestVersion: version.latestVersion,
-                },
-                store.scoped(dep.ecosystem),
-            );
-            if (ctx?.group) {
-                reportedGroups.add(ctx.group);
+            // Versions the main pass skipped, like ones already on latest, still
+            // say which groups they belong to.
+            for (const version of dep.versions) {
+                if (specCalled.has(`${depKey}@${version.version}`)) continue;
+                const specs = toSpecList(
+                    getLinearIssueSpec(
+                        {
+                            name: dep.name,
+                            ecosystem: dep.ecosystem,
+                            currentVersion: version.version,
+                            latestVersion: version.latestVersion,
+                            usedBy: version.usedBy,
+                        },
+                        store.scoped(dep.ecosystem),
+                    ),
+                );
+                for (const ctx of specs) {
+                    if (ctx.group) {
+                        reportedGroups.add(scopedIssueKey(ctx.group, ctx.scope));
+                        reportedGroupNames.add(ctx.group);
+                    }
+                }
             }
         }
     }
@@ -481,8 +528,9 @@ export async function reconcileIssues(
     const duplicateIssues: DependicusIssue[] = [];
 
     for (const issue of existingIssues) {
-        if (!existingIssuesByName.has(issue.dependencyName)) {
-            existingIssuesByName.set(issue.dependencyName, issue);
+        const key = scopedIssueKey(issue.dependencyName, issue.scope);
+        if (!existingIssuesByName.has(key)) {
+            existingIssuesByName.set(key, issue);
         } else {
             duplicateIssues.push(issue);
         }
@@ -518,7 +566,12 @@ export async function reconcileIssues(
     // Process ungrouped dependencies
     for (const dep of ungroupedDeps.values()) {
         const depKey = `${dep.ecosystem}::${dep.name}`;
-        const match = findExistingIssue(existingIssuesByName, depKey, dep.name);
+        const match = findExistingIssue(
+            existingIssuesByName,
+            scopedIssueKey(depKey, dep.scope),
+            scopedIssueKey(dep.name, dep.scope),
+        );
+        const label = scopedIssueKey(dep.name, dep.scope);
         const existingIssue = match?.issue;
         const version = dep.versions[0];
         if (!version) {
@@ -544,6 +597,7 @@ export async function reconcileIssues(
                       dep.worstCompliance.updateType,
                       dep.worstCompliance.thresholdDays,
                       version.publishDate,
+                      dep.minimumVersion,
                   )
                 : undefined;
 
@@ -552,17 +606,19 @@ export async function reconcileIssues(
 
         const minVersion = notificationsOnly
             ? effectiveLatestVersion
-            : (findFirstVersionOfType(
+            : (dep.minimumVersion ??
+              findFirstVersionOfType(
                   version.version,
                   versionsBetween,
                   dep.worstCompliance.updateType,
-              )?.version ?? effectiveLatestVersion);
+              )?.version ??
+              effectiveLatestVersion);
         const title = buildTicketTitle(
             dep.name,
             version.version,
             minVersion,
             effectiveLatestVersion,
-            { notificationsOnly, ecosystem: dep.ecosystem },
+            { notificationsOnly, ecosystem: dep.ecosystem, scope: dep.scope },
         );
         const providerInfo = config.providerInfoMap.get(dep.ecosystem);
         if (!providerInfo) {
@@ -586,7 +642,7 @@ export async function reconcileIssues(
             if (skipUpdate) {
                 if (!dryRun) {
                     process.stderr.write(
-                        `Skipping ${dep.name} (${existingIssue.identifier}) - issue in ${existingIssue.state.name} state\n`,
+                        `Skipping ${label} (${existingIssue.identifier}) - issue in ${existingIssue.state.name} state\n`,
                     );
                 }
                 existingIssuesByName.delete(match!.mapKey);
@@ -607,7 +663,7 @@ export async function reconcileIssues(
             if (skipRateLimitDays !== undefined) {
                 if (!dryRun) {
                     process.stderr.write(
-                        `Skipping ${dep.name} (${existingIssue.identifier}) - within ${skipRateLimitDays}-day rate limit\n`,
+                        `Skipping ${label} (${existingIssue.identifier}) - within ${skipRateLimitDays}-day rate limit\n`,
                     );
                 }
                 existingIssuesByName.delete(match!.mapKey);
@@ -654,11 +710,11 @@ export async function reconcileIssues(
                 );
                 if (!dryRun) {
                     process.stderr.write(
-                        `Updated ${dep.name} (${existingIssue.identifier}) + comment (${newVersions.length} new versions)\n`,
+                        `Updated ${label} (${existingIssue.identifier}) + comment (${newVersions.length} new versions)\n`,
                     );
                 }
             } else if (!dryRun) {
-                process.stderr.write(`Updated ${dep.name} (${existingIssue.identifier})\n`);
+                process.stderr.write(`Updated ${label} (${existingIssue.identifier})\n`);
             }
             updated++;
 
@@ -667,7 +723,7 @@ export async function reconcileIssues(
             // No issue exists - only create if allowed
             if (!allowNewIssues) {
                 process.stderr.write(
-                    `Skipping issue creation for ${dep.name} (new issue creation disabled)\n`,
+                    `Skipping issue creation for ${label} (new issue creation disabled)\n`,
                 );
                 continue;
             }
@@ -681,7 +737,7 @@ export async function reconcileIssues(
             );
             if (skipRateLimitDays !== undefined) {
                 process.stderr.write(
-                    `Skipping ${dep.name} - within ${skipRateLimitDays}-day rate limit (no existing issue)\n`,
+                    `Skipping ${label} - within ${skipRateLimitDays}-day rate limit (no existing issue)\n`,
                 );
                 continue;
             }
@@ -689,9 +745,7 @@ export async function reconcileIssues(
             // Double-check: skip if an issue with this exact title already exists
             const fullTitle = `[Dependicus] ${title}`;
             if (existingIssuesByTitle.has(fullTitle)) {
-                process.stderr.write(
-                    `Skipping ${dep.name} - issue with same title already exists\n`,
-                );
+                process.stderr.write(`Skipping ${label} - issue with same title already exists\n`);
                 continue;
             }
 
@@ -730,7 +784,7 @@ export async function reconcileIssues(
 
                 if (!dryRun) {
                     process.stderr.write(
-                        `Reopened issue for ${dep.name} (${closedIssue.identifier})\n`,
+                        `Reopened issue for ${label} (${closedIssue.identifier})\n`,
                     );
                 }
                 reopened++;
@@ -739,7 +793,7 @@ export async function reconcileIssues(
 
             // Create issue
             const { identifier } = await linearService.createIssue({
-                dependencyName: dep.name,
+                dependencyName: label,
                 title,
                 teamId: dep.teamId,
                 dueDate,
@@ -751,9 +805,7 @@ export async function reconcileIssues(
 
             if (!dryRun) {
                 const delegateNote = delegateId ? ' [delegated]' : '';
-                process.stderr.write(
-                    `Created issue for ${dep.name} (${identifier})${delegateNote}\n`,
-                );
+                process.stderr.write(`Created issue for ${label} (${identifier})${delegateNote}\n`);
             }
             created++;
         }
@@ -761,7 +813,9 @@ export async function reconcileIssues(
 
     // Process grouped packages
     for (const group of outdatedGroups.values()) {
-        const existingIssue = existingIssuesByName.get(group.groupName);
+        const groupKey = scopedIssueKey(group.groupName, group.scope);
+        const groupLabel = scopedIssueKey(group.groupName, group.scope);
+        const existingIssue = existingIssuesByName.get(groupKey);
         const groupNotificationsOnly = isFyiPolicy(group.policy);
 
         // Calculate due date based on worst compliance in the group
@@ -785,6 +839,7 @@ export async function reconcileIssues(
                     dep.worstCompliance.updateType,
                     dep.worstCompliance.thresholdDays ?? group.worstCompliance.thresholdDays ?? 0,
                     version.publishDate,
+                    dep.minimumVersion,
                 );
                 if (!earliestDueDate || depDueDate < earliestDueDate) {
                     earliestDueDate = depDueDate;
@@ -794,6 +849,7 @@ export async function reconcileIssues(
 
         const title = buildGroupTicketTitle(group.groupName, group.dependencies.length, {
             notificationsOnly: groupNotificationsOnly,
+            scope: group.scope,
         });
         const description = buildGroupIssueDescription({
             group,
@@ -810,10 +866,10 @@ export async function reconcileIssues(
             if (skipUpdate) {
                 if (!dryRun) {
                     process.stderr.write(
-                        `Skipping ${group.groupName} group (${existingIssue.identifier}) - issue in ${existingIssue.state.name} state\n`,
+                        `Skipping ${groupLabel} group (${existingIssue.identifier}) - issue in ${existingIssue.state.name} state\n`,
                     );
                 }
-                existingIssuesByName.delete(group.groupName);
+                existingIssuesByName.delete(groupKey);
                 continue;
             }
 
@@ -832,10 +888,10 @@ export async function reconcileIssues(
             if (skipRateLimitDays !== undefined) {
                 if (!dryRun) {
                     process.stderr.write(
-                        `Skipping ${group.groupName} group (${existingIssue.identifier}) - within ${skipRateLimitDays}-day rate limit\n`,
+                        `Skipping ${groupLabel} group (${existingIssue.identifier}) - within ${skipRateLimitDays}-day rate limit\n`,
                     );
                 }
-                existingIssuesByName.delete(group.groupName);
+                existingIssuesByName.delete(groupKey);
                 continue;
             }
 
@@ -851,17 +907,17 @@ export async function reconcileIssues(
             );
             if (!dryRun) {
                 process.stderr.write(
-                    `Updated ${group.groupName} group (${existingIssue.identifier}) - ${group.dependencies.length} dependencies\n`,
+                    `Updated ${groupLabel} group (${existingIssue.identifier}) - ${group.dependencies.length} dependencies\n`,
                 );
             }
             updated++;
 
-            existingIssuesByName.delete(group.groupName);
+            existingIssuesByName.delete(groupKey);
         } else {
             // No issue exists - only create if allowed
             if (!allowNewIssues) {
                 process.stderr.write(
-                    `Skipping issue creation for ${group.groupName} group (new issue creation disabled)\n`,
+                    `Skipping issue creation for ${groupLabel} group (new issue creation disabled)\n`,
                 );
                 continue;
             }
@@ -875,7 +931,7 @@ export async function reconcileIssues(
             );
             if (skipRateLimitDays !== undefined) {
                 process.stderr.write(
-                    `Skipping ${group.groupName} group - within ${skipRateLimitDays}-day rate limit (no existing issue)\n`,
+                    `Skipping ${groupLabel} group - within ${skipRateLimitDays}-day rate limit (no existing issue)\n`,
                 );
                 continue;
             }
@@ -884,7 +940,7 @@ export async function reconcileIssues(
             const fullTitle = `[Dependicus] ${title}`;
             if (existingIssuesByTitle.has(fullTitle)) {
                 process.stderr.write(
-                    `Skipping ${group.groupName} group - issue with same title already exists\n`,
+                    `Skipping ${groupLabel} group - issue with same title already exists\n`,
                 );
                 continue;
             }
@@ -919,7 +975,7 @@ export async function reconcileIssues(
 
                 if (!dryRun) {
                     process.stderr.write(
-                        `Reopened issue for ${group.groupName} group (${closedIssue.identifier}) - ${group.dependencies.length} dependencies\n`,
+                        `Reopened issue for ${groupLabel} group (${closedIssue.identifier}) - ${group.dependencies.length} dependencies\n`,
                     );
                 }
                 reopened++;
@@ -928,7 +984,7 @@ export async function reconcileIssues(
 
             // Create issue for the group (don't auto-delegate groups - they're more complex)
             const { identifier } = await linearService.createIssue({
-                dependencyName: group.groupName,
+                dependencyName: groupLabel,
                 title,
                 teamId: group.teamId,
                 dueDate: earliestDueDate,
@@ -939,7 +995,7 @@ export async function reconcileIssues(
 
             if (!dryRun) {
                 process.stderr.write(
-                    `Created issue for ${group.groupName} group (${identifier}) - ${group.dependencies.length} dependencies\n`,
+                    `Created issue for ${groupLabel} group (${identifier}) - ${group.dependencies.length} dependencies\n`,
                 );
             }
             created++;
@@ -968,7 +1024,10 @@ export async function reconcileIssues(
             );
             continue;
         }
-        if (issue.isGroup && !reportedGroups.has(issue.dependencyName)) {
+        const groupReported =
+            reportedGroups.has(scopedIssueKey(issue.dependencyName, issue.scope)) ||
+            (issue.scope !== undefined && reportedGroupNames.has(issue.dependencyName));
+        if (issue.isGroup && !groupReported) {
             process.stderr.write(
                 `Skipping close for ${issue.dependencyName} group (${issue.identifier}) — no dependencies assigned to this group this run\n`,
             );
@@ -982,18 +1041,24 @@ export async function reconcileIssues(
         const [depEcosystem, depName] = issue.dependencyName.includes('::')
             ? issue.dependencyName.split('::')
             : [undefined, issue.dependencyName];
-        const closeComment = buildIssueClosedComment({
-            name: depName!,
-            ecosystem: depEcosystem,
-            isGroup: issue.isGroup,
-            currentVersion: firstVersion?.version,
-            latestVersion: firstVersion?.latestVersion,
-        });
+        // An unscoped issue for a dependency that now has scoped ones was
+        // split up, not fixed.
+        const superseded =
+            !issue.isGroup && issue.scope === undefined && scopedDeps.has(issue.dependencyName);
+        const closeComment = superseded
+            ? `Dependicus now files a separate issue for each scope of ${depName}, so this one is closed in favor of those.`
+            : buildIssueClosedComment({
+                  name: depName!,
+                  ecosystem: depEcosystem,
+                  isGroup: issue.isGroup,
+                  currentVersion: firstVersion?.version,
+                  latestVersion: firstVersion?.latestVersion,
+              });
         await linearService.createComment(issue.id, closeComment, issue.identifier);
         await linearService.closeIssue(issue.id, issue.identifier);
         if (!dryRun) {
             process.stderr.write(
-                `Closed issue for ${issue.dependencyName} (${issue.identifier}) - now compliant\n`,
+                `Closed issue for ${issue.dependencyName} (${issue.identifier}) - ${superseded ? 'split into scoped issues' : 'now compliant'}\n`,
             );
         }
         closed++;

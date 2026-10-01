@@ -55,6 +55,10 @@ void dependicusCli({
 }).run(process.argv);
 ```
 
+## One issue per team, and security fixes
+
+GitHub issue specs accept the same `scope`, `usedBy` and `minimumVersion` fields as Linear ones. Return one scoped spec per team to file an issue for each team, and set `minimumVersion` to ask for the release that fixes a vulnerability. [Creating and Updating Linear Issues](linearissues.md#one-issue-per-team) covers both.
+
 ## CLI flags
 
 The `make-github-issues` command accepts these flags in addition to `--dry-run`, `--json-file`, `--github-owner`, and `--github-repo`:

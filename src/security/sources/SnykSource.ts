@@ -1,4 +1,5 @@
 import type { DataSource, DirectDependency, FactStore } from '../../core/index';
+import { compareVersions, parseVersion } from '../../core/utils/versionUtils';
 import type { CacheService } from '../../core/services/CacheService';
 import type { AdvisoryDetail, SecurityFinding, Severity, SnykConfig } from '../types';
 import { SECURITY_FINDINGS_KEY } from '../types';
@@ -149,6 +150,50 @@ function fixVersions(issue: SnykIssue): string[] {
     return versions;
 }
 
+/**
+ * The release line a version belongs to: its major, or major.minor below 1.0,
+ * where a minor bump is the breaking one.
+ */
+function releaseLine(version: string): string | undefined {
+    const parts = parseVersion(version);
+    if (!parts) return undefined;
+    return parts[0] > 0 ? `${parts[0]}` : `0.${parts[1]}`;
+}
+
+/**
+ * Whether `version` has the fix, given the versions that fix an advisory.
+ *
+ * Snyk lists one fix per release line it patched. A version on one of those
+ * lines is fixed from that line's fix onward. A version on a line with no
+ * listed fix is only fixed if it's newer than all of them, since a line in
+ * between was left vulnerable.
+ */
+function hasFix(version: string, fixes: readonly string[]): boolean {
+    const line = releaseLine(version);
+    const sameLine = fixes.filter((f) => releaseLine(f) === line);
+    if (sameLine.length > 0) {
+        return sameLine.some((f) => (compareVersions(version, f) ?? -1) >= 0);
+    }
+    return fixes.every((f) => (compareVersions(version, f) ?? -1) > 0);
+}
+
+/**
+ * The lowest version above `currentVersion` that fixes every advisory with a
+ * known fix, picked from the fix versions themselves. Advisories with no fix
+ * are left out, since no upgrade resolves them.
+ */
+export function lowestFixVersion(
+    currentVersion: string,
+    fixesPerAdvisory: ReadonlyArray<readonly string[]>,
+): string | undefined {
+    const fixable = fixesPerAdvisory.filter((fixes) => fixes.length > 0);
+    if (fixable.length === 0) return undefined;
+    const candidates = [...new Set(fixable.flat())]
+        .filter((v) => (compareVersions(v, currentVersion) ?? -1) > 0)
+        .sort((a, b) => compareVersions(a, b) ?? 0);
+    return candidates.find((v) => fixable.every((fixes) => hasFix(v, fixes)));
+}
+
 /** Snyk's exploit-maturity verdict, the most actionable across the issues. */
 function exploitMaturity(issues: SnykIssue[]): string | undefined {
     // Snyk marks one entry per scoring format as `primary`; the rest restate the
@@ -205,18 +250,35 @@ function worstFirst(issues: SnykIssue[]): SnykIssue[] {
     );
 }
 
-export function toFinding(issues: SnykIssue[]): SecurityFinding | undefined {
+/**
+ * One finding for a package version's Snyk issues. With the version, the
+ * finding also names the lowest release that fixes them.
+ */
+export function toFinding(
+    issues: SnykIssue[],
+    currentVersion?: string,
+): SecurityFinding | undefined {
     if (issues.length === 0) return undefined;
 
     const ordered = worstFirst(issues);
-    const advisories: AdvisoryDetail[] = ordered.map((issue) => ({
-        id: issue.id,
-        summary: issue.attributes?.title,
-        severity: toSeverity(issue.attributes?.effective_severity_level),
-        cvssScore: snykScore(issue),
-        fixAvailable: fixVersions(issue).length > 0,
-        url: `${ADVISORY_BASE}/${encodeURIComponent(issue.id)}`,
-    }));
+    const advisories: AdvisoryDetail[] = ordered.map((issue) => {
+        const fixes = fixVersions(issue);
+        return {
+            id: issue.id,
+            summary: issue.attributes?.title,
+            severity: toSeverity(issue.attributes?.effective_severity_level),
+            cvssScore: snykScore(issue),
+            fixAvailable: fixes.length > 0,
+            ...(fixes.length > 0 && { fixVersions: fixes }),
+            url: `${ADVISORY_BASE}/${encodeURIComponent(issue.id)}`,
+        };
+    });
+    const fixVersion = currentVersion
+        ? lowestFixVersion(
+              currentVersion,
+              advisories.map((a) => a.fixVersions ?? []),
+          )
+        : undefined;
 
     const scores = advisories
         .map((a) => a.cvssScore)
@@ -241,6 +303,7 @@ export function toFinding(issues: SnykIssue[]): SecurityFinding | undefined {
         advisoryIds: [...new Set(ordered.map(crossSourceId))],
         advisoryCount: ordered.length,
         fixAvailable,
+        ...(fixVersion && { fixVersion }),
         rationale,
         sourceLinks: ordered.map((issue) => ({
             label: issue.id,
@@ -305,7 +368,7 @@ export class SnykSource implements DataSource {
                     failed++;
                     continue;
                 }
-                const finding = toFinding(issues);
+                const finding = toFinding(issues, target.version);
                 if (!finding) continue;
                 withIssues++;
 

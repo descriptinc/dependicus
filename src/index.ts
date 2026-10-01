@@ -101,7 +101,7 @@ export type { GitHubIssueAssignment } from './github-issues/index';
 // ── Security ────────────────────────────────────────────────────────
 
 /** @group Security */
-export { SecurityPlugin } from './security/index';
+export { SecurityPlugin, getFixVersion } from './security/index';
 
 /** @group Security */
 export type {

@@ -630,3 +630,64 @@ describe('reconcileGitHubIssues', () => {
         });
     });
 });
+
+describe('reconcileGitHubIssues with scoped specs', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    const perPackageSpec = (usedBy: readonly string[] | undefined): GitHubIssueSpec[] =>
+        (usedBy ?? []).map((pkg) =>
+            makeSpec({ scope: pkg, usedBy: [pkg], labels: [`team:${pkg}`] }),
+        );
+
+    it('files one issue per scope, labelled for its own consumers', async () => {
+        setupMocks();
+        const deps: DirectDependency[] = [
+            {
+                name: 'test-pkg',
+                ecosystem: 'npm',
+                versions: [makeVersion({ usedBy: ['web', 'admin'] })],
+            },
+        ];
+
+        const result = await reconcileGitHubIssues(deps, makeStore(), baseConfig, (ctx) =>
+            perPackageSpec(ctx.usedBy),
+        );
+
+        expect(result.created).toBe(2);
+        const titles = mockOctokit.issues.create.mock.calls.map((c) => c[0].title).sort();
+        expect(titles).toEqual([
+            '[Dependicus] [npm] [admin] FYI: test-pkg 2.0.0 is available (currently on 1.0.0)',
+            '[Dependicus] [npm] [web] FYI: test-pkg 2.0.0 is available (currently on 1.0.0)',
+        ]);
+    });
+
+    it('updates each scoped issue instead of closing one as a duplicate', async () => {
+        setupMocks([
+            {
+                number: 1,
+                title: '[Dependicus] [npm] [web] FYI: test-pkg 2.0.0 is available (currently on 1.0.0)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+            {
+                number: 2,
+                title: '[Dependicus] [npm] [admin] FYI: test-pkg 2.0.0 is available (currently on 1.0.0)',
+                updated_at: '2024-01-01T00:00:00Z',
+            },
+        ]);
+        const deps: DirectDependency[] = [
+            {
+                name: 'test-pkg',
+                ecosystem: 'npm',
+                versions: [makeVersion({ usedBy: ['web', 'admin'] })],
+            },
+        ];
+
+        const result = await reconcileGitHubIssues(deps, makeStore(), baseConfig, (ctx) =>
+            perPackageSpec(ctx.usedBy),
+        );
+
+        expect(result).toMatchObject({ created: 0, updated: 2, closed: 0, closedDuplicates: 0 });
+    });
+});

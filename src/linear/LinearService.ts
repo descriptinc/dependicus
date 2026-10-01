@@ -1,5 +1,9 @@
 import { LinearClient, LinearDocument } from '@linear/sdk';
-import { extractDependencyNameFromTitle, extractGroupNameFromTitle } from '../core/index';
+import {
+    extractDependencyNameFromTitle,
+    extractGroupNameFromTitle,
+    extractScopeFromTitle,
+} from '../core/index';
 
 type IssueCreateInput = LinearDocument.IssueCreateInput;
 
@@ -19,6 +23,8 @@ export interface DependicusIssue {
      * True if this issue is for a group of dependencies rather than a single dependency.
      */
     isGroup: boolean;
+    /** The scope from the title, when the issue is one of several for its dependency or group. */
+    scope?: string;
     dueDate: string | undefined;
     /** ISO date string when the issue was last updated */
     updatedAt: string;
@@ -138,6 +144,7 @@ export class LinearService {
                     title: issue.title,
                     dependencyName,
                     isGroup: groupName !== undefined,
+                    scope: extractScopeFromTitle(issue.title),
                     dueDate: issue.dueDate ?? undefined,
                     updatedAt: issue.updatedAt.toISOString(),
                     state: {
@@ -287,7 +294,7 @@ export class LinearService {
                 },
                 title: { contains: dependencyName },
             },
-            first: 10,
+            first: 50,
         });
 
         for (const issue of issues.nodes) {
@@ -305,6 +312,7 @@ export class LinearService {
                 title: issue.title,
                 dependencyName: extractedName,
                 isGroup: groupName !== undefined,
+                scope: extractScopeFromTitle(issue.title),
                 dueDate: issue.dueDate ?? undefined,
                 updatedAt: issue.updatedAt.toISOString(),
                 state: {
