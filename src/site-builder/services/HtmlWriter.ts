@@ -114,6 +114,23 @@ function shortenModulePath(name: string, ecosystem: string): string {
     return name.replace(/^(?:github\.com|gitlab\.com|bitbucket\.org)\//, '');
 }
 
+/**
+ * Ecosystem identifiers as a reader would name them. A rollup page spanning
+ * several of them is easier to scan under "Go" and "npm" than under "gomod"
+ * and "npm".
+ */
+const ECOSYSTEM_LABELS: Record<string, string> = {
+    npm: 'npm',
+    gomod: 'Go',
+    pypi: 'Python',
+    cargo: 'Rust',
+    mise: 'mise',
+};
+
+function ecosystemLabel(ecosystem: string): string {
+    return ECOSYSTEM_LABELS[ecosystem] ?? ecosystem;
+}
+
 export class HtmlWriter {
     private templateService: TemplateService;
     private groupings: GroupingConfig[];
@@ -903,6 +920,29 @@ export class HtmlWriter {
                     })),
                 );
 
+                // A merged page lists several ecosystems, and an interleaved
+                // run of npm and Go packages is hard to read. Split it when
+                // there is more than one; a single-ecosystem page is unchanged.
+                const byEcosystem = new Map<string, typeof dependencies>();
+                for (const entry of dependencies) {
+                    const existing = byEcosystem.get(entry.ecosystem);
+                    if (existing) existing.push(entry);
+                    else byEcosystem.set(entry.ecosystem, [entry]);
+                }
+                const ecosystemGroups =
+                    byEcosystem.size > 1
+                        ? [...byEcosystem.entries()]
+                              .sort(([a], [b]) =>
+                                  ecosystemLabel(a).localeCompare(ecosystemLabel(b)),
+                              )
+                              .map(([eco, items]) => ({
+                                  ecosystem: eco,
+                                  label: ecosystemLabel(eco),
+                                  count: items.length,
+                                  dependencies: items,
+                              }))
+                        : undefined;
+
                 const ctx: GroupingDetailContext = {
                     groupValue: value,
                     dependencies: deps,
@@ -918,6 +958,7 @@ export class HtmlWriter {
                     label: grouping.label,
                     value,
                     dependencies,
+                    ecosystemGroups,
                     count: dependencies.length,
                     stats,
                     sections,
