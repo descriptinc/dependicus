@@ -16,6 +16,7 @@ import { SECURITY_FINDINGS_KEY, SEVERITY_ORDER } from './types';
 import { OsvSource } from './sources/OsvSource';
 import { DepsDevSource } from './sources/DepsDevSource';
 import { GitHubAdvisorySource } from './sources/GitHubAdvisorySource';
+import { SnykSource } from './sources/SnykSource';
 
 // ── DependicusPlugin implementation ─────────────────────────────────
 
@@ -59,6 +60,9 @@ export class SecurityPlugin {
                     ? this.config.githubAdvisory
                     : undefined;
             sources.push(new GitHubAdvisorySource(c));
+        }
+        if (this.config.snyk) {
+            sources.push(new SnykSource(this.config.snyk));
         }
         return sources;
     }

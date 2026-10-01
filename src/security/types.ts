@@ -61,6 +61,16 @@ export interface GitHubAdvisoryConfig {
     cacheTtlDays?: number;
 }
 
+export interface SnykConfig {
+    /**
+     * Snyk organisation UUID the lookups run under. Snyk's package API requires
+     * it in the path even for a token with access to one organisation.
+     */
+    orgId: string;
+    /** Cache TTL in days. Default: 7. */
+    cacheTtlDays?: number;
+}
+
 export interface SecurityPluginConfig {
     /** Enable OSV.dev vulnerability lookups. Pass `true` for defaults. */
     osv?: boolean | OsvConfig;
@@ -68,4 +78,11 @@ export interface SecurityPluginConfig {
     depsdev?: boolean | DepsDevConfig;
     /** Enable GitHub Advisory vulnerability lookups. Pass `true` for defaults. */
     githubAdvisory?: boolean | GitHubAdvisoryConfig;
+    /**
+     * Enable Snyk vulnerability lookups. Needs an organisation UUID, and reads
+     * the token from `SNYK_API_TOKEN`; without the token the source skips itself
+     * rather than failing the run. Snyk is a paid product, so unlike the other
+     * three this does nothing for anyone without an account.
+     */
+    snyk?: SnykConfig;
 }

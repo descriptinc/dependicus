@@ -1,0 +1,102 @@
+{
+    "data": [
+        {
+            "id": "SNYK-JS-SNYK-10497607",
+            "attributes": {
+                "slots": {
+                    "references": [
+                        {
+                            "url": "https://docs.snyk.io/snyk-cli/debugging-the-snyk-cli",
+                            "title": "Debug Mode Documentation"
+                        },
+                        {
+                            "url": "https://github.com/snyk/cli/commit/38322f377da7e5f1391e1f641710be50989fa4df",
+                            "title": "GitHub Commit"
+                        },
+                        {
+                            "url": "https://github.com/snyk/go-application-framework/commit/ca7ba7d72e68455afb466a7a47bb2c9aece86c18",
+                            "title": "GitHub Commit"
+                        },
+                        {
+                            "url": "https://github.com/snyk/cli/releases/tag/v1.1297.3",
+                            "title": "Release Notes"
+                        }
+                    ],
+                    "disclosure_time": "2025-06-25T18:00:00Z",
+                    "exploit_details": {
+                        "sources": ["Snyk"],
+                        "maturity_levels": [
+                            {
+                                "type": "primary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv4"
+                            },
+                            {
+                                "type": "secondary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv3"
+                            }
+                        ]
+                    },
+                    "publication_time": "2025-06-25T16:01:19.927969Z"
+                },
+                "title": "Insertion of Sensitive Information into Log File",
+                "problems": [
+                    {
+                        "id": "CVE-2025-6624",
+                        "source": "CVE"
+                    },
+                    {
+                        "id": "CWE-532",
+                        "source": "CWE"
+                    }
+                ],
+                "severities": [
+                    {
+                        "type": "primary",
+                        "level": "low",
+                        "score": 2.4,
+                        "source": "Snyk",
+                        "vector": "CVSS:4.0/AV:L/AC:H/AT:P/PR:H/UI:P/VC:L/VI:N/VA:N/SC:H/SI:H/SA:H/E:P",
+                        "version": "4.0"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "high",
+                        "score": 7.2,
+                        "source": "Snyk",
+                        "vector": "CVSS:3.1/AV:L/AC:H/PR:H/UI:R/S:C/C:H/I:H/A:H/E:P",
+                        "version": "3.1"
+                    }
+                ],
+                "coordinates": [
+                    {
+                        "remedies": [
+                            {
+                                "type": "indeterminate",
+                                "details": {
+                                    "upgrade_package": "1.1297.3"
+                                },
+                                "description": "Upgrade the package version to 1.1297.3 to fix this vulnerability"
+                            }
+                        ],
+                        "representations": [
+                            {
+                                "resource_path": "<1.1297.3"
+                            },
+                            {
+                                "package": {
+                                    "name": "snyk",
+                                    "type": "npm",
+                                    "url": "pkg:npm/snyk@1.1291.0",
+                                    "version": "1.1291.0"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "effective_severity_level": "low"
+            }
+        }
+    ]
+}

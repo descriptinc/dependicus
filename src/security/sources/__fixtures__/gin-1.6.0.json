@@ -1,0 +1,309 @@
+{
+    "data": [
+        {
+            "id": "SNYK-GOLANG-GITHUBCOMGINGONICGIN-3324285",
+            "attributes": {
+                "slots": {
+                    "references": [
+                        {
+                            "url": "https://github.com/t0rchwo0d/gin/commit/fd9f98e70fb4107ee68c783482d231d35e60507b",
+                            "title": "GitHub Commit"
+                        },
+                        {
+                            "url": "https://github.com/gin-gonic/gin/pull/3500",
+                            "title": "GitHub PR"
+                        },
+                        {
+                            "url": "https://github.com/gin-gonic/gin/pull/3503",
+                            "title": "GitHub PR"
+                        },
+                        {
+                            "url": "https://github.com/gin-gonic/gin/releases/tag/v1.9.0",
+                            "title": "GitHub Release"
+                        }
+                    ],
+                    "disclosure_time": "2023-02-17T14:24:53Z",
+                    "exploit_details": {
+                        "sources": [],
+                        "maturity_levels": [
+                            {
+                                "type": "primary",
+                                "level": "Not Defined",
+                                "format": "CVSSv4"
+                            },
+                            {
+                                "type": "secondary",
+                                "level": "Not Defined",
+                                "format": "CVSSv3"
+                            }
+                        ]
+                    },
+                    "publication_time": "2023-05-03T10:00:14.693542Z"
+                },
+                "title": "Improper Input Validation",
+                "problems": [
+                    {
+                        "id": "CVE-2023-26125",
+                        "source": "CVE"
+                    },
+                    {
+                        "id": "CWE-20",
+                        "source": "CWE"
+                    }
+                ],
+                "severities": [
+                    {
+                        "type": "primary",
+                        "level": "medium",
+                        "score": 5.6,
+                        "source": "Snyk",
+                        "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:L",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "high",
+                        "score": 7.3,
+                        "source": "NVD",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L",
+                        "version": "3.1"
+                    }
+                ],
+                "coordinates": [
+                    {
+                        "remedies": [
+                            {
+                                "type": "indeterminate",
+                                "details": {
+                                    "upgrade_package": "1.9.0"
+                                },
+                                "description": "Upgrade the package version to 1.9.0 to fix this vulnerability"
+                            }
+                        ],
+                        "representations": [
+                            {
+                                "resource_path": "<1.9.0"
+                            },
+                            {
+                                "package": {
+                                    "name": "gin",
+                                    "namespace": "github.com/gin-gonic",
+                                    "type": "golang",
+                                    "url": "pkg:golang/github.com/gin-gonic/gin@1.6.0",
+                                    "version": "1.6.0"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "effective_severity_level": "medium"
+            }
+        },
+        {
+            "id": "SNYK-GOLANG-GITHUBCOMGINGONICGIN-5406508",
+            "attributes": {
+                "slots": {
+                    "references": [
+                        {
+                            "url": "https://github.com/gin-gonic/gin/commit/2d4bbec941551479b1fdf1e54ece03e6e82a7e72",
+                            "title": "GitHub Commit"
+                        },
+                        {
+                            "url": "https://github.com/gin-gonic/gin/issues/3555",
+                            "title": "GitHub Issue"
+                        },
+                        {
+                            "url": "https://github.com/gin-gonic/gin/pull/3556",
+                            "title": "GitHub PR"
+                        }
+                    ],
+                    "disclosure_time": "2023-04-04T12:03:28Z",
+                    "exploit_details": {
+                        "sources": ["Snyk"],
+                        "maturity_levels": [
+                            {
+                                "type": "primary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv4"
+                            },
+                            {
+                                "type": "secondary",
+                                "level": "Proof of Concept",
+                                "format": "CVSSv3"
+                            }
+                        ]
+                    },
+                    "publication_time": "2023-05-12T09:46:43.582806Z"
+                },
+                "title": "Improper Input Validation",
+                "problems": [
+                    {
+                        "id": "CVE-2023-29401",
+                        "source": "CVE"
+                    },
+                    {
+                        "id": "CWE-20",
+                        "source": "CWE"
+                    },
+                    {
+                        "id": "GO-2023-1737",
+                        "source": "GO"
+                    }
+                ],
+                "severities": [
+                    {
+                        "type": "primary",
+                        "level": "high",
+                        "score": 7.5,
+                        "source": "Snyk",
+                        "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:H/E:P",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "medium",
+                        "score": 4.3,
+                        "source": "NVD",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:N",
+                        "version": "3.1"
+                    }
+                ],
+                "coordinates": [
+                    {
+                        "remedies": [
+                            {
+                                "type": "indeterminate",
+                                "details": {
+                                    "upgrade_package": "1.9.1"
+                                },
+                                "description": "Upgrade the package version to 1.9.1 to fix this vulnerability"
+                            }
+                        ],
+                        "representations": [
+                            {
+                                "resource_path": "<1.9.1"
+                            },
+                            {
+                                "package": {
+                                    "name": "gin",
+                                    "namespace": "github.com/gin-gonic",
+                                    "type": "golang",
+                                    "url": "pkg:golang/github.com/gin-gonic/gin@1.6.0",
+                                    "version": "1.6.0"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "effective_severity_level": "high"
+            }
+        },
+        {
+            "id": "SNYK-GOLANG-GITHUBCOMGINGONICGIN-1041736",
+            "attributes": {
+                "slots": {
+                    "references": [
+                        {
+                            "url": "https://github.com/gin-gonic/gin/commit/3b555a560534ca3114515c4b32737ba51b10392c",
+                            "title": "GitHub Commit"
+                        },
+                        {
+                            "url": "https://github.com/gin-gonic/gin/issues/2862",
+                            "title": "GitHub Issue"
+                        },
+                        {
+                            "url": "https://github.com/gin-gonic/gin/releases/tag/v1.7.7",
+                            "title": "GitHub Release"
+                        }
+                    ],
+                    "disclosure_time": "2020-11-19T13:21:13Z",
+                    "exploit_details": {
+                        "sources": [],
+                        "maturity_levels": [
+                            {
+                                "type": "primary",
+                                "level": "Not Defined",
+                                "format": "CVSSv4"
+                            },
+                            {
+                                "type": "secondary",
+                                "level": "Not Defined",
+                                "format": "CVSSv3"
+                            }
+                        ]
+                    },
+                    "publication_time": "2021-01-20T17:04:53Z"
+                },
+                "title": "HTTP Response Splitting",
+                "problems": [
+                    {
+                        "id": "CVE-2020-28483",
+                        "source": "CVE"
+                    },
+                    {
+                        "id": "CWE-113",
+                        "source": "CWE"
+                    },
+                    {
+                        "id": "GHSA-h395-qcrw-5vmq",
+                        "source": "GHSA"
+                    }
+                ],
+                "severities": [
+                    {
+                        "type": "primary",
+                        "level": "high",
+                        "score": 7.1,
+                        "source": "Snyk",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:L/A:N",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "high",
+                        "score": 7.1,
+                        "source": "Red Hat",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:L/A:N",
+                        "version": "3.1"
+                    },
+                    {
+                        "type": "secondary",
+                        "level": "high",
+                        "score": 7.1,
+                        "source": "NVD",
+                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:L/A:N",
+                        "version": "3.1"
+                    }
+                ],
+                "coordinates": [
+                    {
+                        "remedies": [
+                            {
+                                "type": "indeterminate",
+                                "details": {
+                                    "upgrade_package": "1.7.7"
+                                },
+                                "description": "Upgrade the package version to 1.7.7 to fix this vulnerability"
+                            }
+                        ],
+                        "representations": [
+                            {
+                                "resource_path": "<1.7.7"
+                            },
+                            {
+                                "package": {
+                                    "name": "gin",
+                                    "namespace": "github.com/gin-gonic",
+                                    "type": "golang",
+                                    "url": "pkg:golang/github.com/gin-gonic/gin@1.6.0",
+                                    "version": "1.6.0"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "effective_severity_level": "high"
+            }
+        }
+    ]
+}

@@ -109,6 +109,7 @@ export type {
     OsvConfig,
     DepsDevConfig,
     GitHubAdvisoryConfig,
+    SnykConfig,
     SecurityFinding,
     AdvisoryDetail,
     Severity,
@@ -126,3 +127,6 @@ export { DepsDevSource } from './security/sources/DepsDevSource';
 
 /** @group Security */
 export { GitHubAdvisorySource } from './security/sources/GitHubAdvisorySource';
+
+/** @group Security */
+export { SnykSource } from './security/sources/SnykSource';

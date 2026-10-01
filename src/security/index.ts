@@ -4,6 +4,7 @@ export type {
     OsvConfig,
     DepsDevConfig,
     GitHubAdvisoryConfig,
+    SnykConfig,
     SecurityFinding,
     AdvisoryDetail,
     Severity,
@@ -13,3 +14,4 @@ export { SECURITY_FINDINGS_KEY, SEVERITY_ORDER } from './types';
 export { OsvSource } from './sources/OsvSource';
 export { DepsDevSource } from './sources/DepsDevSource';
 export { GitHubAdvisorySource } from './sources/GitHubAdvisorySource';
+export { SnykSource } from './sources/SnykSource';
