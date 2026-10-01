@@ -6,9 +6,17 @@
 
 ### Added
 
-- The Go provider records which of your own packages use each dependency, as two dependency facts: `goImportedBy` (the packages importing it, tests included) and `goBinaries` (the `main` packages that reach it through your own packages). `go list -m` sees a module as one unit, so every dependency is attributed to the module and a backend with many binaries under `cmd/` reads as a single consumer, where the Node providers attribute each dependency to the workspace packages that name it. A grouping can use either fact to break that down. Attribution itself is unchanged. The facts are skipped, with a message, when the module's sources aren't present, since reading imports needs more than the `go.mod` files `go list -m all` fetches.
-- Plugins can supply the whole "Used By" grouping with `getUsedByGroups`, not just a label for it. `getUsedByGroupKey` files every consumer under one key, so a dependency used across several teams renders as one lumped label over one pill. The new hook returns a map of label to consumers, which the browser already knew how to render and was never given. The flat Used By column and its count come from that map, so sorting and filtering match what's displayed. Without it nothing changes.
-- `GroupingConfig.getValue` receives the ecosystem as a third argument. The store it gets is already scoped, but doesn't say which ecosystem it belongs to, so a plugin holding ownership per ecosystem couldn't tell a Go service from an npm app of the same name. Existing two-argument groupings are unaffected; only code that calls `getValue` itself needs the extra argument.
+- The Go provider records which of your packages use each dependency.
+    - `goImportedBy` lists the packages that import it, tests included.
+    - `goBinaries` lists the `main` packages that reach it, following imports through your own packages.
+    - `go list -m` treats a module as one unit, so every Go dependency belongs to the module and a backend with a hundred binaries under `cmd/` shows up as one consumer. The npm side already attributes each dependency to the workspace packages that use it. These facts let a grouping do the same for Go.
+    - Attribution itself doesn't change. The facts are skipped, with a message, if the module's sources aren't there, since reading imports takes more than the `go.mod` files.
+- Plugins can group the Used By column themselves, with `getUsedByGroups`.
+    - It returns a map of label to the packages under it, so one dependency can show up under several owners at once.
+    - The older `getUsedByGroupKey` only labels the list, so everything lands under one heading however many teams use it.
+    - The Used By column and its count are taken from the map, so sorting and filtering match what you see.
+    - Nothing changes if you don't use it.
+- `GroupingConfig.getValue` gets the ecosystem as a third argument. The store is already scoped to it, but never said which one, so a plugin that tracks owners per ecosystem couldn't tell a Go module from an npm package of the same name. Existing two-argument groupings keep working.
 
 - Dependicus can be installed from a git URL, not just from the registry, which is useful for trying a fix that isn't released yet.
     - Dependicus now builds itself from the clone, so `npm install github:descriptinc/dependicus` gives you a working `dependicus` command instead of an empty one.
@@ -36,7 +44,10 @@
 
 ### Changed
 
-- A grouping that names no `ecosystems` now gets one page tree at the site root covering every provider, instead of a separate tree under each one. Only the first provider's trees were ever linked from the nav, so a grouping's Go pages existed but nothing pointed at them. Groupings that do name ecosystems still get a tree per matching provider. Pages for unrestricted groupings move from `<provider>/<grouping>/` to `<grouping>/`.
+- Groupings that don't set `ecosystems` now get one set of pages for the whole repo, instead of one set per provider.
+    - The nav only ever linked the first provider's, so with a pnpm and a Go provider the Go pages were built but nothing pointed at them.
+    - Their URLs move from `<provider>/<grouping>/` to `<grouping>/`.
+    - Groupings that do set `ecosystems` still get pages under each provider that matches.
 
 - `searchDependicusIssues` (in `@dependicus/github-issues`) now treats draft pull requests as not yet open for review and excludes them from results, while ready-for-review pull requests are returned alongside regular issues. Each returned entry carries an `isPullRequest` boolean so notification bots can count open Dependicus items accurately — drafts no longer pad the total — and the reconciler can avoid mutating pull requests. Anything explicitly flagged as a draft (PR or otherwise) is still skipped defensively.
 
