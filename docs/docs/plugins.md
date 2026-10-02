@@ -194,9 +194,7 @@ A source can declare `dependsOn: ['npm-registry']` to run after another source. 
 
 ## Grouping the "Used By" column
 
-By default the Used By cell lists the packages that depend on a version. `getUsedByGroupKey` labels that whole list with one key, which is enough when every consumer belongs to the same owner and not much use otherwise.
-
-`getUsedByGroups` returns the map instead, so one dependency can appear under several owners with the right consumers under each:
+The Used By cell lists the packages that use a version. `getUsedByGroups` sorts them under labels you choose, so a dependency can appear under several owners at once, each with its own packages:
 
 ```ts
 const plugin: DependicusPlugin = {
@@ -209,13 +207,19 @@ const plugin: DependicusPlugin = {
 };
 ```
 
-The flat Used By column and its count are taken from the map's values, so sorting and filtering match the pills on screen. Return an empty object to leave a dependency's own consumer list alone, which is what happens for every dependency when the hook is absent.
+The column and its count come from the map, so sorting and filtering match what's on screen. Return an empty object and the dependency keeps its own list, which is also what happens without the hook.
+
+`getUsedByGroupKey` is the older hook. It labels the whole list with one key and can't split it.
 
 ## Grouping pages
 
-Groupings create rollup pages that aggregate dependencies by a shared key (e.g. team, policy tier). Each `GroupingConfig` provides `getValue(name, store, ecosystem)` to extract the key. The store is already scoped to that ecosystem, and `ecosystem` names which one you are placing, so a plugin keeping ownership per ecosystem can resolve it directly rather than filing facts per group ahead of time. Returning several values files the dependency under each of them, for a dimension whose membership overlaps: a dependency belonging to more than one group appears on each of their pages. The detail page for each group value shows that group's dependencies and any sections returned by `getSections`.
+Groupings create rollup pages that collect dependencies under a shared key, such as a team or a policy tier.
 
-A grouping that sets no `ecosystems` covers them all, and gets one page tree at the site root listing dependencies from every provider. One that names ecosystems gets a tree under each matching provider instead.
+`getValue(name, store, ecosystem)` returns that key. The store is already scoped to the ecosystem; `ecosystem` tells you which one, so a plugin that tracks owners per ecosystem can tell a Go module from an npm package of the same name. Return several values and the dependency appears under each, for a dimension where membership overlaps.
+
+Each key gets a page listing its dependencies, plus whatever `getSections` returns.
+
+A grouping that sets no `ecosystems` covers them all and gets one set of pages at the site root. One that names ecosystems gets a set under each provider that matches.
 
 `BasicCompliancePlugin` creates a grouping page per compliance policy automatically. For a working example of `getValue` and `getSections` on a grouping, see `buildGroupings` in [`compliance.ts`](../api/classes/BasicCompliancePlugin.html).
 

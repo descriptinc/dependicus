@@ -6,21 +6,19 @@
 
 ### Added
 
-- The Go provider records which of your packages use each dependency.
-    - `goImportedBy` lists the packages that import it, tests included.
-    - `goBinaries` lists the `main` packages that reach it, following imports through your own packages.
-    - `go list -m` treats a module as one unit, so every Go dependency belongs to the module and a backend with a hundred binaries under `cmd/` shows up as one consumer. The npm side already attributes each dependency to the workspace packages that use it. These facts let a grouping do the same for Go.
-    - Attribution itself doesn't change. The facts are skipped, with a message, if the module's sources aren't there, since reading imports takes more than the `go.mod` files.
-- Rollup pages that cover more than one ecosystem split by ecosystem, rather than interleaving them.
-    - A grouping's index lists its values under a heading each, so apps and Go services aren't mixed into one alphabetical run. It only splits when that separates something: if every value spans the same ecosystems, the headings would each repeat the whole list, so the index stays flat.
-    - A value's own page does the same with its dependencies.
-    - Each heading carries its own count; the total at the top is still the total. Pages covering one ecosystem are unchanged.
-- Plugins can group the Used By column themselves, with `getUsedByGroups`.
-    - It returns a map of label to the packages under it, so one dependency can show up under several owners at once.
-    - The older `getUsedByGroupKey` only labels the list, so everything lands under one heading however many teams use it.
-    - The Used By column and its count are taken from the map, so sorting and filtering match what you see.
+- The Go provider records which of your packages use each dependency, so a grouping can break a Go module down by service the way it already can for a pnpm workspace. A module is one unit to `go list -m`, so until now a backend with a hundred binaries under `cmd/` showed up as one consumer.
+    - `goImportedBy` lists the packages that import a dependency, tests included.
+    - `goBinaries` lists the `main` packages that reach it.
+    - Attribution itself doesn't change. Both facts are skipped, with a message, if your module's sources aren't available.
+- Rollup pages that cover more than one ecosystem group them under a heading each, instead of one alphabetical run mixing Go services with npm apps.
+    - Both the index and each value's own page do this, with a count per heading. The total at the top is still the total.
+    - A page splits only when that separates something. If every value covers the same ecosystems, the headings would each repeat the whole list, so it stays flat.
+    - Pages covering one ecosystem are unchanged.
+- Plugins can sort the Used By column into groups with `getUsedByGroups`, so a dependency shows up under each team that uses it rather than under one combined label.
+    - It returns a map of label to the packages under it.
+    - The column and its count come from that map, so sorting and filtering match what you see.
     - Nothing changes if you don't use it.
-- `GroupingConfig.getValue` gets the ecosystem as a third argument. The store is already scoped to it, but never said which one, so a plugin that tracks owners per ecosystem couldn't tell a Go module from an npm package of the same name. Existing two-argument groupings keep working.
+- `GroupingConfig.getValue` gets the ecosystem as a third argument, so a plugin that tracks owners per ecosystem can tell a Go module from an npm package of the same name. Existing two-argument groupings keep working.
 
 - Dependicus can be installed from a git URL, not just from the registry, which is useful for trying a fix that isn't released yet.
     - Dependicus now builds itself from the clone, so `npm install github:descriptinc/dependicus` gives you a working `dependicus` command instead of an empty one.

@@ -7,16 +7,18 @@ The Go provider tracks dependencies in projects managed by [Go modules](https://
 - **Direct dependencies only.** The `go list` output distinguishes direct and indirect dependencies. Only direct dependencies (those not marked `Indirect`) are tracked.
 - **Replace directives are honored.** If a dependency has a `replace` directive pointing to a different version, the replacement version is used. Replace directives pointing to local directories are skipped.
 
-## Knowing which packages use a dependency
+## Which services use a dependency
 
-`go list -m` sees a module as one unit, so every dependency is attributed to the module: a backend with a hundred binaries under `cmd/` reads as a single consumer, where a pnpm workspace attributes each dependency to the packages that name it.
+A Go module is one unit to `go list -m`, so every dependency belongs to the module. A backend with a hundred binaries under `cmd/` shows up as one consumer, where a pnpm workspace shows the packages that use each dependency.
 
-Dependicus can't fix that by guessing what a service is in your layout, so it publishes what Go does know and lets you decide. For each dependency it records two facts:
+Dependicus can't know which directories are services in your layout, so it records what Go does know and leaves the rest to you. Every dependency gets two facts:
 
-- `goImportedBy`: the import paths of your own packages that import it, including from tests.
-- `goBinaries`: the import paths of the `main` packages that reach it, following imports through your own packages. Test imports aren't followed, since a package's tests aren't part of what its binary ships. A thin `cmd/` binary usually reaches its dependencies through the `internal/` packages it imports rather than importing them itself, so this is the fact that answers "which services ship this".
+- `goImportedBy`: your packages that import it, tests included.
+- `goBinaries`: your `main` packages that reach it.
 
-A grouping can map either to owners:
+`goBinaries` answers "which services ship this". A `cmd/` binary is usually thin, reaching its dependencies through the `internal/` packages it imports, so Dependicus follows imports to find them. It doesn't follow test imports, because a package's tests aren't part of what its binary ships.
+
+Use either in a grouping:
 
 ```ts
 const teams: DependicusPlugin = {
@@ -35,10 +37,10 @@ const teams: DependicusPlugin = {
 };
 ```
 
-Returning several values files the dependency under each of them, so a module reached from more than one of those groups appears on each of their pages.
+Return several values and the dependency appears on each of their pages.
 
-Reading imports needs the module's sources, not only the `go.mod` files that `go list -m all` fetches. When they aren't present Dependicus says so and skips these two facts; everything else is unaffected.
+Reading imports needs your module's sources, not just the `go.mod` files `go list -m all` downloads. Without them Dependicus says so and skips both facts.
 
-Requires Go >= 1.16 (when `go list -m -json all` became stable), and Go >= 1.19 for the import-graph facts above, which ask `go list` for named fields. On an older toolchain the facts are skipped and everything else still works. The provider strips the `v` prefix from Go semver tags to store plain semver versions.
+Requires Go 1.16, or Go 1.19 for the two facts above. On an older toolchain they're skipped and the rest still works. The provider strips the `v` prefix from Go semver tags to store plain semver versions.
 
 Go is always detected via `go.mod` presence (there is no runtime detection).
