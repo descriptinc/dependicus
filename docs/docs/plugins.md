@@ -212,8 +212,6 @@ const plugin: DependicusPlugin = {
 };
 ```
 
-Worth knowing:
-
 - Labels sort alphabetically, except `Unknown`, which always sorts last. Use that name for anything you can't attribute.
 - One label renders the packages directly, with no expander.
 - Sorting and filtering on the column follow the grouped packages, so they match what's on screen.
