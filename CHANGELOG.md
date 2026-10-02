@@ -6,6 +6,20 @@
 
 ### Added
 
+- The Go provider records which of your packages use each dependency, so a grouping can break a Go module down by service the way it already can for a pnpm workspace. A module is one unit to `go list -m`, so until now a backend with a hundred binaries under `cmd/` showed up as one consumer.
+    - `goImportedBy` lists the packages that import a dependency, tests included.
+    - `goBinaries` lists the `main` packages that reach it.
+    - Attribution itself doesn't change. Both facts are skipped, with a message, if your module's sources aren't available.
+- Rollup pages that cover more than one ecosystem group them under a heading each, instead of one alphabetical run mixing Go services with npm apps.
+    - Both the index and each value's own page do this, with a count per heading. The total at the top is still the total.
+    - A page splits only when that separates something. If every value covers the same ecosystems, the headings would each repeat the whole list, so it stays flat.
+    - Pages covering one ecosystem are unchanged.
+- Plugins can sort the Used By column into groups with `getUsedByGroups`, so a dependency shows up under each team that uses it rather than under one combined label.
+    - It returns a map of label to the packages under it.
+    - The column and its count come from that map, so sorting and filtering match what you see.
+    - Nothing changes if you don't use it.
+- `GroupingConfig.getValue` gets the ecosystem as a third argument, so a plugin that tracks owners per ecosystem can tell a Go module from an npm package of the same name. Existing two-argument groupings keep working.
+
 - Dependicus can be installed from a git URL, not just from the registry, which is useful for trying a fix that isn't released yet.
     - Dependicus now builds itself from the clone, so `npm install github:descriptinc/dependicus` gives you a working `dependicus` command instead of an empty one.
     - pnpm and yarn refuse to run a git dependency's build script until you list the package as trusted. The README has the line of config each one wants.
@@ -32,9 +46,16 @@
 
 ### Changed
 
+- Groupings that don't set `ecosystems` now get one set of pages for the whole repo, instead of one set per provider.
+    - The nav only ever linked the first provider's, so with a pnpm and a Go provider the Go pages were built but nothing pointed at them.
+    - Their URLs move from `<provider>/<grouping>/` to `<grouping>/`.
+    - Groupings that do set `ecosystems` still get pages under each provider that matches.
+
 - `searchDependicusIssues` (in `@dependicus/github-issues`) now treats draft pull requests as not yet open for review and excludes them from results, while ready-for-review pull requests are returned alongside regular issues. Each returned entry carries an `isPullRequest` boolean so notification bots can count open Dependicus items accurately — drafts no longer pad the total — and the reconciler can avoid mutating pull requests. Anything explicitly flagged as a draft (PR or otherwise) is still skipped defensively.
 
 ### Fixed
+
+- Links from a grouping page to a dependency's page work when the grouping spans ecosystems. Those pages sit at the site root, so the `../details/…` path a plugin builds leads nowhere, which broke `BasicCompliancePlugin`'s flagged entries. `GroupingFlag.detailLink` is optional now and Dependicus resolves it, and `GroupingDetailContext.detailLinkFor` resolves one for a link inside a section's own HTML.
 
 - Deprecation detection now works on pnpm 11 and pnpm 12, not just pnpm 10.
     - pnpm 12 removed the `pnpm install --resolution-only` flag Dependicus used to find deprecated packages, so `dependicus update` failed outright against any pnpm 12 workspace and produced no output at all.

@@ -15,6 +15,7 @@ import type {
     GroupingSection,
     ProviderOutput,
     UsedByGroupKeyFn,
+    UsedByGroupsFn,
     FactStore,
 } from '../../core/index';
 import {
@@ -98,6 +99,7 @@ export interface HtmlWriterOptions {
     groupings?: GroupingConfig[];
     columns?: CustomColumn[];
     getUsedByGroupKey?: UsedByGroupKeyFn;
+    getUsedByGroups?: UsedByGroupsFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
     getDependencySections?: (ctx: DependencyDetailContext) => GroupingSection[];
     siteName?: string;
@@ -112,11 +114,31 @@ function shortenModulePath(name: string, ecosystem: string): string {
     return name.replace(/^(?:github\.com|gitlab\.com|bitbucket\.org)\//, '');
 }
 
+/**
+ * Ecosystem identifiers as a reader would name them. A rollup page spanning
+ * several of them is easier to scan under "Go" and "npm" than under "gomod"
+ * and "npm".
+ */
+const ECOSYSTEM_LABELS: Record<string, string> = {
+    npm: 'npm',
+    gomod: 'Go',
+    pypi: 'Python',
+    cargo: 'Rust',
+    mise: 'mise',
+};
+
+function ecosystemLabel(ecosystem: string): string {
+    return ECOSYSTEM_LABELS[ecosystem] ?? ecosystem;
+}
+
 export class HtmlWriter {
     private templateService: TemplateService;
     private groupings: GroupingConfig[];
     private columns: CustomColumn[];
     private getUsedByGroupKey: UsedByGroupKeyFn | undefined;
+    private getUsedByGroups: UsedByGroupsFn | undefined;
+    /** Ecosystem -> the provider directory that holds its detail pages. */
+    private providerDirs = new Map<string, string>();
     private getSections: ((ctx: GroupingDetailContext) => GroupingSection[]) | undefined;
     private getDependencySections:
         | ((ctx: DependencyDetailContext) => GroupingSection[])
@@ -128,6 +150,7 @@ export class HtmlWriter {
         this.groupings = options?.groupings ?? [];
         this.columns = options?.columns ?? [];
         this.getUsedByGroupKey = options?.getUsedByGroupKey;
+        this.getUsedByGroups = options?.getUsedByGroups;
         this.getSections = options?.getSections;
         this.getDependencySections = options?.getDependencySections;
         this.siteName = options?.siteName ?? 'Dependicus';
@@ -139,12 +162,92 @@ export class HtmlWriter {
         return this.groupings.filter((g) => !g.ecosystems || g.ecosystems.includes(ecosystem));
     }
 
-    /** Nav entries for the groupings an ecosystem's pages should link to. */
-    private navGroupings(ecosystem?: string): Array<{ label: string; slug: string }> {
+    /**
+     * Where a dependency's page sits, relative to a grouping page. A grouping
+     * that spans ecosystems lives at the site root, so its links have to name
+     * the provider directory; a provider's own tree is already inside it.
+     */
+    private detailHref(
+        ecosystem: string,
+        name: string,
+        version: string,
+        providerPrefix: string,
+    ): string {
+        const file = getDetailFilename(name, version);
+        if (providerPrefix) return `../details/${file}`;
+        return `../${this.providerDirs.get(ecosystem) ?? ''}/details/${file}`;
+    }
+
+    /** Remember which provider directory holds each ecosystem's detail pages. */
+    private rememberProviderDirs(providers: ProviderOutput[]): void {
+        this.providerDirs = new Map();
+        for (const provider of providers) {
+            if (!this.providerDirs.has(provider.ecosystem)) {
+                this.providerDirs.set(provider.ecosystem, provider.name);
+            }
+        }
+    }
+
+    /** A grouping that names no ecosystems covers them all, on one page tree. */
+    private isMerged(grouping: GroupingConfig): boolean {
+        return !grouping.ecosystems;
+    }
+
+    /**
+     * Nav entries for the groupings a page should link to.
+     *
+     * Groupings that span every ecosystem live at the site root, so they are
+     * reachable from any page. One restricted to an ecosystem lives under a
+     * provider, so link to the current provider when it matches and to the
+     * first provider that does otherwise.
+     */
+    private navGroupings(
+        ecosystem: string | undefined,
+        providerPrefix: string,
+    ): Array<{ label: string; slug: string; prefix: string }> {
         return this.groupingsFor(ecosystem).map((g) => ({
             label: g.label,
             slug: g.slugPrefix ?? g.key,
+            prefix: this.isMerged(g) ? '' : this.restrictedPrefix(g, ecosystem, providerPrefix),
         }));
+    }
+
+    private restrictedPrefix(
+        grouping: GroupingConfig,
+        ecosystem: string | undefined,
+        providerPrefix: string,
+    ): string {
+        if (ecosystem && grouping.ecosystems?.includes(ecosystem)) return providerPrefix;
+        for (const candidate of grouping.ecosystems ?? []) {
+            const dir = this.providerDirs.get(candidate);
+            if (dir) return `${dir}/`;
+        }
+        return providerPrefix;
+    }
+
+    /**
+     * Work out the "Used By" cell: who to list, and how to group them.
+     *
+     * `getUsedByGroups` decides both, so the listed consumers come from the
+     * groups rather than the dependency's own list. That keeps sorting and
+     * filtering on the flat column consistent with the pills on screen.
+     * `getUsedByGroupKey` only labels the set, so the consumers are unchanged.
+     */
+    private usedByCells(
+        packages: string[],
+        ctx: ColumnContext,
+    ): { usedBy: string[]; grouped: Record<string, string[]> | null } {
+        if (this.getUsedByGroups) {
+            const grouped: Record<string, string[]> = {};
+            for (const [label, members] of Object.entries(this.getUsedByGroups(ctx))) {
+                if (members.length > 0) grouped[label] = [...members].sort();
+            }
+            if (Object.keys(grouped).length > 0) {
+                const listed = [...new Set(Object.values(grouped).flat())].sort();
+                return { usedBy: listed, grouped };
+            }
+        }
+        return { usedBy: packages, grouped: this.groupDependenciesByMeta(packages, ctx) };
     }
 
     /**
@@ -238,6 +341,12 @@ export class HtmlWriter {
                 const rowUrlPatterns =
                     scoped.getDependencyFact<Record<string, string>>(dep.name, FactKeys.URLS) ?? {};
                 const registryPattern = rowUrlPatterns['Registry'];
+                const usedByCells = this.usedByCells(versionInfo.usedBy, {
+                    name: dep.name,
+                    version: versionInfo,
+                    store: scoped,
+                    ecosystem: dep.ecosystem,
+                });
                 rows.push({
                     Dependency: shortenModulePath(dep.name, dep.ecosystem),
                     Ecosystem: dep.ecosystem,
@@ -272,14 +381,9 @@ export class HtmlWriter {
                             version: dep_.substring(lastAt + 1),
                         });
                     }),
-                    'Used By Count': versionInfo.usedBy.length,
-                    'Used By': versionInfo.usedBy.join('; '),
-                    'Used By Grouped': this.groupDependenciesByMeta(versionInfo.usedBy, {
-                        name: dep.name,
-                        version: versionInfo,
-                        store: scoped,
-                        ecosystem: dep.ecosystem,
-                    }),
+                    'Used By Count': usedByCells.usedBy.length,
+                    'Used By': usedByCells.usedBy.join('; '),
+                    'Used By Grouped': usedByCells.grouped,
                     'Deprecated Transitive Dependencies': deprecatedTransitiveDeps.join('; '),
                     'Detail Link': `${detailPrefix}details/${detailFilename}`,
                 });
@@ -420,7 +524,7 @@ export class HtmlWriter {
             content,
             providerPrefix: defaultProviderPrefix,
             timestamp: new Date().toLocaleString(),
-            groupings: this.navGroupings(navEcosystem),
+            groupings: this.navGroupings(navEcosystem, defaultProviderPrefix),
         });
     }
 
@@ -536,7 +640,7 @@ export class HtmlWriter {
         };
 
         // Group usedBy dependencies
-        const usedByGrouped = this.groupDependenciesByMeta(versionInfo.usedBy, colCtx);
+        const usedByGrouped = this.usedByCells(versionInfo.usedBy, colCtx).grouped;
         const usedByGroupedArray = usedByGrouped
             ? Object.keys(usedByGrouped)
                   .sort()
@@ -626,7 +730,7 @@ export class HtmlWriter {
             baseHref,
             providerPrefix,
             timestamp: new Date().toLocaleString(),
-            groupings: this.navGroupings(navEcosystem),
+            groupings: this.navGroupings(navEcosystem, providerPrefix),
         });
     }
 
@@ -749,12 +853,15 @@ export class HtmlWriter {
         const slug = grouping.slugPrefix ?? grouping.key;
         const baseHref = providerPrefix ? '../../' : '../';
         const navEcosystem = ecosystem;
+        // `store` is the root store: a merged page holds dependencies from
+        // several ecosystems, so each is read through its own scope.
+        const storeFor = (dep: DirectDependency): FactStore => store.scoped(dep.ecosystem);
 
         // Collect all dependencies for each unique grouping value. getValue may
         // return several, in which case the dependency belongs under each.
         const grouped = new Map<string, DirectDependency[]>();
         for (const dep of dependencies) {
-            const value = grouping.getValue(dep.name, store);
+            const value = grouping.getValue(dep.name, storeFor(dep), dep.ecosystem);
             if (!value) continue;
             const values = typeof value === 'string' ? [value] : value;
             for (const single of values) {
@@ -785,12 +892,44 @@ export class HtmlWriter {
                     count: deps.length,
                     slug: getGroupingFilename(value),
                     outdatedCount: stats.outdatedCount,
+                    ecosystems: [...new Set(deps.map((d) => d.ecosystem))],
                 };
             });
+
+        // When a grouping's values are apps and services, the index is where
+        // ecosystems mix even though no single value does, so an app and a Go
+        // service sit next to each other with nothing to tell them apart.
+        // Split it the way a detail page splits its dependency list.
+        const indexEcosystems = new Set(summaries.flatMap((entry) => entry.ecosystems));
+        // Splitting only helps if it separates something. When every value
+        // spans the same ecosystems, as a team-per-value rollup does, each
+        // heading would repeat the whole list. Each value's set is a subset of
+        // the union, so a strict subset is just a smaller one.
+        const splitPartitions = summaries.some(
+            (entry) => entry.ecosystems.length < indexEcosystems.size,
+        );
+        const indexGroups =
+            !ecosystem && indexEcosystems.size > 1 && splitPartitions
+                ? [...indexEcosystems]
+                      .sort((a, b) => ecosystemLabel(a).localeCompare(ecosystemLabel(b)))
+                      .map((eco) => {
+                          // A value whose dependencies span ecosystems is rare,
+                          // and listing it under each is more use than hiding
+                          // it under whichever came first.
+                          const items = summaries.filter((entry) => entry.ecosystems.includes(eco));
+                          return {
+                              ecosystem: eco,
+                              label: ecosystemLabel(eco),
+                              count: items.length,
+                              items,
+                          };
+                      })
+                : undefined;
 
         const indexContent = this.templateService.render('pages/grouping-index', {
             label: grouping.label,
             items: summaries,
+            ecosystemGroups: indexGroups,
         });
 
         const indexHtml = this.templateService.render('layouts/base', {
@@ -800,7 +939,7 @@ export class HtmlWriter {
             baseHref,
             providerPrefix,
             timestamp: new Date().toLocaleString(),
-            groupings: this.navGroupings(navEcosystem),
+            groupings: this.navGroupings(navEcosystem, providerPrefix),
         });
 
         const index: DetailPage = {
@@ -822,25 +961,83 @@ export class HtmlWriter {
                         name: shortenModulePath(dep.name, dep.ecosystem),
                         version: version.version,
                         latestVersion: version.latestVersion,
-                        detailLink: `../details/${getDetailFilename(dep.name, version.version)}`,
+                        ecosystem: dep.ecosystem,
+                        detailLink: this.detailHref(
+                            dep.ecosystem,
+                            dep.name,
+                            version.version,
+                            providerPrefix,
+                        ),
                     })),
                 );
+
+                // A merged page lists several ecosystems, and an interleaved
+                // run of npm and Go packages is hard to read. Split it when
+                // there is more than one; a single-ecosystem page is unchanged.
+                const byEcosystem = new Map<string, typeof dependencies>();
+                for (const entry of dependencies) {
+                    const existing = byEcosystem.get(entry.ecosystem);
+                    if (existing) existing.push(entry);
+                    else byEcosystem.set(entry.ecosystem, [entry]);
+                }
+                const ecosystemGroups =
+                    byEcosystem.size > 1
+                        ? [...byEcosystem.entries()]
+                              .sort(([a], [b]) =>
+                                  ecosystemLabel(a).localeCompare(ecosystemLabel(b)),
+                              )
+                              .map(([eco, items]) => ({
+                                  ecosystem: eco,
+                                  label: ecosystemLabel(eco),
+                                  count: items.length,
+                                  dependencies: items,
+                              }))
+                        : undefined;
 
                 const ctx: GroupingDetailContext = {
                     groupValue: value,
                     dependencies: deps,
-                    store,
+                    store: ecosystem ? store.scoped(ecosystem) : store,
+                    detailLinkFor: (dependency, version) =>
+                        this.detailHref(
+                            dependency.ecosystem,
+                            dependency.name,
+                            version,
+                            providerPrefix,
+                        ),
                 };
                 const crossCuttingSections = this.getSections?.(ctx) ?? [];
                 const groupingSections = grouping.getSections?.(ctx) ?? [];
-                const sections = [...crossCuttingSections, ...groupingSections].map((s) =>
-                    s.html ? { ...s, html: DOMPurify.sanitize(s.html) } : s,
-                );
+                const sections = [...crossCuttingSections, ...groupingSections]
+                    .map((s) => (s.html ? { ...s, html: DOMPurify.sanitize(s.html) } : s))
+                    .map((s) =>
+                        s.flaggedDependencies
+                            ? {
+                                  ...s,
+                                  flaggedDependencies: s.flaggedDependencies.map((flag) => ({
+                                      ...flag,
+                                      detailLink:
+                                          flag.detailLink ??
+                                          this.detailHref(
+                                              // A flag names a dependency in this
+                                              // group, so take its ecosystem from
+                                              // there rather than guessing.
+                                              deps.find((d) => d.name === flag.name)?.ecosystem ??
+                                                  '',
+                                              flag.name,
+                                              flag.version,
+                                              providerPrefix,
+                                          ),
+                                  })),
+                              }
+                            : s,
+                    );
 
                 const detailContent = this.templateService.render('pages/grouping-detail', {
                     label: grouping.label,
                     value,
                     dependencies,
+                    ecosystemGroups,
                     count: dependencies.length,
                     stats,
                     sections,
@@ -853,7 +1050,7 @@ export class HtmlWriter {
                     baseHref,
                     providerPrefix,
                     timestamp: new Date().toLocaleString(),
-                    groupings: this.navGroupings(navEcosystem),
+                    groupings: this.navGroupings(navEcosystem, providerPrefix),
                 });
 
                 return {
@@ -873,16 +1070,37 @@ export class HtmlWriter {
             return [];
         }
 
+        this.rememberProviderDirs(providers);
         const pages: DetailPage[] = [];
+
+        // A grouping that spans every ecosystem gets one tree at the site root,
+        // built from the merged dependency list. Per-provider trees left Go
+        // pages sitting under go/ with nothing linking to them, because the nav
+        // could only point at one provider.
+        const merged = this.groupings.filter((g) => this.isMerged(g));
+        if (merged.length > 0 && providers.length > 0) {
+            const mergedDeps = mergeProviderDependencies(providers);
+            for (const grouping of merged) {
+                const { index, details } = this.toGroupingPages(
+                    mergedDeps,
+                    grouping,
+                    store,
+                    '',
+                    undefined,
+                );
+                pages.push(index);
+                pages.push(...details);
+            }
+        }
 
         for (const provider of providers) {
             const providerPrefix = `${provider.name}/`;
-            const scopedStore = store.scoped(provider.ecosystem);
             for (const grouping of this.groupingsFor(provider.ecosystem)) {
+                if (this.isMerged(grouping)) continue;
                 const { index, details } = this.toGroupingPages(
                     provider.dependencies,
                     grouping,
-                    scopedStore,
+                    store,
                     providerPrefix,
                     provider.ecosystem,
                 );

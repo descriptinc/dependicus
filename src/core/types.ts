@@ -253,6 +253,18 @@ export interface ColumnContext {
 
 export type UsedByGroupKeyFn = (ctx: ColumnContext) => string;
 
+/**
+ * Group the consumers of a dependency for the "Used By" cell.
+ *
+ * Keys are the labels to show, values the consumers filed under each. Unlike
+ * {@link UsedByGroupKeyFn}, which only labels the whole set, this decides the
+ * membership too, so one dependency can appear under several owners with the
+ * right consumers beneath each.
+ *
+ * Returning an empty object leaves the dependency's own consumer list alone.
+ */
+export type UsedByGroupsFn = (ctx: ColumnContext) => Record<string, readonly string[]>;
+
 // ============================================================================
 // Grouping types
 // ============================================================================
@@ -268,7 +280,12 @@ export interface GroupingStat {
 export interface GroupingFlag {
     name: string;
     version: string;
-    detailLink: string;
+    /**
+     * Where to link. Defaults to the dependency's own page, whose path
+     * depends on whether the grouping spans ecosystems. Set it to link
+     * somewhere else.
+     */
+    detailLink?: string;
     label: string;
 }
 
@@ -285,6 +302,11 @@ export interface GroupingDetailContext {
     groupValue: string;
     dependencies: DirectDependency[];
     store: FactStore;
+    /**
+     * The link to a dependency's own page from this one, which differs
+     * between a grouping's own page tree and a provider's.
+     */
+    detailLinkFor: (dependency: DirectDependency, version: string) => string;
 }
 
 /**
@@ -311,7 +333,16 @@ export interface GroupingConfig {
      * dimension whose membership overlaps: a package used by three teams belongs
      * on all three of their pages.
      */
-    getValue: (name: string, store: FactStore) => string | readonly string[] | undefined;
+    getValue: (
+        name: string,
+        store: FactStore,
+        /**
+         * Which ecosystem this dependency belongs to. `store` is already
+         * scoped to it, but a plugin keeping ownership per ecosystem needs
+         * the name: a Go service and an npm app can share one.
+         */
+        ecosystem: string,
+    ) => string | readonly string[] | undefined;
     /**
      * Ecosystems this grouping applies to, e.g. `['npm']`. Providers for any
      * other ecosystem skip it, and their pages leave it out of the nav.

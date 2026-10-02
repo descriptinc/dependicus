@@ -6,6 +6,7 @@ import type {
     GroupingSection,
     FactStore,
     UsedByGroupKeyFn,
+    UsedByGroupsFn,
     PluginContext,
 } from './core/index';
 import type { CustomColumn } from './site-builder/index';
@@ -31,6 +32,7 @@ export interface DependicusPlugin {
     groupings?: GroupingConfig[];
 
     getUsedByGroupKey?: UsedByGroupKeyFn;
+    getUsedByGroups?: UsedByGroupsFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
     /**
      * Sections for a single dependency's own page. Same shape as the grouping
@@ -56,6 +58,7 @@ export interface ResolvedPlugins {
     groupings: GroupingConfig[];
     columns: CustomColumn[];
     getUsedByGroupKey?: UsedByGroupKeyFn;
+    getUsedByGroups?: UsedByGroupsFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
     getDependencySections?: (ctx: DependencyDetailContext) => GroupingSection[];
     /** Returns unvalidated merged partials — call validateLinearIssueSpec before use. */
@@ -207,6 +210,7 @@ export function resolvePlugins(
     const groupings = plugins.flatMap((p) => p.groupings ?? []);
 
     const getUsedByGroupKey = plugins.find((p) => p.getUsedByGroupKey)?.getUsedByGroupKey;
+    const getUsedByGroups = plugins.find((p) => p.getUsedByGroups)?.getUsedByGroups;
 
     // getSections: concatenate across all plugins
     const sectionFns = plugins
@@ -260,6 +264,7 @@ export function resolvePlugins(
         groupings,
         columns,
         getUsedByGroupKey,
+        getUsedByGroups,
         getSections,
         getDependencySections,
         getLinearIssueSpec,

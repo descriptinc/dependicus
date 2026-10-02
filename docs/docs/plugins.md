@@ -115,7 +115,7 @@ const animalPlugin: DependicusPlugin = {
             key: 'animal',
             header: 'Animal',
             width: 80,
-            getValue: (name) => animalForDependency(name),
+            getValue: ({ name }) => animalForDependency(name),
         },
     ],
 };
@@ -133,8 +133,7 @@ This example fetches CVE count from an imaginary source and stores it in `FactSt
 
 ```ts
 import type { DependicusPlugin, DataSource, DirectDependency, CustomColumn } from 'dependicus';
-import type { VersionContext, LinearIssueSpec } from 'dependicus';
-import { FactStore } from 'dependicus';
+import type { VersionContext, LinearIssueSpec, FactStore } from 'dependicus';
 import { getCveCount } from 'magic-cve-fetcher';
 
 const CVE_FACT = 'cveCountByVersion';
@@ -163,7 +162,7 @@ class CvePlugin implements DependicusPlugin {
                 key: 'cves',
                 header: 'CVEs',
                 width: 80,
-                getValue: (name, version, store) => {
+                getValue: ({ name, version, store }) => {
                     const counts = store.getDependencyFact<Record<string, number>>(name, CVE_FACT);
                     return String(counts?.[version.version] ?? 0);
                 },
@@ -193,9 +192,42 @@ class CvePlugin implements DependicusPlugin {
 
 A source can declare `dependsOn: ['npm-registry']` to run after another source. It can also provide a `refreshLocal` method for re-populating facts from local data (e.g. re-reading a YAML file) without network access. This runs during `dependicus html` to pick up local changes without a full update.
 
+## Showing who uses a dependency
+
+The Used By column lists the packages that depend on each version. In a large repo that's a long flat list, and it doesn't say who owns any of it.
+
+`getUsedByGroups` sorts that list under labels you choose. The cell then reads `Growth (4), Platform (2)`, and expands to show the packages under each label.
+
+```ts
+const plugin: DependicusPlugin = {
+    name: 'ownership',
+    getUsedByGroups: ({ version }) => {
+        const groups: Record<string, string[]> = {};
+        for (const pkg of version.usedBy) {
+            const team = teamForPackage(pkg) ?? 'Unknown';
+            (groups[team] ??= []).push(pkg);
+        }
+        return groups;
+    },
+};
+```
+
+- Labels sort alphabetically, except `Unknown`, which always sorts last. Use that name for anything you can't attribute.
+- One label renders the packages directly, with no expander.
+- Sorting and filtering on the column follow the grouped packages, so they match what's on screen.
+- Return an empty object and the dependency keeps its plain list, which is also what happens without the hook.
+
 ## Grouping pages
 
-Groupings create rollup pages that aggregate dependencies by a shared key (e.g. team, policy tier). Each `GroupingConfig` provides `getValue` to extract the key from the store. The detail page for each group value shows that group's dependencies and any sections returned by `getSections`.
+Groupings create rollup pages that collect dependencies under a shared key, such as a team or a policy tier.
+
+`getValue(name, store, ecosystem)` returns that key. The store is already scoped to the ecosystem; `ecosystem` tells you which one, so a plugin that tracks owners per ecosystem can tell a Go module from an npm package of the same name. Return several values and the dependency appears under each, for a dimension where membership overlaps.
+
+Each key gets a page listing its dependencies, plus whatever `getSections` returns.
+
+To link to a dependency's own page, call `ctx.detailLinkFor(dependency, version)`. A `GroupingFlag` gets the same link without asking: leave `detailLink` off and Dependicus fills it in. The path depends on whether the grouping spans ecosystems, so it isn't one you can write by hand.
+
+A grouping that sets no `ecosystems` covers them all and gets one set of pages at the site root. One that names ecosystems gets a set under each provider that matches.
 
 `BasicCompliancePlugin` creates a grouping page per compliance policy automatically. For a working example of `getValue` and `getSections` on a grouping, see `buildGroupings` in [`compliance.ts`](../api/classes/BasicCompliancePlugin.html).
 

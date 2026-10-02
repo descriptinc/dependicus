@@ -172,6 +172,7 @@ describe('getSections', () => {
         ]);
 
         const ctx: GroupingDetailContext = {
+            detailLinkFor: (dep, version) => `../details/${dep.name}@${version}.html`,
             groupValue: 'test-group',
             dependencies: [
                 {
@@ -211,6 +212,7 @@ describe('getSections', () => {
         const plugin = new BasicCompliancePlugin(config);
         const store = new RootFactStore();
         const ctx: GroupingDetailContext = {
+            detailLinkFor: (dep, version) => `../details/${dep.name}@${version}.html`,
             groupValue: 'test-group',
             dependencies: [],
             store,
@@ -228,6 +230,7 @@ describe('getSections', () => {
         const plugin = new BasicCompliancePlugin(config);
         const store = new RootFactStore();
         const ctx: GroupingDetailContext = {
+            detailLinkFor: (dep, version) => `../details/${dep.name}@${version}.html`,
             groupValue: 'test-group',
             dependencies: [
                 {
@@ -457,14 +460,14 @@ describe('groupings', () => {
         const plugin = new BasicCompliancePlugin(makeConfig());
         const store = makeStore('test-pkg', 'tier1');
         const grouping = plugin.groupings[0]!;
-        expect(grouping.getValue('test-pkg', store)).toBe('Tier 1');
+        expect(grouping.getValue('test-pkg', store, 'npm')).toBe('Tier 1');
     });
 
     it('getValue returns undefined for a dependency with no policy', () => {
         const plugin = new BasicCompliancePlugin(makeConfig());
         const store = makeStore('test-pkg', undefined);
         const grouping = plugin.groupings[0]!;
-        expect(grouping.getValue('test-pkg', store)).toBeUndefined();
+        expect(grouping.getValue('test-pkg', store, 'npm')).toBeUndefined();
     });
 
     it('getSections returns compliance stats for the grouped dependencies', () => {
@@ -491,6 +494,7 @@ describe('groupings', () => {
 
         const grouping = plugin.groupings[0]!;
         const sections = grouping.getSections!({
+            detailLinkFor: (dep, version) => `../details/${dep.name}@${version}.html`,
             groupValue: 'Tier 1',
             dependencies: [
                 {

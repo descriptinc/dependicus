@@ -177,6 +177,7 @@ function createDependicusInstance(
         groupings: resolved.groupings,
         columns: resolved.columns,
         getUsedByGroupKey: resolved.getUsedByGroupKey,
+        getUsedByGroups: resolved.getUsedByGroups,
         getSections: resolved.getSections,
         getDependencySections: resolved.getDependencySections,
     });
