@@ -192,9 +192,11 @@ class CvePlugin implements DependicusPlugin {
 
 A source can declare `dependsOn: ['npm-registry']` to run after another source. It can also provide a `refreshLocal` method for re-populating facts from local data (e.g. re-reading a YAML file) without network access. This runs during `dependicus html` to pick up local changes without a full update.
 
-## Grouping the "Used By" column
+## Showing who uses a dependency
 
-The Used By cell lists the packages that use a version. `getUsedByGroups` sorts them under labels you choose, so a dependency can appear under several owners at once, each with its own packages:
+The Used By column lists the packages that depend on each version. In a large repo that's a long flat list, and it doesn't say who owns any of it.
+
+`getUsedByGroups` sorts that list under labels you choose. The cell then reads `Growth (4), Platform (2)`, and expands to show the packages under each label.
 
 ```ts
 const plugin: DependicusPlugin = {
@@ -202,7 +204,7 @@ const plugin: DependicusPlugin = {
     getUsedByGroups: ({ version }) => {
         const groups: Record<string, string[]> = {};
         for (const pkg of version.usedBy) {
-            const team = teamForPackage(pkg) ?? 'Unowned';
+            const team = teamForPackage(pkg) ?? 'Unknown';
             (groups[team] ??= []).push(pkg);
         }
         return groups;
@@ -210,9 +212,12 @@ const plugin: DependicusPlugin = {
 };
 ```
 
-The column and its count come from the map, so sorting and filtering match what's on screen. Return an empty object and the dependency keeps its own list, which is also what happens without the hook.
+Worth knowing:
 
-`getUsedByGroupKey` is the older hook. It labels the whole list with one key and can't split it.
+- Labels sort alphabetically, except `Unknown`, which always sorts last. Use that name for anything you can't attribute.
+- One label renders the packages directly, with no expander.
+- Sorting and filtering on the column follow the grouped packages, so they match what's on screen.
+- Return an empty object and the dependency keeps its plain list, which is also what happens without the hook.
 
 ## Grouping pages
 
