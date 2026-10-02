@@ -7,7 +7,6 @@ import type {
 } from './core/index';
 import {
     getAgeDays,
-    getDetailFilename,
     getUpdateType,
     findFirstVersionOfType,
     FactKeys,
@@ -232,7 +231,6 @@ export class BasicCompliancePlugin implements DependicusPlugin {
                     flaggedDependencies.push({
                         name: dep.name,
                         version: ver.version,
-                        detailLink: `../details/${getDetailFilename(dep.name, ver.version)}`,
                         label: detail,
                     });
                 } else {

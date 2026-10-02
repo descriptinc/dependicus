@@ -162,6 +162,22 @@ export class HtmlWriter {
         return this.groupings.filter((g) => !g.ecosystems || g.ecosystems.includes(ecosystem));
     }
 
+    /**
+     * Where a dependency's page sits, relative to a grouping page. A grouping
+     * that spans ecosystems lives at the site root, so its links have to name
+     * the provider directory; a provider's own tree is already inside it.
+     */
+    private detailHref(
+        ecosystem: string,
+        name: string,
+        version: string,
+        providerPrefix: string,
+    ): string {
+        const file = getDetailFilename(name, version);
+        if (providerPrefix) return `../details/${file}`;
+        return `../${this.providerDirs.get(ecosystem) ?? ''}/details/${file}`;
+    }
+
     /** Remember which provider directory holds each ecosystem's detail pages. */
     private rememberProviderDirs(providers: ProviderOutput[]): void {
         this.providerDirs = new Map();
@@ -946,9 +962,12 @@ export class HtmlWriter {
                         version: version.version,
                         latestVersion: version.latestVersion,
                         ecosystem: dep.ecosystem,
-                        detailLink: providerPrefix
-                            ? `../details/${getDetailFilename(dep.name, version.version)}`
-                            : `../${this.providerDirs.get(dep.ecosystem) ?? ''}/details/${getDetailFilename(dep.name, version.version)}`,
+                        detailLink: this.detailHref(
+                            dep.ecosystem,
+                            dep.name,
+                            version.version,
+                            providerPrefix,
+                        ),
                     })),
                 );
 
@@ -979,12 +998,40 @@ export class HtmlWriter {
                     groupValue: value,
                     dependencies: deps,
                     store: ecosystem ? store.scoped(ecosystem) : store,
+                    detailLinkFor: (dependency, version) =>
+                        this.detailHref(
+                            dependency.ecosystem,
+                            dependency.name,
+                            version,
+                            providerPrefix,
+                        ),
                 };
                 const crossCuttingSections = this.getSections?.(ctx) ?? [];
                 const groupingSections = grouping.getSections?.(ctx) ?? [];
-                const sections = [...crossCuttingSections, ...groupingSections].map((s) =>
-                    s.html ? { ...s, html: DOMPurify.sanitize(s.html) } : s,
-                );
+                const sections = [...crossCuttingSections, ...groupingSections]
+                    .map((s) => (s.html ? { ...s, html: DOMPurify.sanitize(s.html) } : s))
+                    .map((s) =>
+                        s.flaggedDependencies
+                            ? {
+                                  ...s,
+                                  flaggedDependencies: s.flaggedDependencies.map((flag) => ({
+                                      ...flag,
+                                      detailLink:
+                                          flag.detailLink ??
+                                          this.detailHref(
+                                              // A flag names a dependency in this
+                                              // group, so take its ecosystem from
+                                              // there rather than guessing.
+                                              deps.find((d) => d.name === flag.name)?.ecosystem ??
+                                                  '',
+                                              flag.name,
+                                              flag.version,
+                                              providerPrefix,
+                                          ),
+                                  })),
+                              }
+                            : s,
+                    );
 
                 const detailContent = this.templateService.render('pages/grouping-detail', {
                     label: grouping.label,

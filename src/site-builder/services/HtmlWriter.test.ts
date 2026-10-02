@@ -567,6 +567,83 @@ describe('HtmlWriter', () => {
             expect(index.html).not.toContain('dep-ecosystem-heading');
         });
 
+        it('links a flag at the dependency page when the plugin gives no link', () => {
+            const flagging: GroupingConfig = {
+                ...teamGrouping,
+                getSections: (ctx) => [
+                    {
+                        title: 'Flagged',
+                        flaggedDependencies: ctx.dependencies.map((d) => ({
+                            name: d.name,
+                            version: d.versions[0]!.version,
+                            label: 'overdue',
+                        })),
+                    },
+                ],
+            };
+            const writer = new HtmlWriter({ groupings: [flagging] });
+            const npmDep = makeMockDependency();
+            const goDep = makeMockDependency({ name: 'github.com/a/b', ecosystem: 'gomod' });
+            const store = makeMockStore([npmDep, goDep]);
+            const pages = writer.toAllGroupingPages(
+                [makeProvider([npmDep]), makeProvider([goDep], { name: 'go', ecosystem: 'gomod' })],
+                store,
+            );
+
+            const detail = pages.find(
+                (p) => p.filename.startsWith('teams/') && !p.filename.endsWith('index.html'),
+            )!;
+            // A merged page sits at the root, so a bare ../details/ would 404.
+            expect(detail.html).toContain('../pnpm/details/');
+            expect(detail.html).toContain('../go/details/');
+            expect(detail.html).not.toContain('"../details/');
+        });
+
+        it('leaves a flag alone when the plugin supplies its own link', () => {
+            const flagging: GroupingConfig = {
+                ...teamGrouping,
+                getSections: (ctx) => [
+                    {
+                        title: 'Flagged',
+                        flaggedDependencies: ctx.dependencies.map((d) => ({
+                            name: d.name,
+                            version: d.versions[0]!.version,
+                            detailLink: 'https://example.com/elsewhere',
+                            label: 'overdue',
+                        })),
+                    },
+                ],
+            };
+            const writer = new HtmlWriter({ groupings: [flagging] });
+            const dep = makeMockDependency();
+            const store = makeMockStore([dep]);
+            const pages = writer.toAllGroupingPages([makeProvider([dep])], store);
+
+            const detail = pages.find((p) => !p.filename.endsWith('index.html'))!;
+            expect(detail.html).toContain('https://example.com/elsewhere');
+        });
+
+        it('gives sections a resolver for their own links', () => {
+            let link = '';
+            const linking: GroupingConfig = {
+                ...teamGrouping,
+                getSections: (ctx) => {
+                    const dep = ctx.dependencies[0]!;
+                    link = ctx.detailLinkFor(dep, dep.versions[0]!.version);
+                    return [{ title: 'Linked', html: `<a href="${link}">x</a>` }];
+                },
+            };
+            const writer = new HtmlWriter({ groupings: [linking] });
+            const goDep = makeMockDependency({ name: 'github.com/a/b', ecosystem: 'gomod' });
+            const store = makeMockStore([goDep]);
+            writer.toAllGroupingPages(
+                [makeProvider([goDep], { name: 'go', ecosystem: 'gomod' })],
+                store,
+            );
+
+            expect(link).toBe('../go/details/github.com-a-b@1.0.0.html');
+        });
+
         it('files a dependency under every value getValue returns', () => {
             const multi: GroupingConfig = {
                 key: 'team',

@@ -172,6 +172,7 @@ describe('getSections', () => {
         ]);
 
         const ctx: GroupingDetailContext = {
+            detailLinkFor: (dep, version) => `../details/${dep.name}@${version}.html`,
             groupValue: 'test-group',
             dependencies: [
                 {
@@ -211,6 +212,7 @@ describe('getSections', () => {
         const plugin = new BasicCompliancePlugin(config);
         const store = new RootFactStore();
         const ctx: GroupingDetailContext = {
+            detailLinkFor: (dep, version) => `../details/${dep.name}@${version}.html`,
             groupValue: 'test-group',
             dependencies: [],
             store,
@@ -228,6 +230,7 @@ describe('getSections', () => {
         const plugin = new BasicCompliancePlugin(config);
         const store = new RootFactStore();
         const ctx: GroupingDetailContext = {
+            detailLinkFor: (dep, version) => `../details/${dep.name}@${version}.html`,
             groupValue: 'test-group',
             dependencies: [
                 {
@@ -491,6 +494,7 @@ describe('groupings', () => {
 
         const grouping = plugin.groupings[0]!;
         const sections = grouping.getSections!({
+            detailLinkFor: (dep, version) => `../details/${dep.name}@${version}.html`,
             groupValue: 'Tier 1',
             dependencies: [
                 {
