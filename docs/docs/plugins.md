@@ -199,10 +199,13 @@ The Used By cell lists the packages that use a version. `getUsedByGroups` sorts 
 ```ts
 const plugin: DependicusPlugin = {
     name: 'ownership',
-    getUsedByGroups: ({ name, store, ecosystem }) => {
-        if (ecosystem !== 'gomod') return {};
-        const binaries = store.getDependencyFact<string[]>(name, 'goBinaries') ?? [];
-        return { Services: binaries.map((path) => path.split('/').pop()!) };
+    getUsedByGroups: ({ version }) => {
+        const groups: Record<string, string[]> = {};
+        for (const pkg of version.usedBy) {
+            const team = teamForPackage(pkg) ?? 'Unowned';
+            (groups[team] ??= []).push(pkg);
+        }
+        return groups;
     },
 };
 ```
