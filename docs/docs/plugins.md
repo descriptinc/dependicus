@@ -225,7 +225,7 @@ Groupings create rollup pages that collect dependencies under a shared key, such
 
 Each key gets a page listing its dependencies, plus whatever `getSections` returns.
 
-Don't build paths to dependency pages yourself. Where they sit depends on whether the grouping spans ecosystems, so a hand-written `../details/…` is wrong half the time. A `GroupingFlag` without a `detailLink` is pointed at the right page for you, and `ctx.detailLinkFor(dependency, version)` gives you the same path for a link inside your own `html`.
+To link to a dependency's own page, call `ctx.detailLinkFor(dependency, version)`. A `GroupingFlag` gets the same link without asking: leave `detailLink` off and Dependicus fills it in. The path depends on whether the grouping spans ecosystems, so it isn't one you can write by hand.
 
 A grouping that sets no `ecosystems` covers them all and gets one set of pages at the site root. One that names ecosystems gets a set under each provider that matches.
 

@@ -281,10 +281,9 @@ export interface GroupingFlag {
     name: string;
     version: string;
     /**
-     * Where to link. Leave it out and Dependicus points at the dependency's
-     * own page, which is what you want unless you're linking somewhere else:
-     * a plugin can't know where that page sits, and the answer differs
-     * between a grouping's own page tree and a provider's.
+     * Where to link. Defaults to the dependency's own page, whose path
+     * depends on whether the grouping spans ecosystems. Set it to link
+     * somewhere else.
      */
     detailLink?: string;
     label: string;
@@ -304,9 +303,8 @@ export interface GroupingDetailContext {
     dependencies: DirectDependency[];
     store: FactStore;
     /**
-     * Link to a dependency's own page from this one. Use it rather than
-     * building a path, which can't be right from both a grouping's own page
-     * tree and a provider's.
+     * The link to a dependency's own page from this one, which differs
+     * between a grouping's own page tree and a provider's.
      */
     detailLinkFor: (dependency: DirectDependency, version: string) => string;
 }

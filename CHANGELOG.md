@@ -55,7 +55,7 @@
 
 ### Fixed
 
-- Links from a grouping page to a dependency's page now resolve correctly. A grouping that spans ecosystems has its pages at the site root, where the `../details/…` a plugin would write points at nothing. Leave `GroupingFlag.detailLink` out and Dependicus fills it in; for a link inside a section's own HTML, `GroupingDetailContext.detailLinkFor` builds it. `BasicCompliancePlugin`'s flagged entries were affected.
+- Links from a grouping page to a dependency's page work when the grouping spans ecosystems. Those pages sit at the site root, so the `../details/…` path a plugin builds leads nowhere, which broke `BasicCompliancePlugin`'s flagged entries. `GroupingFlag.detailLink` is optional now and Dependicus resolves it, and `GroupingDetailContext.detailLinkFor` resolves one for a link inside a section's own HTML.
 
 - Deprecation detection now works on pnpm 11 and pnpm 12, not just pnpm 10.
     - pnpm 12 removed the `pnpm install --resolution-only` flag Dependicus used to find deprecated packages, so `dependicus update` failed outright against any pnpm 12 workspace and produced no output at all.
