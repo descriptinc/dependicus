@@ -1690,4 +1690,53 @@ describe('reconcileIssues with scoped specs', () => {
         );
         expect(input.dueDate).toBe('2024-05-29');
     });
+
+    it("counts a merged issue's due date from the release it asks for", async () => {
+        const v1 = makeVersion({ version: '1.2.0', latestVersion: '3.0.0' });
+        const v2 = makeVersion({ version: '2.0.0', latestVersion: '3.0.0' });
+        const between: PackageVersionInfo[] = [
+            { version: '1.2.5', publishDate: '2024-02-01', isPrerelease: false },
+            { version: '2.0.3', publishDate: '2024-05-01', isPrerelease: false },
+            { version: '3.0.0', publishDate: '2024-06-01', isPrerelease: false },
+        ];
+        populateFacts(store, 'test-pkg', v1, { versionsBetween: between });
+        populateFacts(store, 'test-pkg', v2, { versionsBetween: between.slice(1) });
+        // Each version's spec sets the threshold that suits its own fix.
+        const fixes: Record<string, { minimumVersion: string; thresholdDays: number }> = {
+            '1.2.0': { minimumVersion: '1.2.5', thresholdDays: 28 },
+            '2.0.0': { minimumVersion: '2.0.3', thresholdDays: 10 },
+        };
+
+        await reconcileIssues([makeDep('test-pkg', [v1, v2])], store, liveConfig, (ctx) => ({
+            teamId: 'team-web',
+            policy: { type: 'dueDate' },
+            ...fixes[ctx.currentVersion],
+        }));
+
+        const [input] = mockClient.createIssue.mock.calls[0] as [
+            { title: string; dueDate: string },
+        ];
+        expect(input.title).toContain('to at least 2.0.3');
+        // 2.0.3 shipped 2024-05-01 and its spec said 10 days. The first
+        // version's 28 days would have put this on 05-29.
+        expect(input.dueDate).toBe('2024-05-11');
+    });
+
+    it('hands the spec every version of the dependency', async () => {
+        const v1 = makeVersion({ version: '1.0.0', usedBy: ['@app/web'] });
+        const v2 = makeVersion({ version: '1.5.0', usedBy: ['@app/admin'] });
+        populateFacts(store, 'test-pkg', v1, { versionsBetween: [] });
+        populateFacts(store, 'test-pkg', v2, { versionsBetween: [] });
+        const seen: string[][] = [];
+
+        await reconcileIssues([makeDep('test-pkg', [v1, v2])], store, liveConfig, (ctx) => {
+            seen.push(
+                (ctx.dependencyVersions ?? []).map((v) => `${v.version}:${v.usedBy.join(',')}`),
+            );
+            return undefined;
+        });
+
+        const both = ['1.0.0:@app/web', '1.5.0:@app/admin'];
+        expect(seen).toEqual([both, both]);
+    });
 });

@@ -287,6 +287,7 @@ export async function reconcileGitHubIssues(
                 currentVersion: version.version,
                 latestVersion: version.latestVersion,
                 usedBy: version.usedBy,
+                dependencyVersions: dep.versions,
             };
 
             const scopedStore = store.scoped(dep.ecosystem);
@@ -380,11 +381,23 @@ export async function reconcileGitHubIssues(
                     }
 
                     // Ask for the highest minimum any version needs, so the
-                    // title's version gets its fix too.
-                    existing.minimumVersion = higherVersion(
+                    // title's version gets its fix too. The issue is due
+                    // thresholdDays after that release, so the threshold
+                    // has to be the one the spec set for that release. A
+                    // threshold chosen for 1.2.5, added to 2.0.3's release
+                    // date, lands on the wrong day.
+                    const minimumVersion = higherVersion(
                         existing.minimumVersion,
                         ctx.minimumVersion,
                     );
+                    if (
+                        minimumVersion !== existing.minimumVersion &&
+                        thresholdDays !== undefined &&
+                        !isNotificationsOnly
+                    ) {
+                        existing.worstCompliance = { ...existing.worstCompliance, thresholdDays };
+                    }
+                    existing.minimumVersion = minimumVersion;
 
                     if (availableMajorVersion && !existing.availableMajorVersion) {
                         existing.availableMajorVersion = availableMajorVersion;
@@ -477,6 +490,7 @@ export async function reconcileGitHubIssues(
                             currentVersion: version.version,
                             latestVersion: version.latestVersion,
                             usedBy: version.usedBy,
+                            dependencyVersions: dep.versions,
                         },
                         store.scoped(dep.ecosystem),
                     ),

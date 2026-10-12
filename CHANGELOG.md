@@ -43,6 +43,7 @@
     - Plugin specs merge per scope. A plugin returning a single spec, like `SecurityPlugin`'s description sections, reaches every scoped issue.
 - Issue specs can set `minimumVersion`, the lowest release that resolves the issue. The title asks for at least that version, and the due date counts from when it was published. Without it, issues still ask for the first release of the update type needed, which for a vulnerability is often not the release that fixes it.
 - The Snyk source records which versions fix each advisory, and the lowest version that fixes them all. Tickets and dependency pages show them, and `getFixVersion(store, name, version)` returns it for use as `minimumVersion`.
+- `VersionContext.dependencyVersions` lists every version of the dependency in the repo, with the packages on each, so a spec filing one issue per team can see what else that team is on.
 
 ### Changed
 
@@ -57,6 +58,7 @@
 
 - Links from a grouping page to a dependency's page work when the grouping spans ecosystems. Those pages sit at the site root, so the `../details/…` path a plugin builds leads nowhere, which broke `BasicCompliancePlugin`'s flagged entries. `GroupingFlag.detailLink` is optional now and Dependicus resolves it, and `GroupingDetailContext.detailLinkFor` resolves one for a link inside a section's own HTML.
 
+- The due date was wrong on an issue that covers two versions of one dependency. Say `react` 17 needs 17.0.5 with a 28-day threshold and `react` 18 needs 18.2.1 with a 10-day threshold. The issue asked for 18.2.1 but added the 28 days to its release date. It now uses the threshold that belongs to the version it asks for.
 - Deprecation detection now works on pnpm 11 and pnpm 12, not just pnpm 10.
     - pnpm 12 removed the `pnpm install --resolution-only` flag Dependicus used to find deprecated packages, so `dependicus update` failed outright against any pnpm 12 workspace and produced no output at all.
     - pnpm 11 and pnpm 12 skip re-resolving when the lockfile and `node_modules` already agree, which left every package looking undeprecated. Dependicus now asks pnpm to resolve anyway.

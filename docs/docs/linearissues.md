@@ -94,6 +94,10 @@ getLinearIssueSpec: (context) => {
 
 `context.usedBy` lists the packages that use the version. A spec's `usedBy` limits its issue to the packages that team owns.
 
+`context.dependencyVersions` lists every version of the dependency in the repo, with the packages on each, so a spec can see what else a team is on.
+
+If two versions get specs with the same scope, they share one issue. It lists both versions and asks for the higher of their two `minimumVersion`s. Its due date is that version's release date plus that spec's `thresholdDays`.
+
 Dependicus puts the scope in the title, like `[Dependicus] [npm] [Payments] Update react from ...`, and uses it to find the issue on later runs. Each team's issue is updated and closed separately. A scope can't contain square brackets.
 
 A spec without a scope works as it did before, and so do the issues it filed. A plugin that returns a single spec, like `SecurityPlugin` with its advisory sections, is merged into every scoped spec.
