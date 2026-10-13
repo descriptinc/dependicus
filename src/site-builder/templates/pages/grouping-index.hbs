@@ -1,10 +1,24 @@
 <h1>{{label}}</h1>
 <p>{{length items}} entries</p>
+{{#if ecosystemGroups}}
+{{#each ecosystemGroups}}
+<h2 class="dep-ecosystem-heading">{{label}} ({{count}})</h2>
+<ul>
+    {{#each items}}
+    <li>
+        <a href="{{slug}}">{{value}}</a>
+        <span>({{count}} {{#if (gt count 1)}}dependencies{{else}}dependency{{/if}}{{#if (gt outdatedCount 0)}}, {{outdatedCount}} outdated{{/if}})</span>
+    </li>
+    {{/each}}
+</ul>
+{{/each}}
+{{else}}
 <ul>
 {{#each items}}
     <li>
         <a href="{{slug}}">{{value}}</a>
-        <span>({{count}} dependencies{{#if (gt outdatedCount 0)}}, {{outdatedCount}} outdated{{/if}})</span>
+        <span>({{count}} {{#if (gt count 1)}}dependencies{{else}}dependency{{/if}}{{#if (gt outdatedCount 0)}}, {{outdatedCount}} outdated{{/if}})</span>
     </li>
 {{/each}}
 </ul>
+{{/if}}

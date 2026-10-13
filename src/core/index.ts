@@ -18,6 +18,7 @@ export type {
     GitHubData,
     PackageVersionInfo,
     UsedByGroupKeyFn,
+    UsedByGroupsFn,
     ColumnContext,
 } from './types';
 export {

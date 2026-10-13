@@ -55,6 +55,25 @@
 
         <section>
             <h2>Dependencies ({{count}})</h2>
+            {{#if ecosystemGroups}}
+            {{#each ecosystemGroups}}
+            <h3 class="dep-ecosystem-heading">{{label}} ({{count}})</h3>
+            <ul>
+                {{#each dependencies}}
+                <li>
+                    {{#if detailLink}}
+                    <a href="{{detailLink}}">{{name}}@{{version}}</a>
+                    {{else}}
+                    {{name}}
+                    {{/if}}
+                    {{#if (ne version latestVersion)}}
+                    <span> (latest: {{latestVersion}})</span>
+                    {{/if}}
+                </li>
+                {{/each}}
+            </ul>
+            {{/each}}
+            {{else}}
             <ul>
             {{#each dependencies}}
                 <li>
@@ -69,6 +88,7 @@
                 </li>
             {{/each}}
             </ul>
+            {{/if}}
         </section>
     </div>
 </div>

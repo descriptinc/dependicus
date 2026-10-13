@@ -12,6 +12,7 @@ import type {
     DependencyProvider,
     FactStore,
     UsedByGroupKeyFn,
+    UsedByGroupsFn,
     RootFactStore,
 } from '../core/index';
 import { createCoreServices } from '../core/index';
@@ -29,6 +30,7 @@ export interface DependicusConfig {
     siteName?: string;
     columns?: CustomColumn[];
     getUsedByGroupKey?: UsedByGroupKeyFn;
+    getUsedByGroups?: UsedByGroupsFn;
     getSections?: (ctx: GroupingDetailContext) => GroupingSection[];
     getDependencySections?: (ctx: DependencyDetailContext) => GroupingSection[];
 }
@@ -65,6 +67,7 @@ export async function createDependicus(config: DependicusConfig): Promise<Depend
         siteName: config.siteName,
         columns: config.columns,
         getUsedByGroupKey: config.getUsedByGroupKey,
+        getUsedByGroups: config.getUsedByGroups,
         getSections: config.getSections,
         getDependencySections: config.getDependencySections,
     });

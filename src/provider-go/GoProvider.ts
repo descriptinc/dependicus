@@ -8,6 +8,7 @@ import type {
     CacheService,
 } from '../core/index';
 import { GoProxyRegistrySource } from './GoProxyRegistrySource';
+import { GoImportGraphSource } from './GoImportGraphSource';
 
 /**
  * A single module entry from `go list -m -json all`.
@@ -239,8 +240,13 @@ export class GoProvider implements DependencyProvider {
     }
 
     createSources(ctx: { cacheService: CacheService }): DataSource[] {
-        const goSumPaths = this.discoverProjectDirs().map((d) => join(this.rootDir, d, 'go.sum'));
-        return [new GoProxyRegistrySource(ctx.cacheService, goSumPaths)];
+        const dirs = this.discoverProjectDirs();
+        const goSumPaths = dirs.map((d) => join(this.rootDir, d, 'go.sum'));
+        const projectPaths = dirs.map((d) => (d === '.' ? this.rootDir : join(this.rootDir, d)));
+        return [
+            new GoProxyRegistrySource(ctx.cacheService, goSumPaths),
+            new GoImportGraphSource(projectPaths),
+        ];
     }
 
     isInCatalog(_name: string, _version: string): boolean {

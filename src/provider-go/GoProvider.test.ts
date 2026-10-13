@@ -4,6 +4,9 @@ import type { CacheService } from '../core/index';
 
 vi.mock('node:child_process', () => ({
     execSync: vi.fn(),
+    // GoProvider pulls in GoImportGraphSource, which promisifies execFile at
+    // module load.
+    execFile: vi.fn(),
 }));
 
 import { execSync } from 'node:child_process';

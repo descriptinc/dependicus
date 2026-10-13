@@ -365,6 +365,19 @@ main tbody tr {
     margin-bottom: var(--size-3);
 }
 
+/* Ecosystem subheadings on a rollup page that spans more than one */
+.dep-ecosystem-heading {
+    font-size: var(--font-size-1);
+    font-weight: var(--font-weight-6);
+    color: var(--text-2);
+    margin-top: var(--size-4);
+    margin-bottom: var(--size-2);
+}
+
+.dep-ecosystem-heading:first-of-type {
+    margin-top: 0;
+}
+
 /* Version history grid */
 .dep-version-history-grid {
     display: grid;
