@@ -324,6 +324,45 @@ describe('fix versions', () => {
         expect(getFixVersion(storeWith([]), 'body-parser', '1.20.1')).toBeUndefined();
     });
 
+    it('getFixVersion can count only advisories at least a severity', () => {
+        const mixed: SecurityFinding[] = [
+            {
+                source: 'snyk',
+                sourceLabel: 'Snyk',
+                severity: 'high',
+                fixAvailable: true,
+                fixVersion: '1.20.8',
+                advisories: [
+                    {
+                        id: 'SNYK-1',
+                        severity: 'high',
+                        fixAvailable: true,
+                        fixVersions: ['1.20.6'],
+                        url: 'https://security.snyk.io/vuln/SNYK-1',
+                    },
+                    {
+                        id: 'SNYK-2',
+                        severity: 'medium',
+                        fixAvailable: true,
+                        fixVersions: ['1.20.8'],
+                        url: 'https://security.snyk.io/vuln/SNYK-2',
+                    },
+                ],
+            },
+        ];
+        expect(getFixVersion(storeWith(mixed), 'body-parser', '1.20.1')).toBe('1.20.8');
+        expect(
+            getFixVersion(storeWith(mixed), 'body-parser', '1.20.1', { minSeverity: 'high' }),
+        ).toBe('1.20.6');
+        // A finding without per-advisory detail counts by its own severity.
+        const whole: SecurityFinding[] = [
+            { source: 'osv', sourceLabel: 'OSV', severity: 'medium', fixVersion: '1.20.9' },
+        ];
+        expect(
+            getFixVersion(storeWith(whole), 'body-parser', '1.20.1', { minSeverity: 'high' }),
+        ).toBeUndefined();
+    });
+
     it('puts the fix versions in ticket descriptions', () => {
         const plugin = new SecurityPlugin({});
         const spec = plugin.getLinearIssueSpec(

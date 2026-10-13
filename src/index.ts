@@ -102,6 +102,7 @@ export type { GitHubIssueAssignment } from './github-issues/index';
 
 /** @group Security */
 export { SecurityPlugin, getFixVersion } from './security/index';
+export type { FixVersionOptions } from './security/index';
 
 /** @group Security */
 export type {

@@ -126,10 +126,12 @@ getLinearIssueSpec: (context, store) => {
         teamId: 'your-team-uuid',
         policy: { type: 'dueDate' },
         thresholdDays: 28,
-        minimumVersion: getFixVersion(store, context.name, context.currentVersion),
+        minimumVersion: getFixVersion(store, context.name, context.currentVersion, { minSeverity: 'high' }),
     };
 },
 ```
+
+`minSeverity` counts only the advisories at least that severe. Without it, a medium advisory fixed later than the high one moves the ask, and the due date, to its release.
 
 ## CLI flags
 

@@ -17,7 +17,7 @@ import { compareVersions } from '../core/utils/versionUtils';
 import { OsvSource } from './sources/OsvSource';
 import { DepsDevSource } from './sources/DepsDevSource';
 import { GitHubAdvisorySource } from './sources/GitHubAdvisorySource';
-import { SnykSource } from './sources/SnykSource';
+import { SnykSource, lowestFixVersion } from './sources/SnykSource';
 
 // ── DependicusPlugin implementation ─────────────────────────────────
 
@@ -537,6 +537,17 @@ function highestFixVersion(findings: readonly SecurityFinding[]): string | undef
     return highest;
 }
 
+/** @group Security */
+export interface FixVersionOptions {
+    /**
+     * Count only advisories at least this severe. The fix returned is the
+     * lowest release that resolves them, even when a less severe advisory is
+     * fixed later. An advisory with no severity of its own takes the
+     * severity of its finding.
+     */
+    minSeverity?: Severity;
+}
+
 /**
  * The lowest version that fixes the known vulnerabilities in a dependency
  * version, for issue specs to pass as `minimumVersion`. Undefined when no
@@ -545,13 +556,47 @@ function highestFixVersion(findings: readonly SecurityFinding[]): string | undef
  * @example
  * getLinearIssueSpec: (ctx, store) => ({
  *     teamId,
- *     minimumVersion: getFixVersion(store, ctx.name, ctx.currentVersion),
+ *     minimumVersion: getFixVersion(store, ctx.name, ctx.currentVersion, { minSeverity: 'high' }),
  * })
  * @group Security
  */
-export function getFixVersion(store: FactStore, name: string, version: string): string | undefined {
+export function getFixVersion(
+    store: FactStore,
+    name: string,
+    version: string,
+    options: FixVersionOptions = {},
+): string | undefined {
+    const findings =
+        store.getVersionFact<SecurityFinding[]>(name, version, SECURITY_FINDINGS_KEY) ?? [];
+    const { minSeverity } = options;
+    if (!minSeverity) return highestFixVersion(findings);
     return highestFixVersion(
-        store.getVersionFact<SecurityFinding[]>(name, version, SECURITY_FINDINGS_KEY) ?? [],
+        findings.map((f) => ({ ...f, fixVersion: fixVersionAtLeast(f, minSeverity, version) })),
+    );
+}
+
+function atLeast(severity: Severity | undefined, floor: Severity): boolean {
+    return (
+        severity !== undefined && SEVERITY_ORDER.indexOf(severity) >= SEVERITY_ORDER.indexOf(floor)
+    );
+}
+
+/**
+ * A finding's fix version counting only its advisories at least `floor`
+ * severe. A finding without per-advisory detail counts or not as a whole.
+ */
+function fixVersionAtLeast(
+    finding: SecurityFinding,
+    floor: Severity,
+    version: string,
+): string | undefined {
+    if (!finding.advisories?.length) {
+        return atLeast(finding.severity, floor) ? finding.fixVersion : undefined;
+    }
+    const kept = finding.advisories.filter((a) => atLeast(a.severity ?? finding.severity, floor));
+    return lowestFixVersion(
+        version,
+        kept.map((a) => a.fixVersions ?? []),
     );
 }
 
