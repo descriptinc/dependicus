@@ -114,6 +114,13 @@ export interface VersionContext {
     latestVersion: string;
     /** The packages that use this version. */
     usedBy?: readonly string[];
+    /**
+     * Every version of the dependency in the repo, this one included, each
+     * with the packages that use it. A spec that files one issue per team can
+     * see what else that team is on, so the versions it covers agree on what
+     * to ask for.
+     */
+    dependencyVersions?: readonly DependencyVersion[];
 }
 
 // ── Internal types (not plugin-facing) ───────────────────────────────

@@ -690,4 +690,58 @@ describe('reconcileGitHubIssues with scoped specs', () => {
 
         expect(result).toMatchObject({ created: 0, updated: 2, closed: 0, closedDuplicates: 0 });
     });
+
+    it("counts a merged issue's due date from the release it asks for", async () => {
+        setupMocks();
+        const v1 = makeVersion({ version: '1.2.0', latestVersion: '3.0.0' });
+        const v2 = makeVersion({ version: '2.0.0', latestVersion: '3.0.0' });
+        const between: PackageVersionInfo[] = [
+            { version: '1.2.5', publishDate: '2024-02-01', isPrerelease: false },
+            { version: '2.0.3', publishDate: '2024-05-01', isPrerelease: false },
+            { version: '3.0.0', publishDate: '2024-06-01', isPrerelease: false },
+        ];
+        const root = new RootFactStore();
+        const scoped = root.scoped('npm');
+        scoped.setVersionFact('test-pkg', '1.2.0', FactKeys.VERSIONS_BETWEEN, between);
+        scoped.setVersionFact('test-pkg', '2.0.0', FactKeys.VERSIONS_BETWEEN, between.slice(1));
+        const fixes: Record<string, { minimumVersion: string; thresholdDays: number }> = {
+            '1.2.0': { minimumVersion: '1.2.5', thresholdDays: 28 },
+            '2.0.0': { minimumVersion: '2.0.3', thresholdDays: 10 },
+        };
+
+        await reconcileGitHubIssues(
+            [{ name: 'test-pkg', ecosystem: 'npm', versions: [v1, v2] }],
+            root,
+            baseConfig,
+            (ctx) => makeSpec({ policy: { type: 'dueDate' }, ...fixes[ctx.currentVersion] }),
+        );
+
+        const createCall = mockOctokit.issues.create.mock.calls[0]![0];
+        expect(createCall.title).toContain('to at least 2.0.3');
+        // 2.0.3 shipped 2024-05-01 and its spec said 10 days, not the first
+        // version's 28.
+        expect(createCall.title).toContain('(due 2024-05-11)');
+    });
+
+    it('hands the spec every version of the dependency', async () => {
+        setupMocks();
+        const v1 = makeVersion({ version: '1.0.0', usedBy: ['web'] });
+        const v2 = makeVersion({ version: '1.5.0', usedBy: ['admin'] });
+        const seen: string[][] = [];
+
+        await reconcileGitHubIssues(
+            [{ name: 'test-pkg', ecosystem: 'npm', versions: [v1, v2] }],
+            makeStore(),
+            baseConfig,
+            (ctx) => {
+                seen.push(
+                    (ctx.dependencyVersions ?? []).map((v) => `${v.version}:${v.usedBy.join(',')}`),
+                );
+                return undefined;
+            },
+        );
+
+        const both = ['1.0.0:web', '1.5.0:admin'];
+        expect(seen).toEqual([both, both]);
+    });
 });
