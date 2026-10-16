@@ -164,6 +164,12 @@ export interface OutdatedDependency {
     scope?: string;
     /** Lowest version that resolves the issue, if the spec named one. */
     minimumVersion?: string;
+    /**
+     * The version whose spec set `minimumVersion`. The issue's title and due
+     * date count from this version's releases, so they describe the same
+     * upgrade.
+     */
+    minimumVersionFrom?: string;
 }
 
 /**
