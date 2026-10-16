@@ -46,6 +46,16 @@ This field is optional because [plugins](./plugins.md) can provide the same func
 
 If you do not write a plugin or pass a `getLinearIssueSpec()` function, then Dependicus cannot create Linear tickets for you.
 
+### `linear.labelName` (optional, defaults to `"Dependicus"`)
+
+The Linear label Dependicus puts on every issue it files. It is also how Dependicus finds its issues again, so changing it on a workspace with open Dependicus issues leaves those issues behind. If the workspace has no label of that name, Dependicus creates one, which needs an API key with write access.
+
+```ts
+linear: {
+    labelName: 'Dependency Bump',
+}
+```
+
 ### `linear.cooldownDays` (optional, defaults to `0`)
 
 Wait at least this many days after a release before creating or updating tickets to include it.

@@ -60,6 +60,11 @@ export interface DependicusCliConfig {
             context: VersionContext,
             store: FactStore,
         ) => LinearIssueSpec | LinearIssueSpec[] | undefined;
+        /**
+         * The Linear label on every issue Dependicus files, and how it finds them again.
+         * Created if the workspace has no label of that name. Defaults to "Dependicus".
+         */
+        labelName?: string;
         /** Number of days to wait before creating a new issue for a newly-published version. */
         cooldownDays?: number;
         /** Whether to allow new issue creation. Defaults to `true`. */
@@ -432,6 +437,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                             store,
                             {
                                 linearApiKey,
+                                labelName: linearConfig.labelName,
                                 dryRun: options.dryRun,
                                 getDetailUrl,
                                 providerInfoMap,
