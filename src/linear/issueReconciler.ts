@@ -6,7 +6,7 @@ import type {
     DetailUrlFn,
     ProviderInfo,
 } from '../core/index';
-import type { FactStore } from '../core/index';
+import type { DependencyVersion, FactStore } from '../core/index';
 import {
     FactKeys,
     getUpdateType,
@@ -216,6 +216,15 @@ function findExistingIssue(
 /** Default policy when the issue spec doesn't specify one. */
 const DEFAULT_POLICY: LinearPolicy = { type: 'fyi' };
 
+/**
+ * The version an issue is written from: the one whose spec asked for the
+ * minimum version, since the title's "from" and the due date's release
+ * should belong to the same upgrade, else the first version merged in.
+ */
+function issueVersion(dep: OutdatedDependency): DependencyVersion | undefined {
+    return dep.versions.find((v) => v.version === dep.minimumVersionFrom) ?? dep.versions[0];
+}
+
 /** Default assignment when the issue spec doesn't specify one. */
 const DEFAULT_ASSIGNMENT: IssueAssignment = { type: 'unassigned' };
 
@@ -368,6 +377,7 @@ export async function reconcileIssues(
                         commentSections: ctx.commentSections,
                         scope: ctx.scope,
                         minimumVersion: ctx.minimumVersion,
+                        minimumVersionFrom: ctx.minimumVersion ? version.version : undefined,
                     });
                 } else {
                     existing.versions.push(entryVersion);
@@ -404,12 +414,14 @@ export async function reconcileIssues(
                         existing.minimumVersion,
                         ctx.minimumVersion,
                     );
-                    if (
-                        minimumVersion !== existing.minimumVersion &&
-                        thresholdDays !== undefined &&
-                        !isNotificationsOnly
-                    ) {
-                        existing.worstCompliance = { ...existing.worstCompliance, thresholdDays };
+                    if (minimumVersion !== existing.minimumVersion) {
+                        if (thresholdDays !== undefined && !isNotificationsOnly) {
+                            existing.worstCompliance = {
+                                ...existing.worstCompliance,
+                                thresholdDays,
+                            };
+                        }
+                        existing.minimumVersionFrom = version.version;
                     }
                     existing.minimumVersion = minimumVersion;
 
@@ -586,7 +598,7 @@ export async function reconcileIssues(
         );
         const label = scopedIssueKey(dep.name, dep.scope);
         const existingIssue = match?.issue;
-        const version = dep.versions[0];
+        const version = issueVersion(dep);
         if (!version) {
             throw new Error(`No versions found for dependency ${dep.name}`);
         }
@@ -835,7 +847,7 @@ export async function reconcileIssues(
         let earliestDueDate: Date | undefined;
         if (group.worstCompliance.thresholdDays !== undefined) {
             for (const dep of group.dependencies) {
-                const version = dep.versions[0];
+                const version = issueVersion(dep);
                 if (!version) continue;
 
                 const depScopedStore = store.scoped(dep.ecosystem);
