@@ -42,7 +42,7 @@
     - `VersionContext.usedBy` lists the packages that use the version, and a spec's `usedBy` narrows its issue to the packages it covers, so each team's issue names only its own.
     - Plugin specs merge per scope. A plugin returning a single spec, like `SecurityPlugin`'s description sections, reaches every scoped issue.
 - Issue specs can set `minimumVersion`, the lowest release that resolves the issue. The title asks for at least that version, and the due date counts from when it was published. Without it, issues still ask for the first release of the update type needed, which for a vulnerability is often not the release that fixes it.
-- The Snyk source records which versions fix each advisory, and the lowest version that fixes them all. Tickets and dependency pages show them, and `getFixVersion(store, name, version)` returns it for use as `minimumVersion`.
+- The Snyk source records which versions fix each advisory, and the lowest version that fixes them all. Tickets and dependency pages show them, and `getFixVersion(store, name, version)` returns it for use as `minimumVersion`. A stable version is sent to a prerelease only when no stable release fixes everything.
 - `getFixVersion` takes `{ minSeverity }`, to ask for the release that fixes the high and critical advisories and not wait for one that also fixes a medium.
 - `VersionContext.dependencyVersions` lists every version of the dependency in the repo, with the packages on each, so a spec filing one issue per team can see what else that team is on.
 
