@@ -42,6 +42,8 @@ import {
 
 export interface IssueReconcilerConfig {
     linearApiKey: string;
+    /** The label on every issue Dependicus files. Defaults to "Dependicus". */
+    labelName?: string;
     dryRun?: boolean;
     /** Builds the full detail page URL for a given package version. */
     getDetailUrl: DetailUrlFn;
@@ -264,7 +266,10 @@ export async function reconcileIssues(
 
     const skipStateNamesSet = new Set((config.skipStateNames ?? []).map((s) => s.toLowerCase()));
 
-    const linearService = new LinearService(config.linearApiKey, { dryRun });
+    const linearService = new LinearService(config.linearApiKey, {
+        dryRun,
+        labelName: config.labelName,
+    });
 
     // Find out-of-date dependencies (group by ecosystem::name to avoid
     // merging packages that share a name across different registries, and by
