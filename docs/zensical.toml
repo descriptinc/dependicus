@@ -1,5 +1,6 @@
 [project]
 site_name = "Dependicus"
+site_url = "https://descriptinc.github.io/dependicus/"
 repo_url = "https://github.com/descriptinc/dependicus"
 repo_name = "descriptinc/dependicus"
 edit_uri = "edit/main/docs/docs/"
@@ -58,3 +59,28 @@ custom_fences = [
 
 [project.markdown_extensions.pymdownx.tabbed]
 alternate_style = true
+
+# Publish the docs in a form coding agents can consume directly: llms.txt as an
+# index, llms-full.txt as the whole site in one Markdown file. Sections mirror
+# the nav above.
+[project.plugins.llmstxt]
+full_output = "llms-full.txt"
+
+[project.plugins.llmstxt.sections]
+"Basics" = [
+    "index.md",
+    "gettingstarted.md",
+    "configuration.md",
+    "cli.md",
+    "ci.md",
+    "compliance.md",
+    "security.md",
+]
+"Tickets" = ["linearissues.md", "githubissues.md"]
+"Package managers" = ["package-managers.md", "providers/*.md"]
+"Guides" = ["plugins.md", "coding-agents.md", "contributing.md"]
+"Comparisons" = ["dependicus-vs-renovate.md", "dependicus-vs-dependabot.md"]
+
+# Generate per-page social cards and the Open Graph and Twitter metadata that
+# points at them, so links to the docs render with a preview.
+[project.plugins.social]
