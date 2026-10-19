@@ -58,7 +58,6 @@
 ### Fixed
 
 - Issue descriptions get the provider's template text again. `update` wrote `catalogFile`, `patchHint` and the `update*` strings to `dependencies.json`. Reading the file back removed them. A Linear or GitHub issue then said to edit `undefined` to add a dependency to the catalog.
-- An advisory's fix list gives each release one time. Snyk can repeat a release in one advisory. The list showed `fixed in 15.5.27, 16.3.8, 16.3.8`.
 - Each clause of the "Why this matters" sentence starts with a capital letter. It read `4 Snyk advisories. fix available in a newer version.`
 - The owner line in an issue's summary has a label, like the lines around it.
 - Links from a grouping page to a dependency's page work when the grouping spans ecosystems. Those pages sit at the site root, so the `../details/…` path a plugin builds leads nowhere, which broke `BasicCompliancePlugin`'s flagged entries. `GroupingFlag.detailLink` is optional now and Dependicus resolves it, and `GroupingDetailContext.detailLinkFor` resolves one for a link inside a section's own HTML.
