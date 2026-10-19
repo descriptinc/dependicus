@@ -1722,6 +1722,39 @@ describe('reconcileIssues with scoped specs', () => {
         expect(input.dueDate).toBe('2024-05-11');
     });
 
+    it('names and counts from the version whose spec asked for the minimum', async () => {
+        // The team's newer version has a finding with no fix, so its spec is
+        // an FYI with no minimum. The older version's spec asks for 1.2.5.
+        const newer = makeVersion({ version: '2.0.0', latestVersion: '3.0.0' });
+        const older = makeVersion({ version: '1.2.0', latestVersion: '3.0.0' });
+        const between: PackageVersionInfo[] = [
+            { version: '1.2.5', publishDate: '2024-02-01', isPrerelease: false },
+            { version: '2.0.3', publishDate: '2024-05-01', isPrerelease: false },
+            { version: '3.0.0', publishDate: '2024-06-01', isPrerelease: false },
+        ];
+        populateFacts(store, 'test-pkg', newer, { versionsBetween: between.slice(2) });
+        populateFacts(store, 'test-pkg', older, { versionsBetween: between });
+
+        await reconcileIssues([makeDep('test-pkg', [newer, older])], store, liveConfig, (ctx) =>
+            ctx.currentVersion === '1.2.0'
+                ? {
+                      teamId: 'team-web',
+                      policy: { type: 'dueDate' },
+                      thresholdDays: 28,
+                      minimumVersion: '1.2.5',
+                  }
+                : { teamId: 'team-web', policy: { type: 'fyi' } },
+        );
+
+        const [input] = mockClient.createIssue.mock.calls[0] as [
+            { title: string; dueDate: string },
+        ];
+        // Not "from 2.0.0 to at least 1.2.5", and not due 28 days after
+        // 3.0.0, the first major above 2.0.0.
+        expect(input.title).toContain('from 1.2.0 to at least 1.2.5');
+        expect(input.dueDate).toBe('2024-02-29');
+    });
+
     it('hands the spec every version of the dependency', async () => {
         const v1 = makeVersion({ version: '1.0.0', usedBy: ['@app/web'] });
         const v2 = makeVersion({ version: '1.5.0', usedBy: ['@app/admin'] });
