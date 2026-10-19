@@ -278,7 +278,7 @@ describe('buildIssueDescription', () => {
             getDetailUrl: testGetDetailUrl,
             providerInfo: npmProviderInfo,
         });
-        expect(result).toContain('- Web App (Frontend)');
+        expect(result).toContain('- **Owner:** Web App (Frontend)');
     });
 
     it('shows catalog How to Update', () => {

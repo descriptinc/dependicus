@@ -241,7 +241,7 @@ export class OsvSource implements DataSource {
                 rationale.push(`${vulns.length} advisories`);
             }
             if (anyFixAvailable) {
-                rationale.push('fix available in a newer version');
+                rationale.push('Fix available in a newer version');
             }
 
             const sourceLinks = vulns.map((v) => ({

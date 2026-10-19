@@ -114,6 +114,21 @@ describe('toFinding', () => {
         expect(toFinding([issue])?.fixAvailable).toBe(true);
     });
 
+    it('lists a fix version once when Snyk repeats it', () => {
+        // Snyk can name the same release from two coordinates of one advisory.
+        const issue: SnykIssue = {
+            id: 'SNYK-JS-THING-2',
+            attributes: {
+                effective_severity_level: 'medium',
+                coordinates: [
+                    { remedies: [{ details: { upgrade_package: '15.5.27,16.3.8' } }] },
+                    { remedies: [{ details: { upgrade_package: '16.3.8' } }] },
+                ],
+            },
+        };
+        expect(toFinding([issue])?.advisories?.[0]?.fixVersions).toEqual(['15.5.27', '16.3.8']);
+    });
+
     it('links each advisory to its Snyk page', () => {
         expect(toFinding(gin)?.sourceLinks?.[0]?.url).toMatch(
             /^https:\/\/security\.snyk\.io\/vuln\/SNYK-GOLANG-/,
