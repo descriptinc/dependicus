@@ -1,5 +1,5 @@
 export { LinearService } from './LinearService';
-export type { DependicusIssue, CreateIssueParams } from './LinearService';
+export type { DependicusIssue, CreateIssueParams, LinearLabelConfig } from './LinearService';
 export type { OutdatedDependency, OutdatedGroup, LinearPolicy, IssueAssignment } from './types';
 export type { LinearIssueSpec, VersionContext, DescriptionSection } from './types';
 export {

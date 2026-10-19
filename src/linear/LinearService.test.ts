@@ -51,6 +51,34 @@ describe('LinearService', () => {
             });
         });
 
+        it('uses a label id as given, with no lookup', async () => {
+            const byId = new LinearService('test-api-key', { label: { id: 'bump-789' } });
+
+            expect(await byId.ensureLabel()).toBe('bump-789');
+            expect(mockClient.issueLabels).not.toHaveBeenCalled();
+            expect(mockClient.createIssueLabel).not.toHaveBeenCalled();
+        });
+
+        it('uses the label name it was given', async () => {
+            mockClient.issueLabels.mockResolvedValue({ nodes: [] });
+            mockClient.createIssueLabel.mockResolvedValue({
+                issueLabel: Promise.resolve({ id: 'bump-789' }),
+            });
+            const named = new LinearService('test-api-key', {
+                label: { name: 'Dependency Bump' },
+            });
+
+            const labelId = await named.ensureLabel();
+            expect(labelId).toBe('bump-789');
+            expect(mockClient.issueLabels).toHaveBeenCalledWith({
+                filter: { name: { eq: 'Dependency Bump' } },
+            });
+            expect(mockClient.createIssueLabel).toHaveBeenCalledWith({
+                name: 'Dependency Bump',
+                color: '#6B7280',
+            });
+        });
+
         it('caches label id after first call', async () => {
             mockClient.issueLabels.mockResolvedValue({
                 nodes: [{ id: 'label-123', name: 'Dependicus' }],

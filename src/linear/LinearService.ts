@@ -7,7 +7,7 @@ import {
 
 type IssueCreateInput = LinearDocument.IssueCreateInput;
 
-const DEPENDICUS_LABEL_NAME = 'Dependicus';
+const DEFAULT_LABEL_NAME = 'Dependicus';
 const TITLE_PREFIX = '[Dependicus]';
 
 export interface DependicusIssue {
@@ -47,21 +47,35 @@ export interface CreateIssueParams {
     delegateId?: string;
 }
 
+/**
+ * The label on every issue Dependicus files, and how it finds them again.
+ * By id, nothing is looked up or created, so a read-only API key is enough.
+ * By name, the label is found in the workspace, or created if it is missing.
+ */
+export type LinearLabelConfig = { id: string } | { name: string };
+
 export class LinearService {
     private client: LinearClient;
     private labelId: string | undefined;
+    private labelName: string;
     private dryRun: boolean;
 
-    constructor(apiKey: string, options?: { dryRun?: boolean }) {
+    constructor(apiKey: string, options?: { dryRun?: boolean; label?: LinearLabelConfig }) {
         if (!apiKey) {
             throw new Error('LINEAR_API_KEY is required');
         }
         this.client = new LinearClient({ apiKey });
+        const label = options?.label;
+        this.labelId = label && 'id' in label ? label.id : undefined;
+        this.labelName = label && 'name' in label ? label.name : DEFAULT_LABEL_NAME;
         this.dryRun = options?.dryRun ?? false;
     }
 
     /**
-     * Get or create the "Dependicus" label (workspace-level).
+     * The id of the label that marks an issue as Dependicus's. Given an id,
+     * that is it. Otherwise the label is found by name, "Dependicus" unless
+     * the constructor was given another, and created if the workspace has
+     * none.
      */
     async ensureLabel(): Promise<string> {
         if (this.labelId) {
@@ -70,11 +84,11 @@ export class LinearService {
 
         // Search for existing label
         const labels = await this.client.issueLabels({
-            filter: { name: { eq: DEPENDICUS_LABEL_NAME } },
+            filter: { name: { eq: this.labelName } },
         });
 
         const existingLabel = labels.nodes.find(
-            (l) => l.name.toLowerCase() === DEPENDICUS_LABEL_NAME.toLowerCase(),
+            (l) => l.name.toLowerCase() === this.labelName.toLowerCase(),
         );
 
         if (existingLabel) {
@@ -84,13 +98,13 @@ export class LinearService {
 
         // Create new label
         const result = await this.client.createIssueLabel({
-            name: DEPENDICUS_LABEL_NAME,
+            name: this.labelName,
             color: '#6B7280', // gray
         });
 
         const newLabel = await result.issueLabel;
         if (!newLabel) {
-            throw new Error('Failed to create Dependicus label');
+            throw new Error(`Failed to create ${this.labelName} label`);
         }
 
         this.labelId = newLabel.id;

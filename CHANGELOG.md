@@ -45,6 +45,7 @@
 - The Snyk source records which versions fix each advisory, and the lowest version that fixes them all. Tickets and dependency pages show them, and `getFixVersion(store, name, version)` returns it for use as `minimumVersion`. A stable version is sent to a prerelease only when no stable release fixes everything.
 - `getFixVersion` takes `{ minSeverity }`, to ask for the release that fixes the high and critical advisories and not wait for one that also fixes a medium.
 - `VersionContext.dependencyVersions` lists every version of the dependency in the repo, with the packages on each, so a spec filing one issue per team can see what else that team is on.
+- `linear.label` sets the label Dependicus puts on its Linear issues, and finds them by, instead of "Dependicus". Given by id, the label is used as is, so a read-only key is enough. Given by name, it is found or created.
 
 ### Changed
 

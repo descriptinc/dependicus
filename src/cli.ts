@@ -20,7 +20,7 @@ import { UvProvider } from './providers-python/index';
 import { GoProvider } from './provider-go/index';
 import { CargoProvider } from './provider-rust/index';
 import { reconcileIssues } from './linear/index';
-import type { VersionContext, LinearIssueSpec } from './linear/index';
+import type { VersionContext, LinearIssueSpec, LinearLabelConfig } from './linear/index';
 import { reconcileGitHubIssues } from './github-issues/index';
 import type { GitHubIssueSpec } from './github-issues/index';
 import type { VersionContext as GitHubVersionContext } from './github-issues/index';
@@ -60,6 +60,13 @@ export interface DependicusCliConfig {
             context: VersionContext,
             store: FactStore,
         ) => LinearIssueSpec | LinearIssueSpec[] | undefined;
+        /**
+         * The Linear label on every issue Dependicus files, and how it finds them again.
+         * `{ id }` uses that label as is. `{ name }` finds the label in the workspace and
+         * creates it if it is missing, which needs an API key with write access.
+         * Defaults to the name "Dependicus".
+         */
+        label?: LinearLabelConfig;
         /** Number of days to wait before creating a new issue for a newly-published version. */
         cooldownDays?: number;
         /** Whether to allow new issue creation. Defaults to `true`. */
@@ -432,6 +439,7 @@ export function dependicusCli(config: DependicusCliConfig): {
                             store,
                             {
                                 linearApiKey,
+                                label: linearConfig.label,
                                 dryRun: options.dryRun,
                                 getDetailUrl,
                                 providerInfoMap,
