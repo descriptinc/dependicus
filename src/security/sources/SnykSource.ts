@@ -1,5 +1,5 @@
 import type { DataSource, DirectDependency, FactStore } from '../../core/index';
-import { compareVersions, parseVersion } from '../../core/utils/versionUtils';
+import { compareVersions, isPrerelease, parseVersion } from '../../core/utils/versionUtils';
 import type { CacheService } from '../../core/services/CacheService';
 import type { AdvisoryDetail, SecurityFinding, Severity, SnykConfig } from '../types';
 import { SECURITY_FINDINGS_KEY } from '../types';
@@ -180,7 +180,10 @@ function hasFix(version: string, fixes: readonly string[]): boolean {
 /**
  * The lowest version above `currentVersion` that fixes every advisory with a
  * known fix, picked from the fix versions themselves. Advisories with no fix
- * are left out, since no upgrade resolves them.
+ * are left out, since no upgrade resolves them. Snyk lists the canary that
+ * first carried a fix next to the release that followed, so a stable version
+ * takes a stable fix when there is one and a prerelease only when nothing
+ * else fixes everything.
  */
 export function lowestFixVersion(
     currentVersion: string,
@@ -191,7 +194,12 @@ export function lowestFixVersion(
     const candidates = [...new Set(fixable.flat())]
         .filter((v) => (compareVersions(v, currentVersion) ?? -1) > 0)
         .sort((a, b) => compareVersions(a, b) ?? 0);
-    return candidates.find((v) => fixable.every((fixes) => hasFix(v, fixes)));
+    const fixesAll = (v: string) => fixable.every((fixes) => hasFix(v, fixes));
+    if (!isPrerelease(currentVersion)) {
+        const stable = candidates.find((v) => !isPrerelease(v) && fixesAll(v));
+        if (stable) return stable;
+    }
+    return candidates.find(fixesAll);
 }
 
 /** Snyk's exploit-maturity verdict, the most actionable across the issues. */

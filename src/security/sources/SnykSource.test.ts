@@ -242,6 +242,23 @@ describe('lowestFixVersion', () => {
         expect(lowestFixVersion('0.32.5', [['0.32.6', '0.33.5']])).toBe('0.32.6');
     });
 
+    it('skips a prerelease fix for a stable version', () => {
+        // next 15.5.25: the fix first shipped in a canary, then in 16.1.5.
+        expect(
+            lowestFixVersion('15.5.25', [['15.6.0-canary.61', '16.1.1-canary.16', '16.1.5']]),
+        ).toBe('16.1.5');
+    });
+
+    it('takes a prerelease fix when it is the only one', () => {
+        expect(lowestFixVersion('16.1.4', [['16.2.0-canary.9']])).toBe('16.2.0-canary.9');
+    });
+
+    it('lets a prerelease move to a later prerelease', () => {
+        expect(lowestFixVersion('16.1.1-canary.3', [['16.1.1-canary.16', '16.1.5']])).toBe(
+            '16.1.1-canary.16',
+        );
+    });
+
     it('ignores advisories with no fix', () => {
         expect(lowestFixVersion('1.0.0', [[], ['1.0.3']])).toBe('1.0.3');
         expect(lowestFixVersion('1.0.0', [[]])).toBeUndefined();
