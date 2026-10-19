@@ -47,25 +47,35 @@ export interface CreateIssueParams {
     delegateId?: string;
 }
 
+/**
+ * The label on every issue Dependicus files, and how it finds them again.
+ * By id, nothing is looked up or created, so a read-only API key is enough.
+ * By name, the label is found in the workspace, or created if it is missing.
+ */
+export type LinearLabelConfig = { id: string } | { name: string };
+
 export class LinearService {
     private client: LinearClient;
     private labelId: string | undefined;
     private labelName: string;
     private dryRun: boolean;
 
-    constructor(apiKey: string, options?: { dryRun?: boolean; labelName?: string }) {
+    constructor(apiKey: string, options?: { dryRun?: boolean; label?: LinearLabelConfig }) {
         if (!apiKey) {
             throw new Error('LINEAR_API_KEY is required');
         }
         this.client = new LinearClient({ apiKey });
-        this.labelName = options?.labelName ?? DEFAULT_LABEL_NAME;
+        const label = options?.label;
+        this.labelId = label && 'id' in label ? label.id : undefined;
+        this.labelName = label && 'name' in label ? label.name : DEFAULT_LABEL_NAME;
         this.dryRun = options?.dryRun ?? false;
     }
 
     /**
-     * Get or create the label that marks an issue as Dependicus's. Every issue
-     * gets it, and it is how the issues are found again. "Dependicus" unless
-     * the constructor was given another name.
+     * The id of the label that marks an issue as Dependicus's. Given an id,
+     * that is it. Otherwise the label is found by name, "Dependicus" unless
+     * the constructor was given another, and created if the workspace has
+     * none.
      */
     async ensureLabel(): Promise<string> {
         if (this.labelId) {

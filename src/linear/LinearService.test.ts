@@ -51,12 +51,22 @@ describe('LinearService', () => {
             });
         });
 
+        it('uses a label id as given, with no lookup', async () => {
+            const byId = new LinearService('test-api-key', { label: { id: 'bump-789' } });
+
+            expect(await byId.ensureLabel()).toBe('bump-789');
+            expect(mockClient.issueLabels).not.toHaveBeenCalled();
+            expect(mockClient.createIssueLabel).not.toHaveBeenCalled();
+        });
+
         it('uses the label name it was given', async () => {
             mockClient.issueLabels.mockResolvedValue({ nodes: [] });
             mockClient.createIssueLabel.mockResolvedValue({
                 issueLabel: Promise.resolve({ id: 'bump-789' }),
             });
-            const named = new LinearService('test-api-key', { labelName: 'Dependency Bump' });
+            const named = new LinearService('test-api-key', {
+                label: { name: 'Dependency Bump' },
+            });
 
             const labelId = await named.ensureLabel();
             expect(labelId).toBe('bump-789');

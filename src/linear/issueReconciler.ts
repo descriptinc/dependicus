@@ -23,7 +23,7 @@ import {
     toSpecList,
     higherVersion,
 } from '../core/index';
-import { LinearService, DependicusIssue } from './LinearService';
+import { LinearService, DependicusIssue, type LinearLabelConfig } from './LinearService';
 import type {
     OutdatedDependency,
     OutdatedGroup,
@@ -42,8 +42,8 @@ import {
 
 export interface IssueReconcilerConfig {
     linearApiKey: string;
-    /** The label on every issue Dependicus files. Defaults to "Dependicus". */
-    labelName?: string;
+    /** The label on every issue Dependicus files, by id or by name. Defaults to "Dependicus". */
+    label?: LinearLabelConfig;
     dryRun?: boolean;
     /** Builds the full detail page URL for a given package version. */
     getDetailUrl: DetailUrlFn;
@@ -268,7 +268,7 @@ export async function reconcileIssues(
 
     const linearService = new LinearService(config.linearApiKey, {
         dryRun,
-        labelName: config.labelName,
+        label: config.label,
     });
 
     // Find out-of-date dependencies (group by ecosystem::name to avoid
