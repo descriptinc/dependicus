@@ -22,9 +22,6 @@ const providerOutputSchema = z.object({
     supportsCatalog: z.boolean(),
     installCommand: z.string().default('install'),
     urlPatterns: z.record(z.string(), z.string()).default({}),
-    // The provider's issue-template text. Zod drops keys it doesn't know, so
-    // each field a provider can set has to be named here or `update` writes
-    // it and `make-linear-issues` reads it back as undefined.
     updatePrefix: z.string().optional(),
     updateSuffix: z.string().optional(),
     updateInstructions: z.string().optional(),
