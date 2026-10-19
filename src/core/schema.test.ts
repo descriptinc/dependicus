@@ -52,6 +52,32 @@ describe('schema', () => {
             expect(result.facts.dependency.react).toBeDefined();
         });
 
+        it('keeps the provider fields the issue templates read', () => {
+            const provider = {
+                ...validInput.providers[0],
+                installCommand: 'pnpm install',
+                catalogFile: 'pnpm-workspace.yaml',
+                updatePrefix: 'Update the version in:',
+                updateSuffix: 'Then run `pnpm install`.',
+                updateInstructions: 'Bump each package.',
+                patchHint: 'Check the patches in `patches/` still apply.',
+            };
+            const result = parseDependicusOutput({ ...validInput, providers: [provider] });
+            const { dependencies: _deps, ...kept } = result.providers[0]!;
+            expect(kept).toEqual({
+                name: 'pnpm',
+                ecosystem: 'npm',
+                supportsCatalog: true,
+                installCommand: 'pnpm install',
+                urlPatterns: {},
+                catalogFile: 'pnpm-workspace.yaml',
+                updatePrefix: 'Update the version in:',
+                updateSuffix: 'Then run `pnpm install`.',
+                updateInstructions: 'Bump each package.',
+                patchHint: 'Check the patches in `patches/` still apply.',
+            });
+        });
+
         it('accepts input with empty facts', () => {
             const minimal = {
                 metadata: {

@@ -143,7 +143,7 @@ function fixVersions(issue: SnykIssue): string[] {
         for (const remedy of coordinate.remedies ?? []) {
             for (const part of remedy.details?.upgrade_package?.split(',') ?? []) {
                 const trimmed = part.trim();
-                if (trimmed) versions.push(trimmed);
+                if (trimmed && !versions.includes(trimmed)) versions.push(trimmed);
             }
         }
     }
@@ -300,7 +300,7 @@ export function toFinding(
             : `${ordered.length} Snyk advisories`,
     ];
     if (maturity) rationale.push(`Snyk exploit maturity: ${maturity}`);
-    if (fixAvailable) rationale.push('fix available in a newer version');
+    if (fixAvailable) rationale.push('Fix available in a newer version');
 
     return {
         source: 'snyk',

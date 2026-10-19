@@ -137,7 +137,7 @@ describe('SecurityPlugin', () => {
             severity: 'high',
             advisoryCount: 2,
             fixAvailable: true,
-            rationale: ['2 advisories', 'fix available in a newer version'],
+            rationale: ['2 advisories', 'Fix available in a newer version'],
             sourceLinks: [{ label: 'GHSA-1234', url: 'https://osv.dev/vulnerability/GHSA-1234' }],
         };
         scoped.setVersionFact('react', '1.0.0', SECURITY_FINDINGS_KEY, [finding]);
@@ -155,7 +155,7 @@ describe('SecurityPlugin', () => {
         const whyValue = whyCol.getValue(ctx);
         expect(whyValue).toContain('<a href=');
         expect(whyValue).toContain('GHSA-1234');
-        expect(whyValue).toContain('fix available');
+        expect(whyValue).toContain('Fix available');
     });
 
     it('getLinearIssueSpec returns description sections for findings', () => {

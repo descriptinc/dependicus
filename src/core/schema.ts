@@ -22,6 +22,11 @@ const providerOutputSchema = z.object({
     supportsCatalog: z.boolean(),
     installCommand: z.string().default('install'),
     urlPatterns: z.record(z.string(), z.string()).default({}),
+    updatePrefix: z.string().optional(),
+    updateSuffix: z.string().optional(),
+    updateInstructions: z.string().optional(),
+    catalogFile: z.string().optional(),
+    patchHint: z.string().optional(),
     dependencies: z.array(directDependencySchema),
 });
 
