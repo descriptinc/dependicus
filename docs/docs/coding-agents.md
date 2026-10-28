@@ -5,3 +5,7 @@ Upgrading a dependency is often more complicated than just bumping the version n
 That’s why Dependicus opens tickets instead of PRs. But you can still keep the convenience of automatic PRs by assigning Dependicus’s tickets directly to coding agents like Claude, Cursor, Codex, or Copilot. The tickets created by Dependicus, [like this one](https://github.com/descriptinc/dependicus/issues/4), contain enough context for an agent to do a good job, including writing a good PR title and description. And if you know an upgrade must include a hard-to-predict change, or comes with a gotcha, you can comment on the ticket, and the agent will see the extra context.
 
 Agents can be prompted to run your linter, typechecker, and test suite locally before sending you code to review, and they can notice that several packages need to be updated together.
+
+## Pointing an agent at these docs
+
+These docs are published in a form agents can read directly. [llms.txt](https://descriptinc.github.io/dependicus/llms.txt) is an index of every page, and [llms-full.txt](https://descriptinc.github.io/dependicus/llms-full.txt) is the whole site as one Markdown file. Any individual page is also available as Markdown by appending `index.md` to its URL. Hand an agent one of those when you want it to configure Dependicus rather than upgrade a dependency.
