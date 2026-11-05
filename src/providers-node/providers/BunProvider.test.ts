@@ -197,6 +197,51 @@ describe('BunProvider', () => {
             expect(provider.isInCatalog('typescript', '5.3.3')).toBe(true);
         });
 
+        it('accepts a version pinned by a named catalog', () => {
+            const dir = mkdtempSync(join(tmpdir(), 'bun-catalog-'));
+            writeFileSync(
+                join(dir, 'package.json'),
+                JSON.stringify({
+                    name: 'test',
+                    catalog: { react: '^18.0.0' },
+                    catalogs: { react17: { react: '^17.0.0' }, legacy: { next: '^12.0.0' } },
+                }),
+            );
+            writeFileSync(
+                join(dir, 'bun.lock'),
+                '{"lockfileVersion":1,"workspaces":{},"packages":{}}',
+            );
+            const provider = new BunProvider(createMockCacheService(), dir);
+
+            expect(provider.isInCatalog('react', '17.0.2')).toBe(true);
+            expect(provider.isInCatalog('react', '19.0.0')).toBe(false);
+            expect(provider.isInCatalog('next', '12.3.4')).toBe(true);
+            expect(provider.hasInCatalog('next')).toBe(true);
+        });
+
+        it('reads catalogs nested under workspaces', () => {
+            const dir = mkdtempSync(join(tmpdir(), 'bun-catalog-'));
+            writeFileSync(
+                join(dir, 'package.json'),
+                JSON.stringify({
+                    name: 'test',
+                    workspaces: {
+                        packages: ['packages/*'],
+                        catalog: { react: '^18.0.0' },
+                        catalogs: { legacy: { next: '^12.0.0' } },
+                    },
+                }),
+            );
+            writeFileSync(
+                join(dir, 'bun.lock'),
+                '{"lockfileVersion":1,"workspaces":{},"packages":{}}',
+            );
+            const provider = new BunProvider(createMockCacheService(), dir);
+
+            expect(provider.isInCatalog('react', '18.2.0')).toBe(true);
+            expect(provider.isInCatalog('next', '12.3.4')).toBe(true);
+        });
+
         it('returns false when version does not satisfy catalog range', () => {
             const dir = mkdtempSync(join(tmpdir(), 'bun-catalog-'));
             writeFileSync(

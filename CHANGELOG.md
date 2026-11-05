@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- Named catalogs count as catalog membership. Only the default `catalog:` block used to be read, so a package held at an older major by a named catalog in `catalogs:` was flagged as a Catalog Mismatch, and a package that only appeared in a named catalog never got the flag at all even when a workspace drifted from it. A version is now in the catalog if any catalog, default or named, admits it.
+    - pnpm and aube read `catalogs:` in `pnpm-workspace.yaml`. `catalogs.default` is treated the same as `catalog:`.
+    - bun reads `"catalogs"` in the root `package.json`, at the top level or inside `"workspaces"`.
+
 ## 0.2.2 - 2026-10-28
 
 ### Added

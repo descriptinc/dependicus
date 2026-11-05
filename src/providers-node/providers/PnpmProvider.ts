@@ -2,7 +2,6 @@ import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { load } from 'js-yaml';
-import { satisfies, validRange } from 'semver';
 import type {
     PackageInfo,
     DependencyProvider,
@@ -17,10 +16,12 @@ import { NpmSizeSource } from '../sources/NpmSizeSource';
 import { DeprecationSource } from '../sources/DeprecationSource';
 import { DeprecationService } from '../services/DeprecationService';
 import { resolveNpmMetadata } from '../resolveNpmMetadata';
+import { collectCatalogRanges, satisfiesAnyCatalogRange, type CatalogRanges } from '../catalog';
 
 interface PnpmWorkspace {
     patchedDependencies?: Record<string, string>;
     catalog?: Record<string, string>;
+    catalogs?: Record<string, Record<string, string>>;
 }
 
 export class PnpmProvider implements DependencyProvider {
@@ -40,7 +41,7 @@ export class PnpmProvider implements DependencyProvider {
     readonly lockfilePath: string;
     private cachedPackages: PackageInfo[] | undefined = undefined;
     private patchedDeps: Set<string>;
-    private catalogVersions: Map<string, string>;
+    private catalogRanges: CatalogRanges;
     private cacheService: CacheService;
     private hasWorkspace: boolean;
 
@@ -57,15 +58,10 @@ export class PnpmProvider implements DependencyProvider {
             this.patchedDeps = workspace.patchedDependencies
                 ? new Set(Object.keys(workspace.patchedDependencies))
                 : new Set<string>();
-            this.catalogVersions = new Map<string, string>();
-            if (workspace.catalog) {
-                for (const [pkg, version] of Object.entries(workspace.catalog)) {
-                    this.catalogVersions.set(pkg, version);
-                }
-            }
+            this.catalogRanges = collectCatalogRanges(workspace.catalog, workspace.catalogs);
         } catch {
             this.patchedDeps = new Set<string>();
-            this.catalogVersions = new Map<string, string>();
+            this.catalogRanges = new Map();
         }
     }
 
@@ -139,22 +135,11 @@ export class PnpmProvider implements DependencyProvider {
     }
 
     isInCatalog(name: string, version: string): boolean {
-        const catalogRange = this.catalogVersions.get(name);
-        if (!catalogRange) {
-            return false;
-        }
-        if (!validRange(catalogRange)) {
-            return version === catalogRange;
-        }
-        try {
-            return satisfies(version, catalogRange);
-        } catch {
-            return version === catalogRange;
-        }
+        return satisfiesAnyCatalogRange(this.catalogRanges.get(name), version);
     }
 
     hasInCatalog(name: string): boolean {
-        return this.catalogVersions.has(name);
+        return this.catalogRanges.has(name);
     }
 
     isPatched(name: string, version: string): boolean {

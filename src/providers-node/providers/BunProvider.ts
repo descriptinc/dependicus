@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { satisfies, validRange } from 'semver';
 import type {
     PackageInfo,
     DependencyInfo,
@@ -13,6 +12,17 @@ import { NpmRegistryService } from '../services/NpmRegistryService';
 import { NpmRegistrySource } from '../sources/NpmRegistrySource';
 import { NpmSizeSource } from '../sources/NpmSizeSource';
 import { resolveNpmMetadata } from '../resolveNpmMetadata';
+import { collectCatalogRanges, satisfiesAnyCatalogRange, type CatalogRanges } from '../catalog';
+
+interface BunCatalogs {
+    catalog?: Record<string, string>;
+    catalogs?: Record<string, Record<string, string>>;
+}
+
+/** The parts of a root package.json that bun reads catalogs from. */
+interface BunRootPackageJson extends BunCatalogs {
+    workspaces?: string[] | (BunCatalogs & { packages?: string[] });
+}
 
 /**
  * Shape of the bun.lock JSONC file (bun >= 1.2).
@@ -71,7 +81,7 @@ export class BunProvider implements DependencyProvider {
     readonly rootDir: string;
     readonly lockfilePath: string;
     private cachedPackages: PackageInfo[] | undefined = undefined;
-    private catalogVersions: Map<string, string>;
+    private catalogRanges: CatalogRanges;
     private cacheService: CacheService;
 
     constructor(cacheService: CacheService, rootDir: string) {
@@ -79,19 +89,21 @@ export class BunProvider implements DependencyProvider {
         this.rootDir = rootDir;
         this.lockfilePath = join(rootDir, 'bun.lock');
 
-        // Bun reads catalog from root package.json
+        // Bun reads catalogs from the root package.json, either at the top
+        // level or inside the `workspaces` object.
         try {
             const packageJson = JSON.parse(
                 readFileSync(join(rootDir, 'package.json'), 'utf-8'),
-            ) as { catalog?: Record<string, string> };
-            this.catalogVersions = new Map<string, string>();
-            if (packageJson.catalog) {
-                for (const [pkg, version] of Object.entries(packageJson.catalog)) {
-                    this.catalogVersions.set(pkg, version);
-                }
-            }
+            ) as BunRootPackageJson;
+            const workspaces = Array.isArray(packageJson.workspaces)
+                ? undefined
+                : packageJson.workspaces;
+            this.catalogRanges = collectCatalogRanges(
+                { ...workspaces?.catalog, ...packageJson.catalog },
+                { ...workspaces?.catalogs, ...packageJson.catalogs },
+            );
         } catch {
-            this.catalogVersions = new Map<string, string>();
+            this.catalogRanges = new Map();
         }
     }
 
@@ -162,22 +174,11 @@ export class BunProvider implements DependencyProvider {
     }
 
     isInCatalog(name: string, version: string): boolean {
-        const catalogRange = this.catalogVersions.get(name);
-        if (!catalogRange) {
-            return false;
-        }
-        if (!validRange(catalogRange)) {
-            return version === catalogRange;
-        }
-        try {
-            return satisfies(version, catalogRange);
-        } catch {
-            return version === catalogRange;
-        }
+        return satisfiesAnyCatalogRange(this.catalogRanges.get(name), version);
     }
 
     hasInCatalog(name: string): boolean {
-        return this.catalogVersions.has(name);
+        return this.catalogRanges.has(name);
     }
 
     isPatched(name: string, _version: string): boolean {
