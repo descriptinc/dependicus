@@ -6,12 +6,14 @@ For Node.js package managers, Dependicus reads the lockfile and workspace struct
 
 pnpm, bun, and aube support dependency catalogs, which centralize version ranges so workspace packages can reference them instead of duplicating version specifiers.
 
-| Feature             | pnpm                                   | bun                              | aube                                                     | yarn / npm    |
-| ------------------- | -------------------------------------- | -------------------------------- | -------------------------------------------------------- | ------------- |
-| Catalog location    | `pnpm-workspace.yaml` under `catalog:` | `package.json` under `"catalog"` | `pnpm-workspace.yaml` under `catalog:` (pnpm-compatible) | Not supported |
-| Workspace reference | `catalog:` protocol in `package.json`  | `"catalog:"` in `package.json`   | `catalog:` protocol in `package.json`                    | Not supported |
+| Feature             | pnpm                                                   | bun                                               | aube                                                                     | yarn / npm    |
+| ------------------- | ------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------ | ------------- |
+| Catalog location    | `pnpm-workspace.yaml` under `catalog:` and `catalogs:` | `package.json` under `"catalog"` and `"catalogs"` | `pnpm-workspace.yaml` under `catalog:` and `catalogs:` (pnpm-compatible) | Not supported |
+| Workspace reference | `catalog:` protocol in `package.json`                  | `"catalog:"` in `package.json`                    | `catalog:` protocol in `package.json`                                    | Not supported |
 
 Dependicus reads the catalog from the appropriate location for each provider. In the dashboard, dependencies that are in the catalog are flagged, and dependencies whose installed version doesn't satisfy the catalog range are shown as a catalog mismatch.
+
+Named catalogs count too. A package pinned in the default catalog and again in a named catalog, say `react: ^18` in `catalog:` and `react: ^17` in `catalogs.react17`, is in the catalog at both versions, so a workspace package still on React 17 is not a mismatch. A package that only appears in a named catalog is still tracked, so drift away from that catalog's range does show up.
 
 ## Patching
 

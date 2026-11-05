@@ -197,6 +197,37 @@ catalog:
 
             expect(provider.isInCatalog('vue', '3.0.0')).toBe(false);
         });
+
+        it('accepts a version pinned by a named catalog', () => {
+            writeWorkspaceYaml(`
+catalog:
+  react: ^18.2.0
+catalogs:
+  react17:
+    react: ^17.0.0
+  legacy:
+    next: ^12.0.0
+`);
+            const provider = new PnpmProvider(createMockCacheService(), tempDir);
+
+            expect(provider.isInCatalog('react', '18.3.1')).toBe(true);
+            expect(provider.isInCatalog('react', '17.0.2')).toBe(true);
+            expect(provider.isInCatalog('react', '19.0.0')).toBe(false);
+            expect(provider.isInCatalog('next', '12.3.4')).toBe(true);
+            expect(provider.isInCatalog('next', '14.0.0')).toBe(false);
+        });
+
+        it('treats catalogs.default like catalog', () => {
+            writeWorkspaceYaml(`
+catalogs:
+  default:
+    react: ^18.2.0
+`);
+            const provider = new PnpmProvider(createMockCacheService(), tempDir);
+
+            expect(provider.isInCatalog('react', '18.3.1')).toBe(true);
+            expect(provider.isInCatalog('react', '17.0.0')).toBe(false);
+        });
     });
 
     describe('hasInCatalog', () => {
@@ -210,6 +241,19 @@ catalog:
 
             expect(provider.hasInCatalog('react')).toBe(true);
             expect(provider.hasInCatalog('typescript')).toBe(true);
+        });
+
+        it('returns true for packages only in a named catalog', () => {
+            writeWorkspaceYaml(`
+catalog:
+  react: ^18.2.0
+catalogs:
+  legacy:
+    next: ^12.0.0
+`);
+            const provider = new PnpmProvider(createMockCacheService(), tempDir);
+
+            expect(provider.hasInCatalog('next')).toBe(true);
         });
 
         it('returns false for packages not in catalog', () => {

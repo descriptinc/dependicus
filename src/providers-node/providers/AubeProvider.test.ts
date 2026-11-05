@@ -256,6 +256,19 @@ describe('AubeProvider', () => {
             expect(provider.isInCatalog('typescript', '5.3.3')).toBe(true);
         });
 
+        it('accepts a version pinned by a named catalog', () => {
+            writeFileSync(
+                join(tmpDir, 'pnpm-workspace.yaml'),
+                `catalog:\n  react: ^18.0.0\ncatalogs:\n  react17:\n    react: ^17.0.0\n  legacy:\n    next: ^12.0.0\n`,
+            );
+            const provider = new AubeProvider(createMockCacheService(), tmpDir);
+
+            expect(provider.isInCatalog('react', '17.0.2')).toBe(true);
+            expect(provider.isInCatalog('react', '19.0.0')).toBe(false);
+            expect(provider.isInCatalog('next', '12.3.4')).toBe(true);
+            expect(provider.hasInCatalog('next')).toBe(true);
+        });
+
         it('returns false when version does not satisfy catalog range', () => {
             writeFileSync(join(tmpDir, 'pnpm-workspace.yaml'), `catalog:\n  react: ^18.0.0\n`);
             const provider = new AubeProvider(createMockCacheService(), tmpDir);
